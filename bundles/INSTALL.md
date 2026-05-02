@@ -44,7 +44,7 @@ This invokes `harness-audit` in first-time-setup mode and walks you through:
 
 1. Confirming project name and description.
 2. Picking starting domains from the catalogue in `knowledge/_meta/domains.md`.
-3. Optionally creating a `codebase/` folder.
+3. Confirming what to do with the seeded `codebase/` folder (keep empty, migrate an existing repo in, or delete).
 
 After setup, capture initial decisions with `/kb-add` and add service skills as you wire up integrations.
 

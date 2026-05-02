@@ -1,0 +1,14 @@
+node_modules/
+dist/
+rules/
+skills/
+seeds/
+
+# commands/ holds plugin-authored init-harness.md plus build-copied commands.
+# The build-copied ones are gitignored individually below.
+commands/audit.md
+commands/drift-scan.md
+commands/kb-add.md
+
+*.tsbuildinfo
+.DS_Store

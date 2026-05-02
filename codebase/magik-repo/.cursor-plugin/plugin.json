@@ -1,0 +1,14 @@
+{
+  "name": "magik-repo",
+  "version": "0.1.0",
+  "description": "Project Harness — knowledge, artifacts, code, and worker config in one repo. Provides /init-harness, /audit, /drift-scan, /kb-add and the harness's rules, _core skills, and templates.",
+  "author": "LaLi",
+  "license": "MIT",
+  "keywords": [
+    "harness",
+    "scaffolding",
+    "knowledge-base",
+    "agent",
+    "project"
+  ]
+}

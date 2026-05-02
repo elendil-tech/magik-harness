@@ -53,6 +53,8 @@ The seed installed when this template is used for a new project. Designed to be 
 ├── workspace/
 │   ├── .gitkeep
 │   └── README.md
+├── codebase/
+│   └── README.md
 └── bundles/
     ├── manifest.md
     └── INSTALL.md
@@ -63,7 +65,8 @@ The seed installed when this template is used for a new project. Designed to be 
 - No pre-created project domains. The user picks during `/audit`.
 - No service skills. Add as needed via `scaffolding-author`.
 - No subagents. Add only when a coherent role with a measurable success signal emerges.
-- No CI/CD configs at the root. Those live in `codebase/` once the user adds it.
+- No CI/CD configs at the root. Those live inside `codebase/`.
+- No code. `codebase/` ships with only a README explaining the boundary and migration patterns; the user fills it (or removes it if the project doesn't ship code).
 - No hooks. Users add their own.
 
 ## Versioning

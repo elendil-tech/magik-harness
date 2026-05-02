@@ -1,0 +1,22 @@
+# --- Project harness ----------------------------------------------------------
+# workspace/ holds operational artifacts (drafts, pdfs, media, csvs, contracts).
+# It is intentionally NOT version-controlled. The directory itself is preserved
+# via workspace/.gitkeep and workspace/README.md (whitelisted below).
+workspace/*
+!workspace/.gitkeep
+!workspace/README.md
+
+# Cursor telemetry / session ephemera (if any tooling drops files here).
+.cursor/telemetry/
+.cursor/.cache/
+
+# --- OS / editors -------------------------------------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+.idea/
+.vscode/

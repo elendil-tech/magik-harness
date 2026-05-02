@@ -11,7 +11,7 @@ This repo is **a project**, not just a code repo. It has four components:
 | --- | --- | --- | --- |
 | Knowledge base | `knowledge/` | tracked | Ground truth, organized by project domain. |
 | Workspace | `workspace/` | ignored | Operational artifacts (drafts, pdfs, media). |
-| Codebase | `codebase/` (optional) | tracked | Standard code repo, nested one level. |
+| Codebase | `codebase/` | tracked | Standard code repo, nested one level. Seeded with a README; may be empty if the project doesn't ship code. |
 | Worker | `.cursor/` | tracked | Rules, skills, agents, commands, hooks. |
 
 ## Hard rules

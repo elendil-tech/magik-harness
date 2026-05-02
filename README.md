@@ -14,7 +14,7 @@ A project repo has four conceptual components. Three are folders, one is a proce
 | --- | --- | --- | --- |
 | **Knowledge base** | `knowledge/` | tracked | Foundational definitions and ground truth, organized by **project domain** (engineering, brand, product, legal, finance, …). The reference layer. |
 | **Workspace** | `workspace/` | **ignored** | Operational artifacts/assets — pdfs, svgs, ai/eps, csvs, mp4s, research reports, contracts, drafts, ad campaigns. The "company drive". |
-| **Codebase** *(optional)* | `codebase/` | tracked | Standard code repo, simply nested one level under the project root. CI/CD attaches here. |
+| **Codebase** | `codebase/` | tracked | Standard code repo, nested one level under the project root. CI/CD attaches here. Seeded with a README; leave empty (or delete) if the project doesn't ship code. |
 | **Worker / agent** | *process* | n/a | The AI agent. Configured via `.cursor/` (rules, skills, agents, commands, hooks). |
 
 Mental rule of thumb:
@@ -58,7 +58,7 @@ A business is currently fragmented across Notion / Confluence (knowledge), Drive
 ├── workspace/                 # Business artifacts (gitignored)
 │   ├── README.md
 │   └── <domain>/              # Created on demand
-└── codebase/                  # Optional code (tracked, attached to CI/CD)
+└── codebase/                  # Code (tracked, attached to CI/CD); seeded with README, may be empty or removed
 ```
 
 The seed is deliberately thin. **Domain folders are not pre-created** under `knowledge/`, `.cursor/skills/`, or `workspace/` — they appear as the project grows. The single source of truth for "which domains exist and how nested they are" is `knowledge/_meta/domains.md`.
@@ -122,7 +122,9 @@ When an artifact in `workspace/` materially changes the truth of a domain (e.g.,
 
 ## 6. Codebase
 
-Optional. A standard code repo, nested at `codebase/`. It runs its own tooling (lockfiles, CI, linters). The harness does **not** prescribe a stack. Drift control is light here — it only checks that architectural decisions in `knowledge/engineering/` are not contradicted by `codebase/` (and vice versa).
+A standard code repo, nested at `codebase/`. It runs its own tooling (lockfiles, CI, linters). The harness does **not** prescribe a stack. Drift control is light here — it only checks that architectural decisions in `knowledge/engineering/` are not contradicted by `codebase/` (and vice versa).
+
+The folder is **seeded** with a `README.md` that documents its boundary and three migration patterns (copy-in, `git subtree`, `git submodule`) for adopting the harness over an existing code repo. Projects that don't ship code may leave it empty or delete it — its presence is not enforced.
 
 ---
 
