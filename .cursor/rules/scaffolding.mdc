@@ -25,11 +25,21 @@ The harness must evolve with the project. Use this checklist when deciding wheth
 - It has non-obvious auth / connection / verification steps.
 - It has CLI/API/MCP surface area.
 
-## Add a **subagent** when (rarely)
+## Add a **subagent** when
 
-- There is a coherent role with its own tool surface (e.g., a researcher, a reviewer, a release manager).
-- The role has a measurable success signal you can name.
-- A skill is not enough because the work spans multiple turns / sessions with its own state.
+The default unit of subagent is a **project domain** — a marketing agent, a sales agent, an engineering agent, etc. (See `.cursor/rules/subagents.mdc`.)
+
+Add a **domain agent** when the domain has all of:
+
+- ≥ 1 domain skill at `.cursor/skills/<domain>/_domain/`.
+- ≥ 3 task skills under `.cursor/skills/<domain>/`.
+- ≥ 1 service skill in active use.
+- Recurring tasks the user explicitly delegates to that domain.
+
+Add a **non-domain subagent** (rare; e.g., a release manager, a researcher spanning multiple domains) only when:
+
+- The role spans domains *coherently* with a measurable success signal.
+- A skill or main-agent prompt is provably insufficient.
 
 If you can't name a success signal, write a skill, not a subagent.
 

@@ -51,6 +51,24 @@ Show the **reference catalogue** from `knowledge/_meta/domains.md`. Ask which ap
 
 Only add domains the user can immediately fill. **Prefer fewer, deeper.**
 
+### 2a. Offer subdomain seeds (optional)
+
+For each chosen domain, mention the recommended subdomain set from `knowledge/_meta/subdomain-catalogue.md`. **Do not pre-create subdomain folders** — they earn their place. Just surface them as a menu, e.g.:
+
+```
+You picked `engineering`. Recommended subdomains for full SaaS coverage
+(create them later as content accumulates):
+
+  architecture, backend, frontend, data, infrastructure,
+  observability, reliability, security, testing
+
+Smallest viable starter: architecture, backend, frontend, infrastructure, security.
+
+Want a flat `engineering/` for now? [y/n]   (recommended: y)
+```
+
+A flat domain is the right starting point in almost all cases. Subdomains are added later via `domain-registry`.
+
 ### 3. Apply
 
 For each chosen domain, defer to `domain-registry` skill (one call per domain). Each one creates `knowledge/<domain>/_index.md`.
@@ -107,11 +125,12 @@ Produce 0–N **proposals**:
 
 | Proposal type | Trigger |
 | --- | --- |
-| Add subdomain | A domain has > 8 active entries and a clear sub-cluster. |
+| Add subdomain | A domain has > 8 active entries and a clear sub-cluster (consult `knowledge/_meta/subdomain-catalogue.md` for a matching slug). |
 | Merge domains | Two domains have heavy cross-links and overlapping concepts. |
 | Deprecate domain | No writes in > 6 months, no referenced entries. |
 | Promote fieldnote | `recurrence ≥ 3` or `severity: high`. |
 | Add domain skill | Domain has > 3 task skills but no `_domain/SKILL.md`. |
+| **Add domain agent** | Domain has ≥ 1 domain skill, ≥ 3 task skills, and ≥ 1 service skill — i.e., enough specialized surface to warrant a dedicated worker. See `.cursor/rules/subagents.mdc`. |
 
 ### 6. Output
 

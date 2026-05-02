@@ -44,13 +44,15 @@ domains: []                # populated as the project earns its domains
 
 These are common project domains. They are listed here as a *menu*, not as active domains. The `/audit` skill will offer them during first-time setup; only the ones you choose move into `domains:` above.
 
-- `engineering` — code architecture, infrastructure, observability, reliability, security, testing.
-- `product` — product strategy, features, roadmap, user research.
-- `brand` — visual identity, voice, design tokens, brand assets.
-- `marketing` — positioning, campaigns, content, SEO.
-- `sales` — pipeline, ICP, playbooks, contracts.
-- `legal` — entity, IP, contracts, compliance, privacy.
-- `finance` — accounting, fundraising, runway, pricing.
+For each domain, see [`subdomain-catalogue.md`](./subdomain-catalogue.md) for the recommended subdomain breakdown (when the domain is mature enough to split).
+
+- `engineering` — code, infrastructure, observability, reliability, security, testing. *(Subdomains: architecture, backend, frontend, data, infrastructure, observability, reliability, security, testing.)*
+- `product` — product strategy, features, roadmap, user research. *(Subdomains: strategy, discovery, roadmap, features, analytics.)*
+- `brand` — visual identity, voice, design tokens, brand assets. *(Subdomains: visual-identity, voice, design-system, guidelines.)*
+- `marketing` — positioning, campaigns, content, SEO. *(Subdomains: positioning, content, campaigns, growth, analytics.)*
+- `sales` — pipeline, ICP, playbooks, contracts. *(Subdomains: icp, pipeline, playbooks, contracts.)*
+- `legal` — entity, IP, contracts, compliance, privacy. *(Subdomains: entity, ip, contracts, privacy, compliance.)*
+- `finance` — accounting, fundraising, runway, pricing. *(Subdomains: accounting, pricing, fundraising, forecasting.)*
 - `strategy` — north-star, OKRs, market analysis.
 - `operations` — vendors, workflows, internal tooling.
 - `support` — customer support patterns, SLAs.

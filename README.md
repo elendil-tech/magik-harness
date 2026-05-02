@@ -1,6 +1,6 @@
 # Project Harness
 
-A project‑level (not just code‑level) AI harness for Cursor. It gives a **single repo** the structure, knowledge, and worker scaffolding to operate as an entire **business / project**, with code as one optional component.
+A self-adaptive project-level AI harness for managing a project/business with Cursor. It gives a **single repo** the structure, knowledge, and agent scaffolding to operate as an entire **business / project**.
 
 > **Scope.** This harness wraps a project. It does **not** modify Cursor's internal harness. It only provides a folder layout, a knowledge schema, and `.cursor/` agent configuration that lets agents work coherently inside that layout.
 
@@ -50,9 +50,10 @@ A business is currently fragmented across Notion / Confluence (knowledge), Drive
 ├── knowledge/                 # Knowledge base (tracked)
 │   ├── _index.md
 │   ├── _meta/
-│   │   ├── domains.md         # Central domain registry (the project's domain tree)
-│   │   ├── glossary.md        # Canonical terms
-│   │   └── schemas/           # Document schemas (concept, decision, policy, spec, fieldnote)
+│   │   ├── domains.md             # Central domain registry (the project's domain tree)
+│   │   ├── subdomain-catalogue.md # Reference subdomain templates per top-level domain
+│   │   ├── glossary.md            # Canonical terms
+│   │   └── schemas/               # Document schemas (concept, decision, policy, spec, fieldnote)
 │   └── <domain>/              # Domain knowledge (created on demand)
 ├── workspace/                 # Business artifacts (gitignored)
 │   ├── README.md
@@ -78,6 +79,16 @@ Two layers must stay aligned with the registry:
 `workspace/` may follow domain organization for human convenience but is **not required** to mirror the registry — it stores artifacts of any shape.
 
 When the registry changes, a **drift scan** reconciles knowledge, skills, and (optionally) workspace.
+
+### Subdomain catalogue
+
+`knowledge/_meta/subdomain-catalogue.md` is a reference menu of subdomains for each top-level domain. It is *advisory*, not active state — entries earn their folder once they accumulate ≥ 3 durable artifacts. The catalogue is deepest on **engineering**, where it documents nine subdomains for full SaaS coverage:
+
+> `architecture`, `backend`, `frontend`, `data`, `infrastructure`, `observability`, `reliability`, `security`, `testing`
+
+with explicit fold-ins for smaller projects (start with `architecture` + `backend` + `frontend` + `infrastructure` + `security`; add others as they earn their place). Other domains (`product`, `brand`, `marketing`, `sales`, `legal`, `finance`) ship with lighter recommended sets.
+
+The `domain-registry` skill consults the catalogue before proposing a split. The `harness-audit` first-time setup surfaces it as a menu, but a flat domain is the default starting state in nearly all cases.
 
 ---
 
@@ -150,9 +161,27 @@ Always-on behavioral rules live in `.cursor/rules/`. The seed ships with:
 - `scaffolding.mdc` — the self-scaffolding decision protocol.
 - `drift-control.mdc` — drift definitions and the reconciliation protocol.
 
-### Subagents, commands, hooks
+### Subagents — domain-shaped by default
 
-- `agents/` — subagent configs created on demand (the harness ships none in the seed).
+The default subagent in this harness is a **domain agent** — a specialist worker for a single project domain (a `marketing-agent`, a `sales-agent`, an `engineering-agent`). Conceptually it is a human hired for that domain: they know its KB, its skills, its services, and produce artifacts under its workspace.
+
+A domain earns an agent when it has:
+
+- ≥ 1 domain skill, ≥ 3 task skills, ≥ 1 service skill in active use, and recurring delegated work.
+
+A domain agent inherits:
+
+- **Read** — `knowledge/<domain>/`, `knowledge/_meta/`, `.cursor/skills/<domain>/`, relevant services.
+- **Write** — `knowledge/<domain>/` (entries, including `fieldnote`s), `workspace/<domain>/`.
+- **Codebase** — read-only by default; only the engineering agent has write access inside `codebase/`.
+- **Core skills** — `domain-registry` and `knowledge-base` are *propose-only*; structural changes route through the main agent.
+
+Cross-domain work and structural changes stay with the **main agent**. Non-domain subagents (release-manager, researcher) are an exception with a high bar.
+
+See `.cursor/rules/subagents.mdc` and the template at `.cursor/skills/_templates/domain-agent.md`.
+
+### Commands, hooks
+
 - `commands/` — `/audit`, `/drift-scan`, `/kb-add` for quick invocation of core skills.
 - `hooks/` — empty by default; users add their own.
 

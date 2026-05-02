@@ -26,8 +26,12 @@ If the gap is "we don't know what we want", it is a **knowledge** problem — de
 
 ### 2. Decide: skill vs. subagent
 
-- **Skill** — a deterministic procedure or guidance the agent follows in-context.
-- **Subagent** — a coherent role with its own tools, multi-turn state, and a measurable success signal.
+- **Skill** — a deterministic procedure or guidance the main agent follows in-context.
+- **Domain agent** (default subagent shape) — a specialist worker for a single project domain, inheriting that domain's skills, services, and KB. See `.cursor/rules/subagents.mdc`.
+- **Non-domain subagent** — a cross-domain role (release-manager, researcher) with a measurable success signal. Rare.
+
+A domain earns an agent when:
+- ≥ 1 domain skill, ≥ 3 task skills, ≥ 1 service skill in active use, and recurring delegated work.
 
 If you can't name a success signal, write a skill.
 
@@ -101,14 +105,32 @@ If determinism is improved by code, drop scripts under `<task>/scripts/`. Refere
 
 Run `drift-scan --shallow` to confirm no new drift.
 
-## Subagent path (rare)
+## Subagent path
 
-If a subagent is justified:
+### Domain agent (default)
+
+When a domain meets the threshold:
+
+1. Confirm with user — subagent creation is a structural change.
+2. Copy `.cursor/skills/_templates/domain-agent.md` to `.cursor/agents/<domain>.md`.
+3. Fill the template:
+   - Inherit context: `knowledge/<domain>/`, `knowledge/_meta/` (read), `knowledge/_index.md` (read).
+   - Inherit skills: every `SKILL.md` under `.cursor/skills/<domain>/`, plus listed services.
+   - Workspace: read/write `workspace/<domain>/`.
+   - Codebase access: read-only by default; only `engineering-agent` may write under `codebase/`.
+   - Core skills: `domain-registry` and `knowledge-base` are **propose-only** for non-core agents.
+4. Define the success signal (concrete; observable).
+5. Define escalation: when this agent should hand back to the main agent (cross-domain work, structural changes, anything outside its domain).
+6. Run `drift-scan` afterward.
+
+### Non-domain subagent (exception)
+
+Only justified when the role spans domains *and* has a measurable success signal *and* a skill is provably insufficient. Document the justification in the agent file.
 
 1. Place at `.cursor/agents/<role>.md`.
 2. State: role, tool surface, success signal, when to spawn, when to stop.
 3. Cross-link any skills the subagent depends on.
-4. Get user confirmation. **Subagents are user-confirmed structural changes.**
+4. Require explicit user confirmation.
 
 ## Anti-patterns
 

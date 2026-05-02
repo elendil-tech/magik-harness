@@ -1,0 +1,65 @@
+---
+description: Subagents are domain-shaped by default — analogous to a human worker on that domain.
+alwaysApply: true
+---
+
+# Subagents
+
+A subagent is a **specialist worker** with bounded context, a known toolset, and a measurable success signal. The default unit of subagent in this harness is a **project domain** — a `marketing-agent`, `sales-agent`, `engineering-agent`, etc.
+
+Think of each subagent as a human worker hired for that domain: they know their domain's KB, their domain's skills, their domain's services, and they produce artifacts under their domain's workspace folder.
+
+## Default shape — domain agents
+
+Each domain agent inherits:
+
+- **Context** — `knowledge/<domain>/` (read), `knowledge/_meta/` (read), `knowledge/_index.md` (read).
+- **Skills** — every skill under `.cursor/skills/<domain>/`, plus relevant `.cursor/skills/services/<service>/`.
+- **Workspace** — read/write `workspace/<domain>/`.
+- **Codebase** — read-only by default; only the engineering agent has write access (and only inside `codebase/`).
+- **Core skills** — `domain-registry` and `knowledge-base` are **read-only proposals** for non-core agents (they may surface proposals; only the main agent applies them).
+
+## When a domain earns an agent
+
+Add a domain agent when the domain has all of:
+
+- ≥ 1 domain skill (`.cursor/skills/<domain>/_domain/SKILL.md`).
+- ≥ 3 task skills.
+- ≥ 1 service skill in active use.
+- Recurring tasks the user explicitly delegates to "the marketing side" / "the sales side" / etc.
+
+Below this threshold, the main agent handles domain work directly — adding an agent prematurely just adds delegation overhead.
+
+## Cross-domain work
+
+Cross-domain tasks (a launch spans marketing + sales + product + engineering) **stay with the main agent**. The main agent may consult domain agents for portions of the work but owns the orchestration.
+
+A "release-manager" or "researcher" subagent is an exception, justified only when:
+- The role spans multiple domains *coherently*.
+- It has a measurable success signal beyond any single domain.
+- A skill or main-agent prompt is provably insufficient.
+
+Default to **no** non-domain subagents.
+
+## Naming and placement
+
+- File: `.cursor/agents/<domain>.md` (e.g., `marketing.md`, `sales.md`, `engineering.md`).
+- Frontmatter: `name`, `description`, optional `tools_allowlist`, `paths_read`, `paths_write`.
+- Body follows `.cursor/skills/_templates/domain-agent.md`.
+
+## Capture loop
+
+A domain agent that learns a non-trivial lesson should:
+
+1. Write a `fieldnote` under `knowledge/<domain>/` (allowed; this is its memory).
+2. Propose a new task skill under its domain via `scaffolding-author` (proposal only).
+3. Surface drift it noticed; the main agent decides whether to mutate the registry.
+
+Domain agents do **not** mutate the domain registry, schemas, or other domains' knowledge.
+
+## Anti-patterns
+
+- Creating a subagent for a domain with no skills yet.
+- Creating one subagent per task (that's a skill, not an agent).
+- Granting a domain agent write access outside its domain.
+- Using non-domain subagents as the default form.

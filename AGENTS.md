@@ -15,10 +15,21 @@ Domains (engineering, product, brand, legal, finance, marketing, sales, strategy
 
 - **Always read `knowledge/_meta/domains.md` first** when starting work that touches a domain. Treat anything outside the registry as an unscoped concept.
 - **Reference `knowledge/<domain>/`** before producing domain-relevant work. If ground truth is missing, propose a `concept`, `decision`, `policy`, `specification`, or `fieldnote` entry (see `knowledge/_meta/schemas/`).
+- **Consult `knowledge/_meta/subdomain-catalogue.md`** before proposing a subdomain split. The catalogue is advisory; subdomains earn their folder via the same threshold (≥ 3 durable artifacts).
 - **Place artifacts under `workspace/`** — never at repo root, never inside `knowledge/`.
 - **Place code under `codebase/`** — never at repo root.
 - **`.cursor/skills/`** is typed: `services/<service>/`, `<domain>/_domain/`, `<domain>/<task>/`. Don't drop skills at the top level.
 - **Capture lessons as `fieldnote` entries** when you make a non-trivial mistake, find a non-obvious gotcha, or repeat the same fix. This is the project's persistent memory.
+
+## Subagents
+
+Subagents are **domain-shaped by default** — `marketing-agent`, `sales-agent`, `engineering-agent`. Conceptually each is a human worker hired for that domain. They inherit:
+
+- read access to `knowledge/<domain>/`, `knowledge/_meta/`, `.cursor/skills/<domain>/`, services
+- write access to `knowledge/<domain>/` (entries) and `workspace/<domain>/`
+- codebase access read-only (engineering agent: read-write inside `codebase/`)
+
+Cross-domain work and structural harness changes stay with the main agent. See `.cursor/rules/subagents.mdc`.
 
 ## When in doubt
 

@@ -16,6 +16,7 @@ The seed installed when this template is used for a new project. Designed to be 
 │   │   ├── knowledge-base.mdc
 │   │   ├── skills-organization.mdc
 │   │   ├── scaffolding.mdc
+│   │   ├── subagents.mdc
 │   │   └── drift-control.mdc
 │   ├── skills/
 │   │   ├── _core/
@@ -28,18 +29,20 @@ The seed installed when this template is used for a new project. Designed to be 
 │   │   ├── _templates/
 │   │   │   ├── service-skill.md
 │   │   │   ├── domain-skill.md
-│   │   │   └── task-skill.md
+│   │   │   ├── task-skill.md
+│   │   │   └── domain-agent.md
 │   │   └── services/_index.md
 │   ├── commands/
 │   │   ├── audit.md
 │   │   ├── drift-scan.md
 │   │   └── kb-add.md
-│   ├── agents/        (empty)
+│   ├── agents/        (empty — domain agents are added on demand by scaffolding-author)
 │   └── hooks/         (empty)
 ├── knowledge/
 │   ├── _index.md
 │   └── _meta/
 │       ├── domains.md
+│       ├── subdomain-catalogue.md
 │       ├── glossary.md
 │       └── schemas/
 │           ├── concept.md

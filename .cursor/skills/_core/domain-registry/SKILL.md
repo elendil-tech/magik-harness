@@ -39,7 +39,7 @@ Ask which operation is needed:
 
 ### 3. Apply thresholds
 
-Before adding:
+Before adding (domain or subdomain):
 - Has the project accumulated **≥ 3 durable artifacts** (KB entries, skills, or specs) that would belong here?
 - Is the boundary clear and not overlapping an existing domain?
 - If both yes → proceed. If not → propose recording the artifacts first under the closest existing parent (or `research/`), and revisit.
@@ -47,6 +47,16 @@ Before adding:
 Before deprecating:
 - Has the domain had no writes in **≥ M months** (default M=6)?
 - Are there current references to it from other domains? (If yes, propose a successor first.)
+
+### 3a. Consult the subdomain catalogue (for splits)
+
+When proposing a **subdomain split**, read `knowledge/_meta/subdomain-catalogue.md` and find the parent's recommended set. Match user intent against the catalogue:
+
+- If the proposed slug matches a catalogue entry → use the catalogue's `name`, `purpose`, and "earn it when…" language verbatim.
+- If it doesn't match → flag it. Either pick the closest catalogue slug, propose adding a new entry to the catalogue, or document why this project diverges.
+- For a fresh `engineering/` split, consider proposing the **suggested first ADRs** for the subdomain (placeholder `decision` entries) — only if the user wants seed content.
+
+The catalogue is **advisory**. You may diverge with explicit user confirmation.
 
 ### 4. Propose to user
 
