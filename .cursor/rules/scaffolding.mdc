@@ -1,0 +1,51 @@
+---
+description: Self-scaffolding decision protocol — when to add a skill, subagent, or domain.
+alwaysApply: true
+---
+
+# Self-scaffolding
+
+The harness must evolve with the project. Use this checklist when deciding whether to scaffold something new.
+
+## Add a **task skill** when
+
+- The same procedure has been performed ≥ 2 times (or you predict it will be).
+- Its inputs / outputs are stable enough to encode.
+- It would benefit from determinism (a script, a checklist, a fixed order of tool calls).
+- A `fieldnote` keeps recurring on the same issue.
+
+## Add a **domain skill** when
+
+- A domain has ≥ 3 task skills already; the domain skill orchestrates them.
+- The domain has cross-cutting tooling decisions worth stating once.
+
+## Add a **service skill** when
+
+- A service is used in more than one task or domain.
+- It has non-obvious auth / connection / verification steps.
+- It has CLI/API/MCP surface area.
+
+## Add a **subagent** when (rarely)
+
+- There is a coherent role with its own tool surface (e.g., a researcher, a reviewer, a release manager).
+- The role has a measurable success signal you can name.
+- A skill is not enough because the work spans multiple turns / sessions with its own state.
+
+If you can't name a success signal, write a skill, not a subagent.
+
+## Add a **new domain** when
+
+- ≥ 3 durable artifacts (KB entries, skills, specs) have accumulated under an unscoped or parent domain.
+- The boundary is clear and not covered by an existing domain.
+- The user has confirmed (use `domain-registry` skill).
+
+## Don't add a thing when
+
+- It would only run once.
+- An existing skill / domain already covers the scope.
+- The procedure is too ambiguous to encode (capture as `concept` or `decision` first).
+- You haven't asked: *is this a knowledge problem or a scaffolding problem?* Knowledge problems → KB entries, not skills.
+
+## Default: propose, don't decide
+
+Adding a domain, subagent, or removing anything = **proposal** to the user. New skills from templates and `fieldnote` writes are routine.
