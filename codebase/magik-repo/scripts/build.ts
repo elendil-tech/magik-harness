@@ -1,22 +1,29 @@
 #!/usr/bin/env -S npx --yes tsx
 /**
- * scripts/build.ts — populate the plugin's build outputs from the harness root.
+ * scripts/build.ts — populate the plugin's build outputs.
  *
- *   <harness>/.cursor/rules/*.mdc        → <plugin>/rules/*.mdc   (alwaysApply: false)
- *   <harness>/.cursor/skills/_core/      → <plugin>/skills/_core/
- *   <harness>/.cursor/skills/_templates/ → <plugin>/skills/_templates/
- *   <harness>/knowledge/_index.md        → <plugin>/seeds/knowledge/_index.md
- *   <harness>/knowledge/_meta/{domains,glossary,subdomain-catalogue}.md
- *                                        → <plugin>/seeds/knowledge/_meta/
- *   <harness>/knowledge/_meta/schemas/*  → <plugin>/seeds/knowledge/_meta/schemas/
- *   <harness>/workspace/{.gitkeep,README.md}
- *                                        → <plugin>/seeds/workspace/
- *   <harness>/codebase/README.md         → <plugin>/seeds/codebase/README.md
+ * Two source kinds, two contracts:
  *
- * Plugin-authored seed source (seed-sources/) is also copied into seeds/.
+ *   1. Framework — sourced from the harness root. These files are the
+ *      framework itself; improving them in the harness root improves them
+ *      for every project that installs magik-repo.
  *
- * The build is destructive for build-output directories: rules/, skills/, seeds/
- * are removed and rebuilt to keep them in sync with the harness root.
+ *        <harness>/.cursor/rules/*.mdc        → <plugin>/rules/*.mdc   (alwaysApply: false)
+ *        <harness>/.cursor/skills/_core/      → <plugin>/skills/_core/
+ *        <harness>/.cursor/skills/_templates/ → <plugin>/skills/_templates/
+ *        <harness>/.cursor/commands/{audit,drift-scan,kb-add}.md → <plugin>/commands/
+ *
+ *   2. Seed payload — sourced from <plugin>/seed-sources/. These are
+ *      project-template files that get laid down into a fresh project by
+ *      /init-harness. They MUST NOT be sourced from the harness root, because
+ *      the harness root is THIS project's working copy and will diverge
+ *      (e.g. as we populate knowledge/_meta/domains.md or glossary.md). The
+ *      contract: edit <plugin>/seed-sources/ to change what fresh projects get.
+ *
+ *        <plugin>/seed-sources/                → <plugin>/seeds/   (recursive)
+ *
+ * Build-output dirs (rules/, skills/, seeds/) are wiped and rebuilt each run.
+ * commands/ is preserved so the plugin-authored init-harness.md is not deleted.
  */
 
 import {
@@ -146,68 +153,17 @@ function buildCommands(): { count: number } {
   return { count };
 }
 
+/**
+ * Seeds come exclusively from <plugin>/seed-sources/. Nothing here reads
+ * from the harness root — that's by design (see the file header).
+ */
 function buildSeeds(): { count: number } {
   clean(SEEDS_OUT);
-
-  let count = 0;
-
-  // Plugin-authored sources first.
-  if (existsSync(SEED_SOURCES)) {
-    for (const entry of readdirSync(SEED_SOURCES, { withFileTypes: true })) {
-      if (!entry.isFile()) continue;
-      copyFile(join(SEED_SOURCES, entry.name), join(SEEDS_OUT, entry.name));
-      count += 1;
-    }
+  if (!existsSync(SEED_SOURCES)) {
+    throw new Error(`seed sources missing: ${SEED_SOURCES}`);
   }
-
-  // knowledge/_index.md
-  copyFile(
-    join(HARNESS_ROOT, "knowledge", "_index.md"),
-    join(SEEDS_OUT, "knowledge", "_index.md"),
-  );
-  count += 1;
-
-  // knowledge/_meta/{domains,glossary,subdomain-catalogue}.md
-  const metaFiles = ["domains.md", "glossary.md", "subdomain-catalogue.md"];
-  for (const f of metaFiles) {
-    copyFile(
-      join(HARNESS_ROOT, "knowledge", "_meta", f),
-      join(SEEDS_OUT, "knowledge", "_meta", f),
-    );
-    count += 1;
-  }
-
-  // knowledge/_meta/schemas/*.md
-  const schemasSrc = join(HARNESS_ROOT, "knowledge", "_meta", "schemas");
-  for (const entry of readdirSync(schemasSrc, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.endsWith(".md")) continue;
-    copyFile(
-      join(schemasSrc, entry.name),
-      join(SEEDS_OUT, "knowledge", "_meta", "schemas", entry.name),
-    );
-    count += 1;
-  }
-
-  // workspace/{.gitkeep,README.md}
-  copyFile(
-    join(HARNESS_ROOT, "workspace", ".gitkeep"),
-    join(SEEDS_OUT, "workspace", ".gitkeep"),
-  );
-  count += 1;
-  copyFile(
-    join(HARNESS_ROOT, "workspace", "README.md"),
-    join(SEEDS_OUT, "workspace", "README.md"),
-  );
-  count += 1;
-
-  // codebase/README.md
-  copyFile(
-    join(HARNESS_ROOT, "codebase", "README.md"),
-    join(SEEDS_OUT, "codebase", "README.md"),
-  );
-  count += 1;
-
-  return { count };
+  cpSync(SEED_SOURCES, SEEDS_OUT, { recursive: true });
+  return { count: countFiles(SEEDS_OUT) };
 }
 
 function main(): void {
