@@ -1,46 +1,5 @@
-# --- Project harness ----------------------------------------------------------
-
-# workspace/ holds operational artifacts (drafts, pdfs, media, csvs, contracts).
-# It is intentionally NOT version-controlled. The directory itself is preserved
-# via workspace/.gitkeep and workspace/README.md (whitelisted below).
-workspace/*
-!workspace/.gitkeep
-!workspace/README.md
-
-# Cursor telemetry / session ephemera (if any tooling drops files here).
-.cursor/telemetry/
-.cursor/.cache/
-
-# --- OS / editors -------------------------------------------------------------
-.DS_Store
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-*.swp
-*.swo
-*~
-.idea/
-.vscode/
-
-# --- Common dev artifacts (codebase/ may override with its own .gitignore) ---
 node_modules/
-.next/
-.turbo/
 dist/
-build/
-coverage/
-.pnpm-store/
-.venv/
-__pycache__/
-*.pyc
-.env
-.env.local
-.env.*.local
-
-# --- Logs ---------------------------------------------------------------------
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+seeds/
+*.tsbuildinfo
+.DS_Store

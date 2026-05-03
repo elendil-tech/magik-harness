@@ -1,0 +1,49 @@
+---
+description: Definitions of drift across the harness layers (registry, knowledge, scaffolding, codebase) and the protocol to reconcile them.
+alwaysApply: false
+---
+
+# Drift control
+
+**Drift** is when two layers that should agree disagree. The harness has four layers:
+
+1. **Domain registry** — `knowledge/_meta/domains.md`
+2. **Knowledge base** — `knowledge/<domain>/`
+3. **Agent scaffolding** — `.cursor/skills/<domain>/`, `.cursor/rules/`, `.cursor/agents/`
+4. **Codebase** — `codebase/` (only when the project has one)
+
+`workspace/` is excluded from drift control by default.
+
+## Drift signals
+
+| Signal | Where | Severity |
+| --- | --- | --- |
+| Folder exists under `knowledge/<x>/` but `<x>` not in registry | KB ↔ Registry | high |
+| Skill folder under `.cursor/skills/<x>/` but `<x>` not in registry | Skills ↔ Registry | high |
+| `decision` entry contradicts current code in `codebase/` | KB ↔ Codebase | high |
+| Two `concept`s define the same thing differently | KB ↔ KB | medium |
+| Skill references a service not used anywhere else | Skills internal | low |
+| `policy` violated by code or by another skill | KB ↔ {Skills, Code} | high |
+| `fieldnote` recurrence ≥ 3 with no policy or skill change | KB internal | medium |
+| Active KB entry not updated in > 180 days | KB internal | low (advisory) |
+
+## Reconciliation protocol
+
+Run the `drift-scan` skill (plugin-distributed). It produces a report with:
+
+1. **Inventory** — what exists across the four layers.
+2. **Drift items** — each with severity, path, and suggested resolution.
+3. **Proposals** — registry edits, KB updates, skill moves, code change tickets.
+
+Resolution rules of thumb:
+
+- Registry is **canonical** for "does this domain exist?".
+- KB `decision` is canonical for "why did we choose this?". Code aligns to decision; if code is right and decision is wrong, supersede the decision.
+- KB `policy` is canonical for "what is required?". Code, skills, and content must comply or get an exception.
+- Two contradictory `concept`s → merge into one and link from the other (deprecate).
+
+## Cadence
+
+- Run on demand via `/drift-scan`.
+- Run automatically as part of `/audit` (the `harness-audit` skill).
+- Trigger on: new domain added, large KB write, before merging a codebase PR that touches architecture.
