@@ -8,18 +8,19 @@
  *      files are the framework itself; improving them in the harness root
  *      improves them for every project that installs magik-repo.
  *
- *        <harness>/.cursor/rules/*.mdc        → <plugin>/rules/*.mdc   (alwaysApply: false)
- *        <harness>/.cursor/skills/_core/      → <plugin>/skills/_core/
- *        <harness>/.cursor/skills/_templates/ → <plugin>/skills/_templates/
+ *        <harness>/.cursor/rules/*.mdc           → <plugin>/rules/*.mdc   (alwaysApply: false)
+ *        <harness>/.cursor/skills/_core/<name>/  → <plugin>/skills/<name>/   (FLATTENED — see buildSkills)
  *
- *   2. Seed payload — sourced from <plugin>/seed-sources/. These are
- *      project-template files that get laid down into a fresh project by
- *      /init-harness. They MUST NOT be sourced from the harness root, because
- *      the harness root is THIS project's working copy and will diverge
- *      (e.g. as we populate knowledge/_meta/domains.md or glossary.md). The
- *      contract: edit <plugin>/seed-sources/ to change what fresh projects get.
+ *   2. Seed payload — sourced from <plugin>/seed-sources/ (project templates)
+ *      and <harness>/.cursor/skills/_templates/ (skill templates). These are
+ *      project-side files that /init-harness lays down into a fresh project.
+ *      seed-sources/ MUST stay decoupled from the harness root so domain-spine
+ *      content (knowledge/_meta/) doesn't leak into installs; _templates/
+ *      DOES come from the harness root because templates are framework
+ *      content shared by the harness's own scaffolding-author skill.
  *
- *        <plugin>/seed-sources/                → <plugin>/seeds/   (recursive)
+ *        <plugin>/seed-sources/                  → <plugin>/seeds/                       (recursive)
+ *        <harness>/.cursor/skills/_templates/    → <plugin>/seeds/.cursor/skills/_templates/
  *
  * Slash commands live at <plugin>/commands/ as plugin-authored, committed
  * files. They are NOT build outputs and NOT copied from the harness root —
@@ -56,15 +57,6 @@ function ensureDir(dir: string): void {
 function clean(dir: string): void {
   if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
-}
-
-function copyDir(src: string, dst: string): number {
-  if (!existsSync(src)) {
-    throw new Error(`source missing: ${src}`);
-  }
-  ensureDir(dst);
-  cpSync(src, dst, { recursive: true });
-  return countFiles(dst);
 }
 
 function countFiles(dir: string): number {
@@ -116,19 +108,50 @@ function buildRules(): { count: number } {
   return { count };
 }
 
+/**
+ * Skills are flattened into <plugin>/skills/<name>/SKILL.md so Cursor's
+ * default discovery (skills/<name>/SKILL.md) finds them. The harness-side
+ * `_core/` namespace exists in `<harness>/.cursor/skills/_core/` to keep
+ * domain-skill folders separate from framework skills, but at distribution
+ * time we drop the wrapper because Cursor's discovery is one-level-deep.
+ *
+ * Templates do NOT live under `skills/` in the plugin — they aren't Cursor
+ * skills. They are seeded into the user's project at
+ * `.cursor/skills/_templates/<file>` (see buildSeeds below) so the
+ * scaffolding-author skill can reference them by the project-relative
+ * path it was authored to use.
+ */
 function buildSkills(): { count: number } {
   clean(SKILLS_OUT);
   const coreSrc = join(HARNESS_ROOT, ".cursor", "skills", "_core");
-  const templatesSrc = join(HARNESS_ROOT, ".cursor", "skills", "_templates");
+  if (!existsSync(coreSrc)) {
+    throw new Error(`skills source missing: ${coreSrc}`);
+  }
   let count = 0;
-  count += copyDir(coreSrc, join(SKILLS_OUT, "_core"));
-  count += copyDir(templatesSrc, join(SKILLS_OUT, "_templates"));
+  for (const entry of readdirSync(coreSrc, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const skillName = entry.name;
+    const skillFile = join(coreSrc, skillName, "SKILL.md");
+    if (!existsSync(skillFile)) continue;
+    cpSync(join(coreSrc, skillName), join(SKILLS_OUT, skillName), {
+      recursive: true,
+    });
+    count += countFiles(join(SKILLS_OUT, skillName));
+  }
   return { count };
 }
 
 /**
- * Seeds come exclusively from <plugin>/seed-sources/. Nothing here reads
- * from the harness root — that's by design (see the file header).
+ * Seeds come from two sources:
+ *   1. <plugin>/seed-sources/ — project-template files (AGENTS.primer.md,
+ *      gitignore.harness, knowledge/, workspace/, codebase/).
+ *   2. <harness>/.cursor/skills/_templates/ — skill templates that the
+ *      scaffolding-author skill expects at .cursor/skills/_templates/ in
+ *      the user's project.
+ *
+ * Both are merged into <plugin>/seeds/. The harness root is the source for
+ * (2) deliberately — those templates evolve with the framework, and we
+ * want every plugin build to ship the latest version.
  */
 function buildSeeds(): { count: number } {
   clean(SEEDS_OUT);
@@ -136,6 +159,13 @@ function buildSeeds(): { count: number } {
     throw new Error(`seed sources missing: ${SEED_SOURCES}`);
   }
   cpSync(SEED_SOURCES, SEEDS_OUT, { recursive: true });
+
+  const templatesSrc = join(HARNESS_ROOT, ".cursor", "skills", "_templates");
+  if (existsSync(templatesSrc)) {
+    const templatesDst = join(SEEDS_OUT, ".cursor", "skills", "_templates");
+    cpSync(templatesSrc, templatesDst, { recursive: true });
+  }
+
   return { count: countFiles(SEEDS_OUT) };
 }
 

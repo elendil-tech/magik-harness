@@ -6,6 +6,7 @@
  *   - AGENTS.md primer (marker-bounded prepend)
  *   - .gitignore harness section (marker-bounded append)
  *   - knowledge/, workspace/, codebase/ skeletons (skip-if-exists)
+ *   - .cursor/skills/_templates/ (skill-authoring templates, skip-if-exists)
  *
  * Source-of-truth for seed payload: <plugin-root>/seeds/, populated by
  * scripts/build.ts from the harness root.
@@ -349,6 +350,27 @@ function buildPlan(args: CliArgs): Plan {
         target,
         reason: "create from seed",
         source: join("codebase", relPath),
+      });
+    }
+  }
+
+  // .cursor/skills/_templates/ — skill-authoring templates that the
+  // scaffolding-author skill expects at this project-relative path.
+  for (const relPath of listSeedTree(".cursor/skills/_templates")) {
+    const target = join(".cursor", "skills", "_templates", relPath);
+    const fullTarget = join(root, target);
+    if (existsSync(fullTarget)) {
+      items.push({
+        kind: "skip",
+        target,
+        reason: "exists; not overwriting",
+      });
+    } else {
+      items.push({
+        kind: "create",
+        target,
+        reason: "create from seed",
+        source: join(".cursor", "skills", "_templates", relPath),
       });
     }
   }
