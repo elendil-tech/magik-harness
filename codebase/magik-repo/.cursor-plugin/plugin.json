@@ -10,5 +10,6 @@
     "knowledge-base",
     "agent",
     "project"
-  ]
+  ],
+  "skills": "skills/_core"
 }
