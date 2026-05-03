@@ -1,4 +1,4 @@
-> **Project Harness primer.** This project uses [magik-repo](https://github.com/codeisalifestyle/magik-repo) — a four-component layout with knowledge, workspace, codebase, and worker scaffolding in a single repo.
+> **Project Harness primer.** This project uses [magik-repo](https://github.com/codeisalifestyle/magik-repo-plugin) — a four-component layout with knowledge, workspace, codebase, and worker scaffolding in a single repo.
 
 ## Four components
 

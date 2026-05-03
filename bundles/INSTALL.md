@@ -7,7 +7,7 @@ Three options, simplest first.
 `degit` clones the seed without history, leaving you with a clean repo to commit into.
 
 ```bash
-npx degit <owner>/ai-harness my-new-project
+npx degit <owner>/magik-repo-plugin my-new-project
 cd my-new-project
 git init
 git add .
@@ -17,7 +17,7 @@ git commit -m "chore: bootstrap project harness"
 ## Option 2 — git clone + reset
 
 ```bash
-git clone https://github.com/<owner>/ai-harness my-new-project
+git clone https://github.com/<owner>/magik-repo-plugin my-new-project
 cd my-new-project
 rm -rf .git
 git init

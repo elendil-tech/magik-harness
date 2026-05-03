@@ -41,4 +41,4 @@ The agent's role is **orchestration only** — all filesystem mutation goes thro
 
 The hook exits `0` on success or no-op, `1` on any unrecoverable error.
 
-Full spec including the upgrade and refusal matrices (post-v0.1.0): https://github.com/codeisalifestyle/magik-repo/blob/main/bundles/INIT-SPEC.md
+Full spec including the upgrade and refusal matrices (post-v0.1.0): https://github.com/codeisalifestyle/magik-repo-plugin/blob/main/bundles/INIT-SPEC.md
