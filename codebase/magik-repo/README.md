@@ -39,19 +39,20 @@ The plugin is a build-output packaging of the harness root. Cloning and iteratin
 # from the harness repo root
 cd codebase/magik-repo
 pnpm install
-pnpm build           # populates rules/, skills/, seeds/ from harness root
-pnpm link-local      # symlinks ~/.cursor/plugins/local/magik-repo → this dir
+pnpm install-local   # builds, then copies into ~/.cursor/plugins/local/magik-repo/
 ```
 
-After `link-local`, Cursor discovers the plugin under `~/.cursor/plugins/local/magik-repo`. Reload Cursor (or toggle the plugin) to pick up changes.
+Then reload Cursor (Cmd+Shift+P → "Developer: Reload Window") and verify `/init-harness`, `/audit`, `/drift-scan`, `/kb-add` appear.
 
-To uninstall the local link:
+> **Why a copy, not a symlink?** Cursor 0.x's `loadUserLocalPlugins` does not follow symlinks — only real directories load. See [cursor/plugins#35](https://github.com/cursor/plugins/issues/35). Re-run `pnpm install-local` after each plugin change to refresh the install.
+
+To uninstall:
 
 ```bash
-pnpm unlink-local
+pnpm uninstall-local
 ```
 
-To wipe build outputs:
+To wipe build outputs without uninstalling:
 
 ```bash
 pnpm clean
@@ -66,10 +67,10 @@ codebase/magik-repo/
 │   └── init-harness.md
 ├── hooks/                         # plugin hooks (authored)
 │   └── init-harness.ts
-├── scripts/                       # build & link tooling (authored)
+├── scripts/                       # build & install tooling (authored)
 │   ├── build.ts
-│   ├── link-local.ts
-│   └── unlink-local.ts
+│   ├── install-local.ts
+│   └── uninstall-local.ts
 ├── seed-sources/                  # plugin-authored seed payload (committed)
 │   ├── AGENTS.primer.md
 │   └── gitignore.harness

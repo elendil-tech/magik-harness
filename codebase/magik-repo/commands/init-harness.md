@@ -19,7 +19,7 @@ The agent's role is **orchestration only** — all filesystem mutation goes thro
 2. Invoke the hook from the plugin's local install:
 
    ```bash
-   pnpm --dir ~/.cursor/plugins/local/magik-repo exec tsx hooks/init-harness.ts \
+   npx --yes tsx ~/.cursor/plugins/local/magik-repo/hooks/init-harness.ts \
      --project-root <project-root> [--dry-run]
    ```
 

@@ -13,7 +13,7 @@ Initial release. Tracks `harness@0.1.0`.
 - `/init-harness` hook with marker-aware AGENTS.md prepend and `.gitignore` append; skip-if-exists for `knowledge/`, `workspace/`, `codebase/` seed files.
 - Project seed payload: `AGENTS.primer.md` block, `gitignore.harness` block, `knowledge/_meta/` skeleton (registry, glossary, subdomain catalogue, five schemas), `workspace/{.gitkeep,README.md}`, `codebase/README.md`.
 - Build pipeline: `scripts/build.ts` regenerates `rules/`, `skills/`, `seeds/` from the harness root.
-- Local-install pipeline: `scripts/link-local.ts` and `scripts/unlink-local.ts` manage the symlink under `~/.cursor/plugins/local/magik-repo`.
+- Local-install pipeline: `scripts/install-local.ts` and `scripts/uninstall-local.ts` copy the plugin into `~/.cursor/plugins/local/magik-repo/`. Cursor 0.x does not follow symlinks at that path ([cursor/plugins#35](https://github.com/cursor/plugins/issues/35)), so the install is a real directory copy refreshed on each `pnpm install-local`.
 - Test suite (`node:test`): empty-project full-seed, AGENTS.md prepend with content preservation, idempotency, and `--dry-run` no-write behavior.
 
 ### Deferred

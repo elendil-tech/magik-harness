@@ -6,9 +6,9 @@
   "description": "Project Harness — Cursor plugin packaging.",
   "scripts": {
     "build": "tsx scripts/build.ts",
-    "link-local": "tsx scripts/link-local.ts",
-    "unlink-local": "tsx scripts/unlink-local.ts",
-    "clean": "rm -rf rules skills seeds dist *.tsbuildinfo && rm -f commands/audit.md commands/drift-scan.md commands/kb-add.md",
+    "install-local": "tsx scripts/build.ts && tsx scripts/install-local.ts",
+    "uninstall-local": "tsx scripts/uninstall-local.ts",
+    "clean": "rm -rf rules skills seeds dist *.tsbuildinfo",
     "test": "node --test --import tsx tests/*.test.ts"
   },
   "devDependencies": {
