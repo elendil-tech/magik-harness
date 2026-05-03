@@ -11,5 +11,11 @@
     "agent",
     "project"
   ],
-  "skills": "skills/_core"
+  "skills": [
+    "skills/_core/domain-registry",
+    "skills/_core/knowledge-base",
+    "skills/_core/drift-scan",
+    "skills/_core/scaffolding-author",
+    "skills/_core/harness-audit"
+  ]
 }
