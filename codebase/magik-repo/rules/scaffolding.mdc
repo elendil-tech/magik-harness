@@ -1,6 +1,6 @@
 ---
 description: Self-scaffolding decision protocol — when to add a skill, subagent, or domain.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Self-scaffolding

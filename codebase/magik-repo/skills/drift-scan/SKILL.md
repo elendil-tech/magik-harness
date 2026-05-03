@@ -29,7 +29,7 @@ Collect:
 - `registry.domains[]` — slugs, status, paths, subdomains.
 - `kb.domains{}` — directories under `knowledge/` (excluding `_meta`).
 - `kb.entries[]` — every `*.md` not under `_meta`, parse frontmatter (`schema`, `domain`, `status`, `id`, `links`, `supersedes`, `superseded_by`).
-- `skills.domains{}` — directories under `.cursor/skills/` (excluding `_core`, `_templates`, `services`).
+- `skills.domains{}` — directories under `.cursor/skills/` (excluding `_templates`, `services`). Plugin-distributed framework skills are not project-side.
 - `skills.entries[]` — every `SKILL.md`, parse frontmatter (`name`, `description`).
 - `services[]` — directories under `.cursor/skills/services/`.
 - `code.signals[]` (only if `codebase/` exists, and only when running with `--deep`):

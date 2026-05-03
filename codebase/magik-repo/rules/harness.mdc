@@ -1,6 +1,6 @@
 ---
 description: What this repo is — the four-component project harness model.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Project harness — operating model

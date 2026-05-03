@@ -12,8 +12,9 @@ paths_read:
   - knowledge/<domain>/
   - .cursor/skills/<domain>/
   - .cursor/skills/services/
-  - .cursor/skills/_core/drift-scan/
   - workspace/<domain>/
+# Plugin-distributed skills (drift-scan, knowledge-base, domain-registry) are
+# referenced by name; no path needed.
 paths_write:
   - knowledge/<domain>/        # entries only; not the registry
   - workspace/<domain>/

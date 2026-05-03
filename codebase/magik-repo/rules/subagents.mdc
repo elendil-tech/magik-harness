@@ -1,6 +1,6 @@
 ---
 description: Subagents are domain-shaped by default — analogous to a human worker on that domain.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Subagents

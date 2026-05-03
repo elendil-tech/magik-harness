@@ -8,7 +8,7 @@
     "build": "tsx scripts/build.ts",
     "install-local": "tsx scripts/build.ts && tsx scripts/install-local.ts",
     "uninstall-local": "tsx scripts/uninstall-local.ts",
-    "clean": "rm -rf rules skills seeds dist *.tsbuildinfo",
+    "clean": "rm -rf seeds dist *.tsbuildinfo",
     "test": "node --test --import tsx tests/*.test.ts"
   },
   "devDependencies": {

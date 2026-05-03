@@ -1,6 +1,6 @@
 ---
 description: How to read, propose, and update the domain registry.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Domains
@@ -14,7 +14,7 @@ The **domain registry** at `knowledge/_meta/domains.md` is the single source of 
 
 ## Adding a domain
 
-Use `.cursor/skills/_core/domain-registry/SKILL.md`. Default thresholds:
+Use the `domain-registry` skill (plugin-distributed). Default thresholds:
 
 - A domain "earns" its folder once it has accumulated **≥ 3 durable artifacts** (KB entries, skills, or specs). Below that, content lives flat under its parent domain or under `knowledge/research/`.
 - A subdomain "earns" splitting from its parent under the same rule.

@@ -15,7 +15,7 @@ A project repo has four conceptual components. Three are folders, one is a proce
 | **Knowledge base** | `knowledge/` | tracked | Foundational definitions and ground truth, organized by **project domain** (engineering, brand, product, legal, finance, …). The reference layer. |
 | **Workspace** | `workspace/` | **ignored** | Operational artifacts/assets — pdfs, svgs, ai/eps, csvs, mp4s, research reports, contracts, drafts, ad campaigns. The "company drive". |
 | **Codebase** | `codebase/` | tracked | Standard code repo, nested one level under the project root. CI/CD attaches here. Seeded with a README; leave empty (or delete) if the project doesn't ship code. |
-| **Worker / agent** | *process* | n/a | The AI agent. Configured via `.cursor/` (rules, skills, agents, commands, hooks). |
+| **Worker / agent** | *process* | n/a | The AI agent. Framework rules + framework skills come from the [`magik-repo` Cursor plugin](./codebase/magik-repo/). Project-specific agent scaffolding (project-authored domain skills, project agents) lives in `.cursor/`. |
 
 Mental rule of thumb:
 
@@ -37,16 +37,14 @@ A business is currently fragmented across Notion / Confluence (knowledge), Drive
 ├── AGENTS.md                  # Top-level instructions every agent reads first
 ├── README.md
 ├── .gitignore
-├── .cursor/                   # Worker / agent scaffolding (tracked)
-│   ├── rules/                 # Always-on behavior (harness, kb, drift, scaffolding)
+├── .cursor/                   # Project-specific agent scaffolding (tracked, may be empty)
 │   ├── skills/
-│   │   ├── _core/             # Self-management skills (harness-level)
-│   │   ├── _templates/        # Skill-type templates (service / domain / task)
-│   │   ├── services/          # External-service skills
+│   │   ├── _templates/        # Skill-type templates (seeded; service / domain / task)
+│   │   ├── services/          # External-service skills (project-authored)
 │   │   └── <domain>/          # Project-domain skills (created on demand)
-│   ├── agents/                # Subagent configurations
-│   ├── commands/              # Slash commands
-│   └── hooks/                 # Cursor hooks
+│   ├── agents/                # Project subagent configurations
+│   ├── commands/              # Project-specific slash commands (if any)
+│   └── hooks/                 # Project-specific Cursor hooks (if any)
 ├── knowledge/                 # Knowledge base (tracked)
 │   ├── _index.md
 │   ├── _meta/
@@ -62,6 +60,8 @@ A business is currently fragmented across Notion / Confluence (knowledge), Drive
 ```
 
 The seed is deliberately thin. **Domain folders are not pre-created** under `knowledge/`, `.cursor/skills/`, or `workspace/` — they appear as the project grows. The single source of truth for "which domains exist and how nested they are" is `knowledge/_meta/domains.md`.
+
+Framework rules (the seven `.mdc` files: `harness`, `domains`, `knowledge-base`, `skills-organization`, `scaffolding`, `drift-control`, `subagents`) and framework skills (the five self-management skills) **do not live in the project's `.cursor/`**. They are distributed by the [`magik-repo` Cursor plugin](./codebase/magik-repo/). Cursor surfaces them by name; the agent references them without needing a path.
 
 ---
 
@@ -140,28 +140,32 @@ Skills are differentiated by **type** and located by **domain**:
 | **Domain skill** | High-level guidance for a domain — its tools, services, and recurring procedures. | One per domain (`<domain>/_domain/SKILL.md`). |
 | **Task skill** | Deterministic procedure for a specific task, often with scripts. | `<domain>/<task-name>/SKILL.md` (+ optional `scripts/`). |
 
-Layout:
+Layout (project-side `.cursor/skills/`):
 
 ```
 .cursor/skills/
-├── _core/                     # Harness self-management (see §8)
-├── _templates/                # service / domain / task scaffolds for skill-author
-├── services/<service>/SKILL.md
+├── _templates/                # Skill scaffolds (seeded by /init-harness)
+├── services/<service>/SKILL.md   # Project-authored service skills
 └── <domain>/
     ├── _domain/SKILL.md       # The domain skill (optional)
     └── <task>/SKILL.md        # Task skills under their domain
 ```
 
+Framework skills (`_core/`) ship in the magik-repo plugin and are referenced by name — `harness-audit`, `drift-scan`, `domain-registry`, `knowledge-base`, `scaffolding-author` — not by path.
+
 ### Rules
 
-Always-on behavioral rules live in `.cursor/rules/`. The seed ships with:
+Behavioral rules ship in the magik-repo plugin as **agent-requestable** rules (Cursor demotes plugin-shipped rules to "request on demand" regardless of `alwaysApply`). The plugin ships:
 
-- `harness.mdc` — what this repo *is*, and the four-component model.
-- `domains.mdc` — how to read/write the domain registry; how to decide on new domains.
-- `knowledge-base.mdc` — when and how to write KB entries; schema usage.
-- `skills-organization.mdc` — service / domain / task typing and placement.
-- `scaffolding.mdc` — the self-scaffolding decision protocol.
-- `drift-control.mdc` — drift definitions and the reconciliation protocol.
+- `harness` — what this repo *is*, and the four-component model.
+- `domains` — how to read/write the domain registry; how to decide on new domains.
+- `knowledge-base` — when and how to write KB entries; schema usage.
+- `skills-organization` — service / domain / task typing and placement.
+- `scaffolding` — the self-scaffolding decision protocol.
+- `drift-control` — drift definitions and the reconciliation protocol.
+- `subagents` — domain-shaped subagent contract.
+
+The agent fetches a rule when its description matches the task at hand, guided by the `AGENTS.md` primer that `/init-harness` writes into the project.
 
 ### Subagents — domain-shaped by default
 
@@ -180,18 +184,18 @@ A domain agent inherits:
 
 Cross-domain work and structural changes stay with the **main agent**. Non-domain subagents (release-manager, researcher) are an exception with a high bar.
 
-See `.cursor/rules/subagents.mdc` and the template at `.cursor/skills/_templates/domain-agent.md`.
+See the `subagents` rule (plugin-distributed) and the template at `.cursor/skills/_templates/domain-agent.md` (seeded into your project by `/init-harness`).
 
 ### Commands, hooks
 
-- `commands/` — `/audit`, `/drift-scan`, `/kb-add` for quick invocation of core skills.
+- The plugin ships **4 slash commands** — `/init-harness`, `/audit`, `/drift-scan`, `/kb-add`. Project-specific commands can be added at `.cursor/commands/`.
 - `hooks/` — empty by default; users add their own.
 
 ---
 
 ## 8. Self-adaptive behavior
 
-The harness must **evolve with the project**. Five core skills under `.cursor/skills/_core/` carry the self-adaptive logic:
+The harness must **evolve with the project**. Five framework skills shipped by the `magik-repo` plugin carry the self-adaptive logic (referenced by name, not path):
 
 | Skill | Responsibility |
 | --- | --- |
@@ -233,28 +237,18 @@ A change to `knowledge/<domain>/` is a meaningful event — analogous to how a c
 
 ## 10. Installing this harness in a new project
 
-This repo is a **template**. Three install paths:
-
-```bash
-# 1. degit (fastest, no git history)
-npx degit <owner>/ai-harness my-new-project
-
-# 2. git clone + reset
-git clone <owner>/ai-harness my-new-project
-cd my-new-project && rm -rf .git && git init
-
-# 3. as a git template repo (GitHub UI: "Use this template")
-```
-
-After install, run the bootstrap interactively:
+The harness is distributed as the [`magik-repo` Cursor plugin](./codebase/magik-repo/). It does not require cloning this repo.
 
 ```
-> /audit
+1. Enable the magik-repo plugin in Cursor (project or user scope).
+2. In your project:
+     /init-harness          # seeds AGENTS.md, .gitignore, knowledge/, workspace/, codebase/, .cursor/skills/{_templates,services}/
+     /audit                 # picks starting domains, writes knowledge/_meta/domains.md
 ```
 
-The audit skill performs a first-time-setup pass: confirms project name & description, asks which domains to seed, and writes a starter `knowledge/_meta/domains.md`.
+`/init-harness` is **idempotent** and **marker-aware**: it never overwrites your existing `AGENTS.md` or `.gitignore`; it appends a marker-bounded block instead. Skips any seed file that already exists.
 
-See `bundles/manifest.md` for what the seed includes.
+For local development of the plugin itself, see [`codebase/magik-repo/README.md`](./codebase/magik-repo/README.md).
 
 ---
 
@@ -270,7 +264,6 @@ See `bundles/manifest.md` for what the seed includes.
 ## 12. Further reading
 
 - `AGENTS.md` — top-level instructions all agents read first.
-- `.cursor/rules/` — the rule set.
+- `codebase/magik-repo/` — the Cursor plugin that distributes the framework (rules, skills, slash commands, `/init-harness` hook).
 - `knowledge/_meta/domains.md` — the live domain registry.
 - `knowledge/_meta/schemas/` — the five document schemas.
-- `bundles/manifest.md` — packaging manifest.

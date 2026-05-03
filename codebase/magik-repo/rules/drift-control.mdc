@@ -1,6 +1,6 @@
 ---
 description: Drift definitions and the reconciliation protocol across knowledge / skills / codebase.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Drift control
@@ -29,7 +29,7 @@ alwaysApply: true
 
 ## Reconciliation protocol
 
-Run `.cursor/skills/_core/drift-scan/SKILL.md`. The skill produces a report with:
+Run the `drift-scan` skill (plugin-distributed). It produces a report with:
 
 1. **Inventory** — what exists across the four layers.
 2. **Drift items** — each with severity, path, and suggested resolution.

@@ -1,6 +1,6 @@
 ---
 description: How skills are typed and where they live in .cursor/skills/.
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Skills — types and placement
@@ -13,11 +13,14 @@ Skills are differentiated by **type** and located by **domain**. There are three
 | **Domain** | High-level guidance for a project domain — its tools, services, recurring procedures. | `.cursor/skills/<domain>/_domain/SKILL.md` |
 | **Task** | Deterministic procedure for a specific task; often has scripts. | `.cursor/skills/<domain>/<task-name>/SKILL.md` |
 
-## Reserved folders
+## Where framework skills live
 
-- `_core/` — harness self-management skills (do not reorganize).
-- `_templates/` — skill-type templates (`scaffolding-author` reads from here).
-- `services/` — service skills, cross-domain.
+Framework self-management skills (`domain-registry`, `knowledge-base`, `drift-scan`, `scaffolding-author`, `harness-audit`) ship inside the **magik-repo plugin** — not under your project's `.cursor/skills/`. Cursor surfaces them by name; you do not need to copy them locally. Refer to them by name (e.g. `harness-audit`), not by path.
+
+## Project-side reserved folders
+
+- `_templates/` — skill-type templates (`scaffolding-author` reads from here). Seeded by `/init-harness` at `.cursor/skills/_templates/`.
+- `services/` — service skills, cross-domain. The seeded `services/_index.md` documents the convention.
 
 ## Service skill structure
 
@@ -35,7 +38,7 @@ A service `SKILL.md` must have these four sections:
 
 ## Authoring
 
-Use `.cursor/skills/_core/scaffolding-author/SKILL.md`. It selects type, picks placement, fills the right template, and registers the new skill in the relevant domain's `_index.md` (if domain).
+Use the `scaffolding-author` skill (plugin-distributed). It selects type, picks placement, fills the right template, and registers the new skill in the relevant domain's `_index.md` (if domain).
 
 ## Audit triggers
 

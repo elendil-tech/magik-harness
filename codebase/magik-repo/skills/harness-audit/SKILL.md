@@ -99,7 +99,7 @@ Next steps:
 
 ### 1. Run drift-scan
 
-Invoke `.cursor/skills/_core/drift-scan/SKILL.md` (default mode, or `--deep` if a codebase exists). Capture the report.
+Invoke the `drift-scan` skill (default mode, or `--deep` if a codebase exists). Capture the report.
 
 ### 2. Analyze KB health
 

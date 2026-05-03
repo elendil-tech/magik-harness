@@ -14,4 +14,4 @@ Service skills live here. One folder per service, each with a `SKILL.md` followi
 
 ## Adding a service
 
-Use `.cursor/skills/_core/scaffolding-author/SKILL.md`.
+Use the `scaffolding-author` skill (plugin-distributed).

@@ -6,7 +6,7 @@
  *   - AGENTS.md primer (marker-bounded prepend)
  *   - .gitignore harness section (marker-bounded append)
  *   - knowledge/, workspace/, codebase/ skeletons (skip-if-exists)
- *   - .cursor/skills/_templates/ (skill-authoring templates, skip-if-exists)
+ *   - .cursor/ subtree (skill-authoring templates, services index, skip-if-exists)
  *
  * Source-of-truth for seed payload: <plugin-root>/seeds/, populated by
  * scripts/build.ts from the harness root.
@@ -354,10 +354,13 @@ function buildPlan(args: CliArgs): Plan {
     }
   }
 
-  // .cursor/skills/_templates/ — skill-authoring templates that the
-  // scaffolding-author skill expects at this project-relative path.
-  for (const relPath of listSeedTree(".cursor/skills/_templates")) {
-    const target = join(".cursor", "skills", "_templates", relPath);
+  // .cursor/ — project-side scaffolding seeded by the harness:
+  //   - skills/_templates/<file>.md  : scaffolding-author input templates
+  //   - skills/services/_index.md   : services-skill area placeholder
+  // Plugin-distributed framework content (rules + _core skills) is NOT
+  // seeded — it comes from the magik-repo plugin install.
+  for (const relPath of listSeedTree(".cursor")) {
+    const target = join(".cursor", relPath);
     const fullTarget = join(root, target);
     if (existsSync(fullTarget)) {
       items.push({
@@ -370,7 +373,7 @@ function buildPlan(args: CliArgs): Plan {
         kind: "create",
         target,
         reason: "create from seed",
-        source: join(".cursor", "skills", "_templates", relPath),
+        source: join(".cursor", relPath),
       });
     }
   }

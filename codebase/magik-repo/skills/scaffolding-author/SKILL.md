@@ -135,7 +135,7 @@ Only justified when the role spans domains *and* has a measurable success signal
 ## Anti-patterns
 
 - Writing a skill before the underlying knowledge is in the KB.
-- Top-level skills (anything outside `_core/`, `_templates/`, `services/`, or a domain folder).
+- Top-level skills (anything outside `_templates/`, `services/`, or a domain folder).
 - Service skills missing the four canonical sections.
 - Skills > ~300 lines without splitting.
 - Subagents with no nameable success signal.

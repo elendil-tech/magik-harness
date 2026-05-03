@@ -7,12 +7,12 @@ Initial release. Tracks `harness@0.1.0`.
 ### Added
 
 - 7 agent-requestable rules: `harness`, `domains`, `knowledge-base`, `skills-organization`, `scaffolding`, `drift-control`, `subagents`. All shipped with `alwaysApply: false` (plugin-shipped rules get demoted regardless).
-- 5 `_core` skills: `domain-registry`, `knowledge-base`, `drift-scan`, `scaffolding-author`, `harness-audit`.
-- 4 templates: `service-skill.md`, `domain-skill.md`, `task-skill.md`, `domain-agent.md`.
+- 5 framework skills: `domain-registry`, `knowledge-base`, `drift-scan`, `scaffolding-author`, `harness-audit`. Authored flat under `skills/<name>/SKILL.md` so Cursor's default discovery finds them.
+- 4 templates: `service-skill.md`, `domain-skill.md`, `task-skill.md`, `domain-agent.md` — seeded into `<project>/.cursor/skills/_templates/`.
 - 4 slash commands: `init-harness`, `audit`, `drift-scan`, `kb-add`.
-- `/init-harness` hook with marker-aware AGENTS.md prepend and `.gitignore` append; skip-if-exists for `knowledge/`, `workspace/`, `codebase/` seed files.
-- Project seed payload: `AGENTS.primer.md` block, `gitignore.harness` block, `knowledge/_meta/` skeleton (registry, glossary, subdomain catalogue, five schemas), `workspace/{.gitkeep,README.md}`, `codebase/README.md`.
-- Build pipeline: `scripts/build.ts` regenerates `rules/`, `skills/`, `seeds/` from the harness root.
+- `/init-harness` hook with marker-aware AGENTS.md prepend and `.gitignore` append; skip-if-exists for `knowledge/`, `workspace/`, `codebase/`, and `.cursor/skills/{_templates,services}/` seed files.
+- Project seed payload: `AGENTS.primer.md` block, `gitignore.harness` block, `knowledge/_meta/` skeleton (registry, glossary, subdomain catalogue, five schemas), `workspace/{.gitkeep,README.md}`, `codebase/README.md`, `.cursor/skills/{_templates,services}/`.
+- Build pipeline: `scripts/build.ts` produces only `seeds/` (a runtime copy of `seed-sources/`). Rules, skills, commands, and hooks are plugin-authored and committed — the plugin does not read from the harness root.
 - Local-install pipeline: `scripts/install-local.ts` and `scripts/uninstall-local.ts` copy the plugin into `~/.cursor/plugins/local/magik-repo/`. Cursor 0.x does not follow symlinks at that path ([cursor/plugins#35](https://github.com/cursor/plugins/issues/35)), so the install is a real directory copy refreshed on each `pnpm install-local`.
 - Test suite (`node:test`): empty-project full-seed, AGENTS.md prepend with content preservation, idempotency, and `--dry-run` no-write behavior.
 

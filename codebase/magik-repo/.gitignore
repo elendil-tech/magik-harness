@@ -1,7 +1,5 @@
 node_modules/
 dist/
-rules/
-skills/
 seeds/
 *.tsbuildinfo
 .DS_Store

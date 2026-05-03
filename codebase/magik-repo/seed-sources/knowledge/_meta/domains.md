@@ -2,7 +2,7 @@
 
 This file is the **single source of truth** for which domains and subdomains exist in this project. It is the spine that `knowledge/<domain>/` and `.cursor/skills/<domain>/` mirror.
 
-> Edit this file via the `domain-registry` skill (`.cursor/skills/_core/domain-registry/SKILL.md`). Manual edits are allowed but should be reviewed by the `drift-scan` skill afterwards.
+> Edit this file via the `domain-registry` skill (plugin-distributed). Manual edits are allowed but should be reviewed by the `drift-scan` skill afterwards.
 
 ## Conventions
 
