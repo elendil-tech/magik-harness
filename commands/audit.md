@@ -3,9 +3,7 @@ name: audit
 description: Audit the harness — first-time setup on empty projects, periodic review otherwise. Picks domains, surfaces drift, recommends restructures.
 ---
 
-# Harness Audit
-
-Run the harness audit. On an empty registry this is the first-time setup; otherwise it's the periodic review.
+Run the harness audit — first-time setup on an empty registry, periodic review otherwise. Picks starting domains, surfaces drift, and recommends restructures.
 
 Invoke the `harness-audit` skill and follow it strictly. Hand off any approved proposals to:
 

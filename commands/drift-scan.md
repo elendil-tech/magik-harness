@@ -3,9 +3,7 @@ name: drift-scan
 description: Detect disagreements between the harness layers — domain registry, knowledge, scaffolding, and (optionally) codebase. Outputs a triage report.
 ---
 
-# Drift Scan
-
-Run the drift scan across the four harness layers (registry, knowledge, scaffolding, optional codebase).
+Detect disagreements across the four harness layers — domain registry, knowledge base, agent scaffolding, and (optionally) the codebase. Outputs a triage report; does not mutate state.
 
 Invoke the `drift-scan` skill. Default to shallow mode. If the user passes `deep`, include the codebase layer.
 

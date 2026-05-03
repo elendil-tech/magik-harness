@@ -3,9 +3,7 @@ name: kb-add
 description: Add a knowledge base entry — guided by schema (concept / decision / policy / spec / fieldnote), domain, and id.
 ---
 
-# Knowledge Base Entry
-
-Quickly add a knowledge base entry.
+Add a knowledge base entry — guided by schema (`concept` / `decision` / `policy` / `specification` / `fieldnote`), domain, and id.
 
 Invoke the `knowledge-base` skill. Walk the user through:
 

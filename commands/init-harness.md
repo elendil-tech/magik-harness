@@ -3,8 +3,6 @@ name: init-harness
 description: Seed a project with the four-component harness — knowledge/, workspace/, codebase/, .cursor/. Idempotent; never overwrites your content.
 ---
 
-# Init Harness
-
 Seed a project with the four-component harness layout (`AGENTS.md`, `.gitignore`, `knowledge/`, `workspace/`, `codebase/`). Safe on empty repos and on existing projects: marker-bounded blocks merge with existing `AGENTS.md` and `.gitignore`; everything else is created only when missing.
 
 ## Flags
