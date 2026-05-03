@@ -4,14 +4,13 @@
  *
  * Two source kinds, two contracts:
  *
- *   1. Framework — sourced from the harness root. These files are the
- *      framework itself; improving them in the harness root improves them
- *      for every project that installs magik-repo.
+ *   1. Framework rules + skills — sourced from the harness root. These
+ *      files are the framework itself; improving them in the harness root
+ *      improves them for every project that installs magik-repo.
  *
  *        <harness>/.cursor/rules/*.mdc        → <plugin>/rules/*.mdc   (alwaysApply: false)
  *        <harness>/.cursor/skills/_core/      → <plugin>/skills/_core/
  *        <harness>/.cursor/skills/_templates/ → <plugin>/skills/_templates/
- *        <harness>/.cursor/commands/{audit,drift-scan,kb-add}.md → <plugin>/commands/
  *
  *   2. Seed payload — sourced from <plugin>/seed-sources/. These are
  *      project-template files that get laid down into a fresh project by
@@ -22,8 +21,11 @@
  *
  *        <plugin>/seed-sources/                → <plugin>/seeds/   (recursive)
  *
+ * Slash commands live at <plugin>/commands/ as plugin-authored, committed
+ * files. They are NOT build outputs and NOT copied from the harness root —
+ * having project-level copies caused Cursor to surface duplicates.
+ *
  * Build-output dirs (rules/, skills/, seeds/) are wiped and rebuilt each run.
- * commands/ is preserved so the plugin-authored init-harness.md is not deleted.
  */
 
 import {
@@ -45,10 +47,7 @@ const HARNESS_ROOT = dirname(dirname(PLUGIN_ROOT));
 const RULES_OUT = join(PLUGIN_ROOT, "rules");
 const SKILLS_OUT = join(PLUGIN_ROOT, "skills");
 const SEEDS_OUT = join(PLUGIN_ROOT, "seeds");
-const COMMANDS_OUT = join(PLUGIN_ROOT, "commands");
 const SEED_SOURCES = join(PLUGIN_ROOT, "seed-sources");
-
-const COMMANDS_FROM_HARNESS = ["audit.md", "drift-scan.md", "kb-add.md"];
 
 function ensureDir(dir: string): void {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
@@ -57,11 +56,6 @@ function ensureDir(dir: string): void {
 function clean(dir: string): void {
   if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
-}
-
-function copyFile(src: string, dst: string): void {
-  ensureDir(dirname(dst));
-  cpSync(src, dst);
 }
 
 function copyDir(src: string, dst: string): number {
@@ -133,27 +127,6 @@ function buildSkills(): { count: number } {
 }
 
 /**
- * Commands: plugin-authored init-harness.md is committed; the other 3 are
- * copied from <harness>/.cursor/commands/. We do NOT clean the commands/ dir
- * — that would delete init-harness.md.
- */
-function buildCommands(): { count: number } {
-  ensureDir(COMMANDS_OUT);
-  const src = join(HARNESS_ROOT, ".cursor", "commands");
-  let count = 0;
-  for (const name of COMMANDS_FROM_HARNESS) {
-    const from = join(src, name);
-    if (!existsSync(from)) {
-      console.warn(`  warn: command source missing: ${from}`);
-      continue;
-    }
-    copyFile(from, join(COMMANDS_OUT, name));
-    count += 1;
-  }
-  return { count };
-}
-
-/**
  * Seeds come exclusively from <plugin>/seed-sources/. Nothing here reads
  * from the harness root — that's by design (see the file header).
  */
@@ -178,16 +151,11 @@ function main(): void {
   const skills = buildSkills();
   console.log(`  skills: ${skills.count} file(s) → ${relative(PLUGIN_ROOT, SKILLS_OUT)}/`);
 
-  const commands = buildCommands();
-  console.log(
-    `  cmds  : ${commands.count} file(s) copied → ${relative(PLUGIN_ROOT, COMMANDS_OUT)}/`,
-  );
-
   const seeds = buildSeeds();
   console.log(`  seeds : ${seeds.count} file(s) → ${relative(PLUGIN_ROOT, SEEDS_OUT)}/`);
 
   console.log(
-    `\nmagik-repo built — ${rules.count} rules, ${skills.count} skills, ${commands.count} commands copied, ${seeds.count} seed files.`,
+    `\nmagik-repo built — ${rules.count} rules, ${skills.count} skills, ${seeds.count} seed files. (commands are plugin-authored, not built.)`,
   );
 }
 

@@ -1,4 +1,8 @@
-# /kb-add
+---
+description: Quickly add a knowledge base entry by walking through schema, domain, id, and frontmatter.
+---
+
+# Knowledge Base Entry
 
 Quickly add a knowledge base entry.
 

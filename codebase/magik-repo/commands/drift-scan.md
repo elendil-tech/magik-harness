@@ -1,4 +1,8 @@
-# /drift-scan
+---
+description: Run the drift scan across the four harness layers (registry, knowledge, scaffolding, optional codebase).
+---
+
+# Drift Scan
 
 Run the drift scan across the four harness layers (registry, knowledge, scaffolding, optional codebase).
 

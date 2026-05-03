@@ -1,4 +1,8 @@
-# /audit
+---
+description: Run the harness audit. On an empty registry this is the first-time setup; otherwise the periodic review.
+---
+
+# Harness Audit
 
 Run the harness audit. On an empty registry this is the first-time setup; otherwise it's the periodic review.
 
