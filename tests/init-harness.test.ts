@@ -29,7 +29,6 @@ import { escapeRegex, PLUGIN_ROOT_DIR, PLUGIN_VERSION } from "./_version.ts";
 
 const PLUGIN_ROOT = PLUGIN_ROOT_DIR;
 const HOOK = join(PLUGIN_ROOT, "hooks", "init-harness.ts");
-const TSX = join(PLUGIN_ROOT, "node_modules", ".bin", "tsx");
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");
 const V = escapeRegex(PLUGIN_VERSION);
 
@@ -41,8 +40,18 @@ function runHook(
   projectRoot: string,
   extraArgs: string[] = [],
 ): { stdout: string; stderr: string; status: number } {
-  const args = [HOOK, "--project-root", projectRoot, ...extraArgs];
-  const result = spawnSync(TSX, args, {
+  // Spawn `node --import tsx <hook> ...` rather than the `tsx` bin shim so
+  // the test works on Windows (where the .bin file is `tsx.cmd`, not `tsx`)
+  // without platform-specific branching.
+  const args = [
+    "--import",
+    "tsx",
+    HOOK,
+    "--project-root",
+    projectRoot,
+    ...extraArgs,
+  ];
+  const result = spawnSync(process.execPath, args, {
     encoding: "utf-8",
     cwd: PLUGIN_ROOT,
   });
