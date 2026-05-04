@@ -1,0 +1,110 @@
+{
+  "version": "0.4.1",
+  "fileCount": 26,
+  "entries": [
+    {
+      "path": ".cursor/hooks.json",
+      "sha256": "4c75de3a5f32189e1482bb64e606e29752848122e76d0a6b3166c7f9e96e47b9"
+    },
+    {
+      "path": ".cursor/hooks/last-referenced-bump.js",
+      "sha256": "90aefd920f8ef8f502cb2d36fde94ca4b97a81434a0fa4a1002b9fc4e0093084"
+    },
+    {
+      "path": ".cursor/hooks/session-start.js",
+      "sha256": "8ea6c0c24d7debc993216e1caa4e5896ac6067742191ff38fcce13153a634e5e"
+    },
+    {
+      "path": ".cursor/skills/_templates/domain-agent.md",
+      "sha256": "629bf7430c5e794f73c25de9df3c0450dc2eaeed5fbc771968a8abf3bbb0f02c"
+    },
+    {
+      "path": ".cursor/skills/_templates/domain-skill.md",
+      "sha256": "18c752fbb3e603648281bbbcde70fcf4b7e3ce1aeda23e35106f1f4791d4078e"
+    },
+    {
+      "path": ".cursor/skills/_templates/service-skill.md",
+      "sha256": "e852e447c44a9625848581384f40e072c243dfdadb0b0da1634f6fb35c44139d"
+    },
+    {
+      "path": ".cursor/skills/_templates/task-skill.md",
+      "sha256": "e6e54b2df5383bda06caa0e1d942bf75ec75c8873641e109fa691f2e42a7a7ca"
+    },
+    {
+      "path": ".cursor/skills/services/_index.md",
+      "sha256": "c137a5ac0a38c3d54b95455694ae7488a6bb713b917464accffabc83826bdfd6"
+    },
+    {
+      "path": "AGENTS.primer.md",
+      "sha256": "1e9f9f3f973dee9412f357106389763980f41fa92ec54a1443b71a1cebf9c49c"
+    },
+    {
+      "path": "codebase/README.md",
+      "sha256": "4ccfdddd76bdac33bc88d26ae99186e26d824dac76fba19d2d22986889021109"
+    },
+    {
+      "path": "gitignore.harness",
+      "sha256": "aea2f0e57e03c338e14e4481f89bb6a0a02d4e2f39acbf618dca870c386129e0"
+    },
+    {
+      "path": "knowledge/_index.md",
+      "sha256": "1c32b05d010a290eed23620067137ef17007e162f92297162a1d31245198b6a0"
+    },
+    {
+      "path": "knowledge/_meta/domains.md",
+      "sha256": "d407816979289d4e4bf7cd825d32b0616220e430487aeecdab112658c4f95609"
+    },
+    {
+      "path": "knowledge/_meta/glossary.md",
+      "sha256": "b3d2bda52c33fa3afba0a1182c67a43cf056fc903a828aaa98f14a6069931b7a"
+    },
+    {
+      "path": "knowledge/_meta/schemas/concept.md",
+      "sha256": "c6b8c8d44fe9043667866d5d318b8aa1795bb6e9f0de0af3221964af0576c665"
+    },
+    {
+      "path": "knowledge/_meta/schemas/decision.md",
+      "sha256": "efdece49ae3a2ffa64c1cfd9803539947bf8bcc6e20b86ea32b419aa38172f1f"
+    },
+    {
+      "path": "knowledge/_meta/schemas/fieldnote.md",
+      "sha256": "0774c330cd3284d45ace0a8aa686ae788c9fc698ce86f8d527f987bebfd8318e"
+    },
+    {
+      "path": "knowledge/_meta/schemas/policy.md",
+      "sha256": "af9218dadfc42f7a89a1e039eaa91eea2cbe81c235b48c86ee77d1c377c04d0e"
+    },
+    {
+      "path": "knowledge/_meta/schemas/specification.md",
+      "sha256": "ec0c7a97e1b1592105721787b797fa73a3c330b6119c91467b3865df316594ac"
+    },
+    {
+      "path": "knowledge/_meta/subdomain-catalogue.md",
+      "sha256": "52eeafb101eafab12708a706fc337c0d3ab4ed610435682e0b263a1e315ed843"
+    },
+    {
+      "path": "memory/_index.md",
+      "sha256": "1b99e1d931a8d7ff6cc3e073b3fb60861c4d15196a4bd1cfabc76ff9b9924dcf"
+    },
+    {
+      "path": "memory/commitments.md",
+      "sha256": "cb0910d1be17dde5016a123be32fb93e3f8e74efdf7d2080089f873759f2d285"
+    },
+    {
+      "path": "memory/daily/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "memory/distillations/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "workspace/.gitkeep",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "workspace/README.md",
+      "sha256": "cdf52d167689730d1ff031eb2c67f585ece57b14cd4c33a26c44b88fff8d069c"
+    }
+  ]
+}

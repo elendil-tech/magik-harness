@@ -1,5 +1,29 @@
 # magik-repo
 
+## 0.4.1 — 2026-05-04
+
+Tracks `harness@0.4.1`. Dev-side hardening release. No payload changes — re-running `/init-harness` on a v0.4.0 project upgrades the v=0.4.0 primer / gitignore blocks in place to v=0.4.1 and is otherwise a no-op for the seeded `.cursor/hooks/*` files.
+
+### Added
+
+- **Test infrastructure: 5 new test files / suites covering content invariants and high-blast-radius branches.**
+  - `tests/_version.ts` — shared helper that derives `PLUGIN_VERSION` from `package.json`. Existing test files now read the version from this helper instead of hardcoding `0.4.x` regexes, so a bump only needs to touch `package.json`, `.cursor-plugin/plugin.json`, `hooks/init-harness.ts`, `README.md`, and `CHANGELOG.md`.
+  - `tests/version-sync.test.ts` (5 cases) — asserts the version stamp is consistent across `package.json` (canonical), `.cursor-plugin/plugin.json#version`, the `PLUGIN_VERSION` constant in `hooks/init-harness.ts`, the `magik-repo@x.y.z` line in `README.md`, and the `## x.y.z` heading in `CHANGELOG.md`. Also scans non-CHANGELOG sources for stray `v=x.y.z` marker stamps that don't match the current version.
+  - `tests/plugin-manifest.test.ts` (5 cases) — asserts `.cursor-plugin/plugin.json` parses, has the required keys (`name`, `version`, `description`, `license`, `keywords`, `author`), version matches `package.json`, and **every referenced asset path resolves to a real file on disk**. This is the gate that catches dangling `logo` references.
+  - `tests/seed-tree.snapshot.test.ts` (2 cases) — pins the exact set of files in `seeds/` (paths + sha256 content hashes) against `tests/__snapshots__/seed-tree.json`. Any unintended addition / removal / mutation fails CI. Also doubles as a regression test for `scripts/build.ts`. Update intentionally with `UPDATE_SNAPSHOTS=1 pnpm test`.
+  - `tests/init-harness.test.ts` — two new cases:
+    - **corrupt markers**: a project with two `harness:primer:start` markers must result in a `skip` (with a "fix manually" reason) and a byte-identical `AGENTS.md` after the run. Locks down the previously-untested `corrupt` branch of `detectMarkerState`.
+    - **code-at-root detection**: a project with `package.json` + `Cargo.toml` + populated `src/` at the repo root must surface a `Notices` block in the plan that names each file and points at `codebase/`. Files must not move (the hook is informational only in v0.4.x; acting on the notice is `--migrate=...` future work tracked in `ROADMAP.md`).
+- **`pretest` npm script** — `pnpm test` now runs `tsx scripts/build.ts` before the suite, so individual test files no longer need a manual `pnpm build` precondition before they can find `seeds/`.
+
+### Fixed
+
+- **`.cursor-plugin/plugin.json#logo`** — was pointing at `assets/logo.png`, which had been removed from the repo, leaving Cursor with a dangling reference. Updated to `assets/magik-repo-logo.png` (the new branded logo). The new `tests/plugin-manifest.test.ts` would have caught this on the previous release.
+
+### Migration from 0.4.0
+
+Pure dev-side release. `/init-harness` is idempotent. Re-running on a v0.4.0 project upgrades the `v=0.4.0` primer / gitignore blocks to `v=0.4.1`. No new files seeded, no behavior change to the `.cursor/hooks/*` seeds, no rule or skill changes.
+
 ## 0.4.0 — 2026-05-04
 
 Tracks `harness@0.4.0`. Memory layer goes from passive (agent-discipline) to active (Cursor-hook-driven) with two project-side hooks seeded by `/init-harness`. The freshness model from v0.3 becomes self-maintaining; the as-you-go contract from v0.3.1 gains a recovery path for fresh sessions after compact.

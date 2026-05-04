@@ -1,12 +1,12 @@
 {
   "name": "magik-repo",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "The all-in-one adaptive repo for managing projects/business. Integrates: knowledge base, workspace, codebase, memory. Try the magik!",
   "author": {
     "name": "LaLi"
   },
   "license": "MIT",
-  "logo": "assets/logo.png",
+  "logo": "assets/magik-repo-logo.png",
   "keywords": [
     "harness",
     "scaffolding",

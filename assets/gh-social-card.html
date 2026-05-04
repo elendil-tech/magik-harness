@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>magik-repo-cursor Repo Card</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #e5e7eb; /* Light background outside the card */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        }
+
+        /* 1280x640 canvas as requested */
+        .repo-card {
+            width: 1280px;
+            height: 640px;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            position: relative;
+            box-sizing: border-box;
+            border: 1px solid #30363d;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            /* 60px padding perfectly respects the 40pt safe area */
+            padding: 60px 80px; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .content {
+            display: flex;
+            align-items: center;
+            gap: 70px;
+            z-index: 2;
+        }
+
+        .logo-container {
+            width: 320px;
+            height: 320px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 60px rgba(255, 255, 255, 0.05);
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .logo {
+            width: 360px;
+            height: auto;
+        }
+
+        .text-content {
+            color: #c9d1d9;
+            max-width: 700px;
+        }
+
+        .title {
+            font-size: 80px;
+            font-weight: 800;
+            color: #ffffff;
+            margin: 0 0 16px 0;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+        }
+
+        .subtitle {
+            font-size: 34px;
+            font-weight: 400;
+            color: #8b949e;
+            margin: 0 0 48px 0;
+            line-height: 1.4;
+        }
+
+        .badges {
+            display: flex;
+            gap: 24px;
+        }
+
+        .badge {
+            padding: 14px 28px;
+            background-color: rgba(48, 54, 61, 0.6);
+            border: 1px solid #30363d;
+            border-radius: 100px;
+            font-size: 22px;
+            font-weight: 600;
+            color: #e6edf3;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Subtle magical glow effect in the background */
+        .bg-glow {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(138, 43, 226, 0.1) 0%, rgba(13, 17, 23, 0) 60%);
+            top: -200px;
+            right: -100px;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="repo-card">
+        <div class="bg-glow"></div>
+        <div class="content">
+            <div class="logo-container">
+                <img src="magik-repo-logo.png" alt="magik-repo-plugin Logo" class="logo">
+            </div>
+            <div class="text-content">
+                <h1 class="title">magik-repo-plugin</h1>
+                <p class="subtitle">The all-in-one adaptive repo for full business management in Cursor. Try the magik!</p>
+                <div class="badges">
+                    <div class="badge">
+                        <span>
+                            <img src="cursor-logo.png" alt="Cursor IDE Logo" style="height: 22px; width: 22px; display: inline-block; vertical-align: middle;">
+                        </span>
+                        Cursor
+                    </div>
+                    <div class="badge">
+                        <span>🔌</span> Plugin
+                    </div>
+                    <div class="badge">
+                        <span>⭐</span> codeisalifestyle
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

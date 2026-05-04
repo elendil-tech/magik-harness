@@ -21,16 +21,17 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const TEST_DIR = dirname(fileURLToPath(import.meta.url));
-const PLUGIN_ROOT = dirname(TEST_DIR);
+import { escapeRegex, PLUGIN_ROOT_DIR, PLUGIN_VERSION } from "./_version.ts";
+
+const PLUGIN_ROOT = PLUGIN_ROOT_DIR;
 const HOOK = join(PLUGIN_ROOT, "hooks", "init-harness.ts");
 const TSX = join(PLUGIN_ROOT, "node_modules", ".bin", "tsx");
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");
+const V = escapeRegex(PLUGIN_VERSION);
 
 function makeTmpProject(): string {
   return mkdtempSync(join(tmpdir(), "magik-repo-test-"));
@@ -142,11 +143,11 @@ test("empty project — full seed creates expected files", () => {
     );
 
     const agents = readFileSync(join(root, "AGENTS.md"), "utf-8");
-    assert.match(agents, /<!-- harness:primer:start v=0\.4\.0 -->/);
+    assert.match(agents, new RegExp(`<!-- harness:primer:start v=${V} -->`));
     assert.match(agents, /<!-- harness:primer:end -->/);
 
     const gi = readFileSync(join(root, ".gitignore"), "utf-8");
-    assert.match(gi, /^# harness:gitignore:start v=0\.4\.0$/m);
+    assert.match(gi, new RegExp(`^# harness:gitignore:start v=${V}$`, "m"));
     assert.match(gi, /^# harness:gitignore:end$/m);
 
     // v0.3 schema frontmatter additions — make sure trust / provenance /
@@ -192,7 +193,7 @@ test("existing AGENTS.md — primer is prepended; user content preserved verbati
 
     const merged = readFileSync(join(root, "AGENTS.md"), "utf-8");
     assert.ok(
-      merged.startsWith("<!-- harness:primer:start v=0.4.0 -->"),
+      merged.startsWith(`<!-- harness:primer:start v=${PLUGIN_VERSION} -->`),
       "primer block should be at the top of AGENTS.md",
     );
     assert.ok(
@@ -312,7 +313,7 @@ test("stale marker upgrade — replaces primer/gitignore blocks in place, preser
     assert.equal(status, 0, `hook failed: ${stdout}`);
 
     const agents = readFileSync(join(root, "AGENTS.md"), "utf-8");
-    assert.match(agents, /<!-- harness:primer:start v=0\.4\.0 -->/);
+    assert.match(agents, new RegExp(`<!-- harness:primer:start v=${V} -->`));
     assert.ok(
       !agents.includes("<!-- harness:primer:start v=0.1.0 -->"),
       "stale primer start marker should be gone",
@@ -335,7 +336,7 @@ test("stale marker upgrade — replaces primer/gitignore blocks in place, preser
     );
 
     const gi = readFileSync(join(root, ".gitignore"), "utf-8");
-    assert.match(gi, /^# harness:gitignore:start v=0\.4\.0$/m);
+    assert.match(gi, new RegExp(`^# harness:gitignore:start v=${V}$`, "m"));
     assert.ok(
       !gi.includes("# harness:gitignore:start v=0.1.0"),
       "stale gitignore start marker should be gone",
@@ -422,6 +423,103 @@ test("memory/ — pre-existing content is not overwritten on init", () => {
     assert.ok(
       existsSync(join(root, "memory", "commitments.md")),
       "memory/commitments.md should be created",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("corrupt markers — duplicated harness:primer:start blocks → skip + byte-identical AGENTS.md", () => {
+  ensureBuilt();
+  const root = makeTmpProject();
+  try {
+    // Two `harness:primer:start` markers. detectMarkerState returns "corrupt"
+    // for any startCount/endCount combination that isn't (1, 1) or (0, 0).
+    // The hook must refuse to touch the file, surface the situation in the
+    // plan, and exit cleanly so re-runs don't make it worse.
+    const corrupt =
+      "<!-- harness:primer:start v=0.1.0 -->\n" +
+      "first stale block\n" +
+      "<!-- harness:primer:end -->\n\n" +
+      "user content sandwiched between two start markers\n\n" +
+      "<!-- harness:primer:start v=0.2.0 -->\n" +
+      "second stale block\n" +
+      "<!-- harness:primer:end -->\n" +
+      "user trailing content\n";
+    writeFileSync(join(root, "AGENTS.md"), corrupt);
+
+    const { status, stdout } = runHook(root, ["--yes"]);
+    assert.equal(status, 0, `hook failed: ${stdout}`);
+
+    const after = readFileSync(join(root, "AGENTS.md"), "utf-8");
+    assert.equal(
+      after,
+      corrupt,
+      "AGENTS.md with corrupt markers must be left byte-identical",
+    );
+
+    assert.match(
+      stdout,
+      /AGENTS\.md/,
+      "plan output should reference AGENTS.md",
+    );
+    assert.match(
+      stdout,
+      /unmatched|multiple|fix manually/i,
+      "plan output should explain why AGENTS.md was skipped",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("code-at-root detection — surfaces a notice for ecosystem files at the repo root", () => {
+  ensureBuilt();
+  const root = makeTmpProject();
+  try {
+    // A handful of files from CODE_AT_ROOT_FILES across ecosystems, plus a
+    // populated src/ to exercise the directory branch of the detector.
+    writeFileSync(
+      join(root, "package.json"),
+      JSON.stringify({ name: "user-project", version: "0.0.0" }, null, 2),
+    );
+    writeFileSync(join(root, "Cargo.toml"), "[package]\nname = \"x\"\n");
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "index.ts"), "export {};\n");
+
+    const { status, stdout } = runHook(root, ["--yes"]);
+    assert.equal(status, 0, `hook failed: ${stdout}`);
+
+    assert.match(
+      stdout,
+      /Notices:/,
+      "plan should include a Notices block when code is detected at root",
+    );
+    assert.match(
+      stdout,
+      /package\.json/,
+      "notice should mention package.json",
+    );
+    assert.match(stdout, /Cargo\.toml/, "notice should mention Cargo.toml");
+    assert.match(stdout, /src\//, "notice should mention populated src/");
+    assert.match(
+      stdout,
+      /codebase\//i,
+      "notice should point at codebase/ as the harness convention",
+    );
+
+    // The hook is informational only in v0.4.x — files at root must NOT move.
+    assert.ok(
+      existsSync(join(root, "package.json")),
+      "package.json must not be moved",
+    );
+    assert.ok(
+      existsSync(join(root, "Cargo.toml")),
+      "Cargo.toml must not be moved",
+    );
+    assert.ok(
+      existsSync(join(root, "src", "index.ts")),
+      "src/index.ts must not be moved",
     );
   } finally {
     rmSync(root, { recursive: true, force: true });
