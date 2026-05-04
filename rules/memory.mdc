@@ -64,11 +64,15 @@ External-sourced content (web fetches, tool output) gets an extra `[external]` t
 
 | Phase | Required action |
 | --- | --- |
-| **Session start** | 1. Run `kb-search` over the task. 2. Read today's and yesterday's `memory/daily/*.md`. 3. Read `memory/commitments.md`. |
+| **Session start** | 1. Run `kb-search` over the task. 2. Read yesterday's `memory/daily/*.md` (the harness `sessionStart` hook injects today's note + active commitments automatically — see below). |
 | **During work** | Append signals to today's `memory/daily/<today>.md` **as they happen**. The contract is as-you-go, not end-of-session — see Compaction safety. |
 | **Session end** | Optionally run `/distill` to propose promotions. Otherwise the next `/audit` will. |
 
 The `kb-search` step is **mandatory** — see `rules/harness.mdc` "Read first."
+
+The `sessionStart` hook (seeded by `/init-harness` into `.cursor/hooks/session-start.js`, wired in `.cursor/hooks.json`) injects two things into the session's initial system context: the full body of today's `memory/daily/<today>.md` (if it exists and is non-empty), and the Active section of `memory/commitments.md` (if non-empty). The hook fires fire-and-forget on every Cursor session start, so the agent does not need to manually open today's daily note or commitments — but the agent **does** still need to read yesterday's note (the hook only injects today's). If `.cursor/hooks.json` is user-managed, `/init-harness` skips seeding it and prints a notice; in that case manually merge the harness entries.
+
+A second hook, `postToolUse` matcher `Read` (seeded as `.cursor/hooks/last-referenced-bump.js`), bumps `last_referenced` on KB entries when they are read, with a 7-day throttle. This makes the freshness model in `rules/drift-control.mdc` self-maintaining without manual bookkeeping.
 
 ## Promotion contract
 
@@ -110,13 +114,14 @@ What survives compaction:
 
 1. **Disk state.** `memory/daily/<today>.md`, `memory/commitments.md`, the KB, anything you have written to git.
 2. **Plugin/repo state.** Rules, skills, the harness primer in `AGENTS.md` (Cursor re-reads it).
+3. **Recovery via session restart.** When a fresh Cursor session is created (or after Cursor surfaces a new chat following a hard compact), the harness `sessionStart` hook re-injects today's daily note and active commitments — so disk-resident signals come back automatically.
 
 What does not survive:
 
 - In-conversation observations the agent never wrote down.
 - The agent's working memory of the current task.
 
-The mitigation is discipline: append `[observation]` / `[lesson-candidate]` / `[decision-candidate]` / `[commitment]` to today's daily note **as they occur**, not at session end. Treat every multi-turn exchange as if the next message could trigger `/compact`.
+The mitigation is discipline: append `[observation]` / `[lesson-candidate]` / `[decision-candidate]` / `[commitment]` to today's daily note **as they occur**, not at session end. Treat every multi-turn exchange as if the next message could trigger `/compact`. The `sessionStart` hook is the recovery path, not a substitute for as-you-go writing — it can only re-surface what is already on disk.
 
 ## Trust model
 

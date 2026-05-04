@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "node .cursor/hooks/session-start.js"
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "node .cursor/hooks/last-referenced-bump.js",
+        "matcher": "Read"
+      }
+    ]
+  }
+}

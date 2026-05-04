@@ -1,16 +1,21 @@
 #!/usr/bin/env -S npx --yes tsx
 /**
- * /init-harness hook — v0.3.1
+ * /init-harness hook — v0.4.0
  *
  * Deterministic file ops that seed a project with the magik-repo harness:
  *   - AGENTS.md primer (marker-bounded prepend, in-place upgrade if stale)
  *   - .gitignore harness section (marker-bounded append, in-place upgrade if stale)
  *   - knowledge/, memory/, workspace/, codebase/ skeletons (skip-if-exists)
- *   - .cursor/ subtree (skill-authoring templates, services index, skip-if-exists)
+ *   - .cursor/ subtree (skill-authoring templates, services index,
+ *     hooks/session-start.js, hooks/last-referenced-bump.js, hooks.json — all
+ *     skip-if-exists; existing user hooks.json triggers a notice instead of
+ *     a silent skip).
  *
- * v0.3.1 corrects rules/memory.mdc to accurately describe Cursor's preCompact
- * hook (observation-only, cannot inject context). Marker-block content changes;
- * version bumps trigger the in-place upgrade flow on re-init.
+ * v0.4.0 ships two project-side Cursor hooks:
+ *   - sessionStart  → injects today's daily note + active commitments
+ *                     into the session's initial system context.
+ *   - postToolUse   → bumps `last_referenced` on KB entries when read,
+ *                     7-day throttled.
  *
  * Source-of-truth for seed payload: <plugin-root>/seeds/, populated by
  * scripts/build.ts from <plugin-root>/seed-sources/.
@@ -30,7 +35,7 @@ import { fileURLToPath } from "node:url";
 
 // --- Constants ---------------------------------------------------------------
 
-const PLUGIN_VERSION = "0.3.1";
+const PLUGIN_VERSION = "0.4.0";
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(HOOK_DIR);
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");
@@ -394,17 +399,34 @@ function buildPlan(args: CliArgs): Plan {
   // .cursor/ — project-side scaffolding seeded by the harness:
   //   - skills/_templates/<file>.md  : scaffolding-author input templates
   //   - skills/services/_index.md   : services-skill area placeholder
+  //   - hooks/session-start.js      : sessionStart hook (memory injection)
+  //   - hooks/last-referenced-bump.js : postToolUse hook for KB read tracking
+  //   - hooks.json                  : wires the above into Cursor's hook surface
   // Plugin-distributed framework content (rules + _core skills) is NOT
   // seeded — it comes from the magik-repo plugin install.
   for (const relPath of listSeedTree(".cursor")) {
     const target = join(".cursor", relPath);
     const fullTarget = join(root, target);
     if (existsSync(fullTarget)) {
-      items.push({
-        kind: "skip",
-        target,
-        reason: "exists; not overwriting",
-      });
+      // Existing user-authored .cursor/hooks.json — surface a clear notice
+      // rather than the generic "exists" line, since silent skip would mean
+      // the harness hooks are never wired.
+      if (relPath === "hooks.json") {
+        items.push({
+          kind: "notice",
+          target,
+          reason:
+            "user .cursor/hooks.json already present — harness hooks not auto-merged. " +
+            "To enable sessionStart memory injection and postToolUse last_referenced bumping, " +
+            "merge the entries from seeds/.cursor/hooks.json (plugin-side) into your hooks.json.",
+        });
+      } else {
+        items.push({
+          kind: "skip",
+          target,
+          reason: "exists; not overwriting",
+        });
+      }
     } else {
       items.push({
         kind: "create",

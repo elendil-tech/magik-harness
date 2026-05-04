@@ -93,7 +93,7 @@ pnpm clean
 
 ## Versioning
 
-`magik-repo@0.3.1` ships `harness@0.3.1` content. See [CHANGELOG.md](./CHANGELOG.md).
+`magik-repo@0.4.0` ships `harness@0.4.0` content. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## License
 

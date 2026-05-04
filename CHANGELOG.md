@@ -1,5 +1,42 @@
 # magik-repo
 
+## 0.4.0 — 2026-05-04
+
+Tracks `harness@0.4.0`. Memory layer goes from passive (agent-discipline) to active (Cursor-hook-driven) with two project-side hooks seeded by `/init-harness`. The freshness model from v0.3 becomes self-maintaining; the as-you-go contract from v0.3.1 gains a recovery path for fresh sessions after compact.
+
+### Added
+
+- **`sessionStart` hook (`seed-sources/.cursor/hooks/session-start.js`).** Plain Node.js, ~50ms cold start. On every Cursor session start, reads today's `memory/daily/<YYYY-MM-DD>.md` (full body) and the Active section of `memory/commitments.md`, and emits `{additional_context: "..."}` to be injected into the conversation's initial system context. Ends with a one-line read-first reminder pointing at `kb-search`. Fail-open on any I/O error (a malformed memory file never blocks session start). Fire-and-forget per Cursor's contract.
+- **`postToolUse` hook (`seed-sources/.cursor/hooks/last-referenced-bump.js`), matcher `Read`.** Plain Node.js. On every Read of a `.md` file under `knowledge/<domain>/` (excluding `_meta/`), bumps the entry's `last_referenced` frontmatter to today — but only when the existing value is at least 7 days old (the field itself is the throttle, no cache file required). Treats the schema-template placeholder `YYYY-MM-DD` as never-referenced. Skips entries lacking the field (legacy v0.2-or-earlier entries) so the hook never silently mutates files in unexpected ways. Fail-open.
+- **`seed-sources/.cursor/hooks.json`.** Wires both hooks into Cursor's hook surface using `node .cursor/hooks/<file>.js` (avoids reliance on shebangs / executable bits and runs from project root per Cursor's project-hook convention).
+- **Hook seeding in `/init-harness`.** The `.cursor/` walker now also seeds `hooks/session-start.js`, `hooks/last-referenced-bump.js`, and `hooks.json`. When the user already has a `.cursor/hooks.json`, the harness emits a **notice** (not a silent skip) explaining that the harness hooks were not auto-merged and pointing at `seeds/.cursor/hooks.json` for the entries to merge manually. This avoids clobbering user-authored hook configs.
+- **Test coverage for both hooks.**
+  - `tests/session-start-hook.test.ts` (5 cases) — empty memory emits `{}`; today's daily note injects; only `## Active` commitments extract (Resolved drops); combined output is valid JSON; empty Active section + no daily emits `{}`.
+  - `tests/last-referenced-bump.test.ts` (8 cases) — bumps stale; no-op within throttle; skips `_meta/`; ignores Reads outside `knowledge/`; ignores non-Read tools; skips legacy entries lacking the field; bumps schema-placeholder; preserves body and other frontmatter verbatim.
+  - `tests/init-harness.test.ts` — empty-project test now asserts the three new files seeded and that `hooks.json` is structurally valid (parses, version 1, both events wired); a new test verifies user-authored `.cursor/hooks.json` is preserved byte-equivalent and the plan output mentions it explicitly.
+
+### Changed
+
+- **`rules/memory.mdc` — Session lifecycle reflects the new automation.** Session-start manual reads of today's daily note + commitments are removed (the hook does it); reading yesterday's note is still the agent's job. Adds an explicit paragraph documenting both hooks, what they inject/mutate, and that the user can opt out by removing entries from `.cursor/hooks.json`.
+- **`rules/memory.mdc` — Compaction safety adds a recovery path.** When a fresh session is spawned (e.g., after a hard compact or a new chat), the `sessionStart` hook re-injects today's disk-resident memory automatically. Stresses that the hook is a recovery path, not a substitute for as-you-go writing — it can only resurface what is already on disk.
+- **`/init-harness` plan output is more honest about hook seeding.** When `.cursor/hooks.json` collides with a user file, the line now reads as a notice with a manual-merge instruction rather than the generic "exists; not overwriting".
+
+### Migration from 0.3.x
+
+`/init-harness` is idempotent. Re-running on a v0.3.x project upgrades the v=0.3.1 primer / gitignore blocks in place to v=0.4.0, and seeds the three new files under `.cursor/`:
+
+- `.cursor/hooks/session-start.js` — created.
+- `.cursor/hooks/last-referenced-bump.js` — created.
+- `.cursor/hooks.json` — created if missing; **notice** with manual-merge instructions if you already have one. The plan output identifies it explicitly.
+
+After re-run, reload Cursor (`Cmd+Shift+P → Developer: Reload Window`) so it picks up the new `hooks.json`. Verify in Cursor Settings → Hooks that both events are loaded.
+
+### Out of scope (deferred)
+
+- **Automatic JSON-merge for user-authored `.cursor/hooks.json`.** Today's behavior is skip-with-notice; structural merge that preserves user hooks while adding harness entries is a v0.5 task.
+- **`afterAgentResponse` / citation-driven `last_referenced` bumps.** The `Read` tool is a proxy for "this entry was looked at," not for "this entry informed an answer." A more accurate signal lands when Cursor's citation event hooks stabilise.
+- **`/clear-quarantine`, example domain agent, code-based skills, `--migrate`, atomic rollback, refusal exit codes, agent-in-the-loop tests.** Tracked in `ROADMAP.md`.
+
 ## 0.3.1 — 2026-05-04
 
 Tracks `harness@0.3.1`. Documentation correction — the previous v0.3.0 (and v0.2.x) `rules/memory.mdc` claimed a `pre-compact` hook could automate the flush-before-compact discipline. Verification against Cursor's hook surface revealed `preCompact` is observation-only: it cannot block compaction, cannot read the conversation, and cannot inject context into the agent. No hook can rescue signals that exist only in chat history. v0.3.1 rewrites the rule to reflect this and codifies the actual contract (write as-you-go, every turn).

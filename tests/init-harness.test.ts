@@ -108,12 +108,45 @@ test("empty project — full seed creates expected files", () => {
       "codebase/README.md missing",
     );
 
+    assert.ok(
+      existsSync(join(root, ".cursor", "hooks.json")),
+      ".cursor/hooks.json missing",
+    );
+    assert.ok(
+      existsSync(join(root, ".cursor", "hooks", "session-start.js")),
+      ".cursor/hooks/session-start.js missing",
+    );
+    assert.ok(
+      existsSync(join(root, ".cursor", "hooks", "last-referenced-bump.js")),
+      ".cursor/hooks/last-referenced-bump.js missing",
+    );
+
+    const hooksJson = readFileSync(
+      join(root, ".cursor", "hooks.json"),
+      "utf-8",
+    );
+    const parsedHooks = JSON.parse(hooksJson) as {
+      version: number;
+      hooks: { sessionStart?: unknown[]; postToolUse?: unknown[] };
+    };
+    assert.equal(parsedHooks.version, 1);
+    assert.ok(
+      Array.isArray(parsedHooks.hooks.sessionStart) &&
+        parsedHooks.hooks.sessionStart.length > 0,
+      "hooks.json must wire sessionStart",
+    );
+    assert.ok(
+      Array.isArray(parsedHooks.hooks.postToolUse) &&
+        parsedHooks.hooks.postToolUse.length > 0,
+      "hooks.json must wire postToolUse",
+    );
+
     const agents = readFileSync(join(root, "AGENTS.md"), "utf-8");
-    assert.match(agents, /<!-- harness:primer:start v=0\.3\.1 -->/);
+    assert.match(agents, /<!-- harness:primer:start v=0\.4\.0 -->/);
     assert.match(agents, /<!-- harness:primer:end -->/);
 
     const gi = readFileSync(join(root, ".gitignore"), "utf-8");
-    assert.match(gi, /^# harness:gitignore:start v=0\.3\.1$/m);
+    assert.match(gi, /^# harness:gitignore:start v=0\.4\.0$/m);
     assert.match(gi, /^# harness:gitignore:end$/m);
 
     // v0.3 schema frontmatter additions — make sure trust / provenance /
@@ -159,7 +192,7 @@ test("existing AGENTS.md — primer is prepended; user content preserved verbati
 
     const merged = readFileSync(join(root, "AGENTS.md"), "utf-8");
     assert.ok(
-      merged.startsWith("<!-- harness:primer:start v=0.3.1 -->"),
+      merged.startsWith("<!-- harness:primer:start v=0.4.0 -->"),
       "primer block should be at the top of AGENTS.md",
     );
     assert.ok(
@@ -279,7 +312,7 @@ test("stale marker upgrade — replaces primer/gitignore blocks in place, preser
     assert.equal(status, 0, `hook failed: ${stdout}`);
 
     const agents = readFileSync(join(root, "AGENTS.md"), "utf-8");
-    assert.match(agents, /<!-- harness:primer:start v=0\.3\.1 -->/);
+    assert.match(agents, /<!-- harness:primer:start v=0\.4\.0 -->/);
     assert.ok(
       !agents.includes("<!-- harness:primer:start v=0.1.0 -->"),
       "stale primer start marker should be gone",
@@ -302,7 +335,7 @@ test("stale marker upgrade — replaces primer/gitignore blocks in place, preser
     );
 
     const gi = readFileSync(join(root, ".gitignore"), "utf-8");
-    assert.match(gi, /^# harness:gitignore:start v=0\.3\.1$/m);
+    assert.match(gi, /^# harness:gitignore:start v=0\.4\.0$/m);
     assert.ok(
       !gi.includes("# harness:gitignore:start v=0.1.0"),
       "stale gitignore start marker should be gone",
@@ -314,6 +347,49 @@ test("stale marker upgrade — replaces primer/gitignore blocks in place, preser
     assert.ok(
       gi.includes("# user trailing rule"),
       "user .gitignore content after the harness section should be preserved",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("user .cursor/hooks.json present — preserved verbatim, plan emits a notice (no silent merge)", () => {
+  ensureBuilt();
+  const root = makeTmpProject();
+  try {
+    const userHooks = {
+      version: 1,
+      hooks: {
+        afterFileEdit: [{ command: "./hooks/format.sh" }],
+      },
+    };
+    mkdirSync(join(root, ".cursor"), { recursive: true });
+    writeFileSync(
+      join(root, ".cursor", "hooks.json"),
+      JSON.stringify(userHooks, null, 2),
+    );
+
+    const { status, stdout } = runHook(root, ["--yes"]);
+    assert.equal(status, 0, `hook failed: ${stdout}`);
+
+    const after = JSON.parse(
+      readFileSync(join(root, ".cursor", "hooks.json"), "utf-8"),
+    );
+    assert.deepEqual(
+      after,
+      userHooks,
+      "user-authored hooks.json must be preserved byte-equivalent",
+    );
+
+    assert.match(
+      stdout,
+      /\.cursor\/hooks\.json/,
+      "plan output should mention the user's hooks.json",
+    );
+    assert.match(
+      stdout,
+      /not auto-merged|merge.*hooks\.json/i,
+      "plan output should explicitly explain that the harness hooks were not merged",
     );
   } finally {
     rmSync(root, { recursive: true, force: true });
