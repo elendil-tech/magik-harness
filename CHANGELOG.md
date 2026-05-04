@@ -1,6 +1,16 @@
 # magik-repo
 
-## 0.3.0 — 2026-05-04
+## 0.3.1 — 2026-05-04
+
+Tracks `harness@0.3.1`. Documentation correction — the previous v0.3.0 (and v0.2.x) `rules/memory.mdc` claimed a `pre-compact` hook could automate the flush-before-compact discipline. Verification against Cursor's hook surface revealed `preCompact` is observation-only: it cannot block compaction, cannot read the conversation, and cannot inject context into the agent. No hook can rescue signals that exist only in chat history. v0.3.1 rewrites the rule to reflect this and codifies the actual contract (write as-you-go, every turn).
+
+### Changed
+
+- **`rules/memory.mdc` — Compaction safety section rewritten.** Removes the misleading `pre-compact` hook claim. New text: "Cursor's `preCompact` hook is observation-only — by the time it fires, compaction is already happening — no hook can rescue signals that exist only in chat history." States the as-you-go contract explicitly: "treat every multi-turn exchange as if the next message could trigger `/compact`."
+- **`rules/memory.mdc` — Session lifecycle table tightened.** The "Before `/compact`" row is removed (no such phase exists from a hook perspective). The "During work" row is upgraded to specify "as they happen" with an explicit pointer to the Compaction safety section. The Quick checklist drops the "before /compact" item and rewords the during-work item.
+- **Re-runs of `/init-harness` upgrade the v=0.3.0 primer / gitignore blocks in place to v=0.3.1.** No new files, no behavior change for already-shipped skills/hooks — just the rule honesty fix. The `Deferred` list in 0.3.0 incorrectly said `pre-compact` was deferred to 0.4; it should have said *not feasible at all with the current Cursor hook API*; v0.4 will instead leverage `sessionStart` and `postToolUse` (which **are** capable of injection / side-effects respectively).
+
+
 
 Tracks `harness@0.3.0`. Refinements on top of the v0.2 memory layer: trust scoring on KB entries, quarantine for externally-sourced content, 14-day half-life recency weighting, and the "earn-the-folder" trigger for `memory/<domain>/`.
 

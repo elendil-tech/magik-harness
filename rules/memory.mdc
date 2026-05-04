@@ -65,8 +65,7 @@ External-sourced content (web fetches, tool output) gets an extra `[external]` t
 | Phase | Required action |
 | --- | --- |
 | **Session start** | 1. Run `kb-search` over the task. 2. Read today's and yesterday's `memory/daily/*.md`. 3. Read `memory/commitments.md`. |
-| **During work** | Append signals to today's `memory/daily/<today>.md` as they happen. |
-| **Before `/compact`** | Flush in-conversation lessons to today's note. The `pre-compact` hook does this when present; if absent, the agent does it explicitly. |
+| **During work** | Append signals to today's `memory/daily/<today>.md` **as they happen**. The contract is as-you-go, not end-of-session — see Compaction safety. |
 | **Session end** | Optionally run `/distill` to propose promotions. Otherwise the next `/audit` will. |
 
 The `kb-search` step is **mandatory** — see `rules/harness.mdc` "Read first."
@@ -103,13 +102,21 @@ When a domain has ≥ 3 daily entries tagged with it over the last 14 days, `mem
 
 ## Compaction safety
 
-Cursor's session memory is volatile. Anything mentioned only in conversation can be lost across `/compact`. The contract:
+Cursor's session memory is volatile. Anything mentioned only in conversation can be lost across `/compact`. The contract is **as-you-go**: write signals to disk before they are at risk of being summarised away.
 
-1. **Before any `/compact`**, the agent flushes unwritten lessons / decisions / commitments to today's daily note.
-2. **The harness primer in `AGENTS.md`** survives compaction (Cursor re-reads it). Memory captures the rest.
-3. **Skills and rules** survive (they're plugin/repo state). Memory captures the session-level signals they don't.
+Cursor's `preCompact` hook is **observation-only**. It cannot block compaction, cannot read the conversation, and cannot inject context into the agent. By the time it fires, compaction is already happening — no hook can rescue signals that exist only in chat history. (See Cursor docs: hooks > events > preCompact.)
 
-If a `pre-compact` hook is configured, it does step 1 automatically. Without the hook, the agent is responsible for the flush.
+What survives compaction:
+
+1. **Disk state.** `memory/daily/<today>.md`, `memory/commitments.md`, the KB, anything you have written to git.
+2. **Plugin/repo state.** Rules, skills, the harness primer in `AGENTS.md` (Cursor re-reads it).
+
+What does not survive:
+
+- In-conversation observations the agent never wrote down.
+- The agent's working memory of the current task.
+
+The mitigation is discipline: append `[observation]` / `[lesson-candidate]` / `[decision-candidate]` / `[commitment]` to today's daily note **as they occur**, not at session end. Treat every multi-turn exchange as if the next message could trigger `/compact`.
 
 ## Trust model
 
@@ -132,6 +139,5 @@ If a `pre-compact` hook is configured, it does step 1 automatically. Without the
 - [ ] Did I `kb-search` the task before starting?
 - [ ] Did I read today + yesterday's daily notes?
 - [ ] Did I read `commitments.md`?
-- [ ] Am I appending observations as they happen?
-- [ ] Have I flushed pending signals before triggering `/compact`?
+- [ ] Am I appending observations to the daily note **as they happen** (not at session end)?
 - [ ] Are my entries domain-tagged where applicable?
