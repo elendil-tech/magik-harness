@@ -10,7 +10,7 @@
     "uninstall-local": "tsx scripts/uninstall-local.ts",
     "clean": "rm -rf seeds dist *.tsbuildinfo",
     "pretest": "tsx scripts/build.ts",
-    "test": "node --test --import tsx tests/*.test.ts",
+    "test": "tsx scripts/run-tests.ts",
     "preeval": "tsx scripts/build.ts",
     "eval": "tsx evals/runner/cli.ts"
   },

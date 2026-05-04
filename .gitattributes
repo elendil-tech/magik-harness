@@ -1,0 +1,18 @@
+# Force LF line endings for all text files. Without this, Windows clones
+# default to CRLF, which (a) breaks the seed-tree content-hash snapshot and
+# (b) ships CRLF inside seeded files that get prepended to user AGENTS.md
+# / .gitignore. Both are real cross-platform footguns.
+
+* text=auto eol=lf
+
+# Binary assets — never line-end-normalize.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+
+# Snapshot fixture lives under tests/ — same LF policy.
+tests/__snapshots__/*.json text eol=lf
