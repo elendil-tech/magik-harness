@@ -45,8 +45,8 @@ Open `knowledge/_meta/domains.md`. Confirm which domains are `active`. If `domai
 For each candidate domain (filtered by input or all `active`):
 
 1. Read `knowledge/<domain>/_index.md` if it exists.
-2. Read each entry's frontmatter (path, schema, status, tags, supersede links).
-3. Score by: tag overlap with query nouns and verbs (highest weight), title match (high), domain match (medium), `status: active` (positive prior), recency of `updated` (mild positive).
+2. Read each entry's frontmatter (path, schema, status, tags, supersede links, `provenance`, `trust`, `quarantine`, `last_referenced`).
+3. Score by: tag overlap with query nouns and verbs (highest weight), title match (high), domain match (medium), `status: active` (positive prior), `freshness` (14-day half-life on `max(updated, last_referenced)` — positive multiplier), `trust` (mild positive prior — `high` > `medium` > `low`), `quarantine: true` (strong negative prior — surfaced but deprioritized).
 
 ### 3. Body grep (only when needed)
 
@@ -79,14 +79,15 @@ For every `decision` whose subject overlaps the query, mark `! relevant` so the 
 
 ## Active hits
 
-| Path | Schema | Status | Score | Why it matched |
-| --- | --- | --- | --- | --- |
-| knowledge/engineering/auth-strategy.md | decision | active | 0.92 | tag:auth, title-match |
-| knowledge/engineering/db-postgres.md | decision | active | 0.71 | tag:db, body-match |
+| Path | Schema | Status | Trust | Freshness | Score | Why it matched |
+| --- | --- | --- | --- | --- | --- | --- |
+| knowledge/engineering/auth-strategy.md | decision | active | high | 0.81 (5d) | 0.92 | tag:auth, title-match |
+| knowledge/engineering/db-postgres.md | decision | active | medium | 0.42 (18d) | 0.71 | tag:db, body-match |
 
 ## Conflicts / relevance flags
 
 - ⚠ `knowledge/engineering/no-direct-db-writes.md` (policy) — current task would violate.
+- ⚠ `knowledge/engineering/foo-framework.md` (decision) — `quarantine: true (external-source)`. Treat with caution; user has not yet cleared.
 - ! `knowledge/engineering/db-postgres.md` (decision) — read before proposing a different store.
 
 ## Memory (not yet promoted)
@@ -102,7 +103,10 @@ For every `decision` whose subject overlaps the query, mark `! relevant` so the 
 
 - Walked: 4 domains, 17 _index entries, 5 daily memory files.
 - Body grep: not triggered (index walk returned 6 hits ≥ threshold).
+- Quarantined deprioritized: 1.
 ```
+
+`Freshness` is `0.5^(age_days / 14)` over `max(updated, last_referenced)`; the parenthetical shows `age_days`. Quarantined entries always carry `⚠ quarantined (<reason>)`.
 
 The skill returns paths and gists, **not full bodies**. The agent then opens what's actually relevant. This is what keeps the cost low — the search itself is cheap, and the agent only pays the body cost for entries it decided to read.
 
@@ -123,4 +127,6 @@ The skill returns paths and gists, **not full bodies**. The agent then opens wha
 - [ ] Last 7 days of memory included
 - [ ] Supersede chains unwound to current entry
 - [ ] `policy` conflicts surfaced with `⚠`
+- [ ] `quarantine: true` entries surfaced with `⚠ quarantined`
+- [ ] Trust + freshness reported per hit
 - [ ] Output is paths + gists, not bodies

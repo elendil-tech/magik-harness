@@ -16,7 +16,7 @@ memory/
     └── YYYY-MM-DD.md       ← audit trail of memory-distill runs (which proposals, which approvals)
 ```
 
-`memory/<domain>/` may earn a folder via the same "≥ 3 durable artifacts" rule that governs `knowledge/<domain>/` and `.cursor/skills/<domain>/`. Until earned, daily notes stay flat and entries are domain-tagged inline.
+`memory/<domain>/daily/` may earn its own lane when the domain accumulates **≥ 3 daily entries tagged with it over the last 14 days** — the "earn the folder" trigger. Until earned, daily notes stay flat under `memory/daily/` and entries are domain-tagged inline. After earning, future signals tagged with that domain land in `memory/<domain>/daily/<today>.md`; cross-domain and unearned-domain signals continue to land in the flat `memory/daily/<today>.md`. `memory-distill` proposes the promotion when the threshold is met.
 
 ## What goes here
 

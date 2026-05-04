@@ -43,6 +43,10 @@ Read `knowledge/_meta/domains.md`. Confirm the domain slug exists and is `status
 1. Copy `knowledge/_meta/schemas/<schema>.md` to `knowledge/<domain>/<id>.md`.
 2. Fill the frontmatter:
    - `id`, `domain`, `status` (`draft` or `active`), `created`, `updated`.
+   - `last_referenced`: today.
+   - `provenance`: `direct` for hand-written entries; `memory-distill@<YYYY-MM-DD>` when called from `memory-distill` (the distill skill stamps this and passes it through).
+   - `trust`: `medium` for direct authoring; for promoted entries, follow the table in `memory-distill` (recurrence ≥ 3 + non-external → `high`; otherwise `medium`; `[external]` source → `low`).
+   - `quarantine`: `true` only when promoting `[external]` content or when explicitly flagged unverified — set `quarantine_reason` in that case.
 3. Fill every section. Empty sections are a sign the entry isn't ready — leave it `draft` or remove the section.
 4. Cross-link related entries using relative paths. Mirror the link in their `links:` block.
 
@@ -59,6 +63,8 @@ For new `decision` and `policy` entries: scan for contradictions with existing e
 - **Active entry, small clarification** → edit in place; bump `updated`.
 - **Active entry, change of substance** → if it changes the recorded choice/rule, do **not** rewrite. Create a new entry that supersedes the old: set `supersedes: [<old-id>]` on the new one and `superseded_by: [<new-id>]`, `status: deprecated` on the old one.
 - **Fieldnote recurrence** → increment `recurrence` and update `updated`. If `recurrence ≥ 3` or `severity: high`, propose promotion to a `policy`.
+- **Entry was used to inform a substantive task** → bump `last_referenced` to today. This is what keeps the freshness score meaningful — `last_referenced` should represent deliberate re-validation or citation, not casual reads.
+- **Clearing a quarantine** → only the user does this. Set `quarantine: false`, clear `quarantine_reason`, optionally bump `trust` from `low` to `medium`, and note the review in the entry body or a linked `fieldnote`.
 
 ## Pruning
 
@@ -82,7 +88,8 @@ Prune when:
 
 - [ ] Schema picked and matches intent
 - [ ] Domain exists in registry
-- [ ] Frontmatter complete
+- [ ] Frontmatter complete (incl. `last_referenced`, `provenance`, `trust`, `quarantine`)
 - [ ] Cross-links bidirectional
 - [ ] `_index.md` updated
 - [ ] No contradiction with existing active entry (or supersede recorded)
+- [ ] If `quarantine: true`, `quarantine_reason` set

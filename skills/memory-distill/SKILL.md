@@ -117,12 +117,47 @@ Approve [1,2,3,4,5,6,7,8]? [select / all / none]
 
 ### 8. Apply approvals
 
-For each approved proposal, hand off to the appropriate skill:
+For each approved proposal, hand off to the appropriate skill **with provenance, trust, and quarantine fields stamped per the contract below**:
 
 - promotion to KB → `knowledge-base` skill (with the candidate text and target schema/path).
 - conflict resolution → user decides; if memory wins, hand the new entry plus a supersede chain to `knowledge-base`. If KB wins, mark the memory candidate `[resolved]` in its daily note.
 - structural change (memory subfolder promotion, domain addition) → `domain-registry` first if needed, then mutate `memory/`.
 - pruning → directly mutate `memory/daily/` or `memory/commitments.md`.
+
+#### Provenance / trust / quarantine stamping (v0.3+)
+
+Every promoted KB entry MUST be stamped:
+
+```yaml
+provenance: memory-distill@<YYYY-MM-DD>   # the date of this distill run
+trust: <derived>                           # see table
+quarantine: <derived>                      # see table
+quarantine_reason: <derived>               # only when quarantine: true
+last_referenced: <YYYY-MM-DD>              # = today (the promotion is itself a reference)
+```
+
+Derivation:
+
+| Source signal | trust | quarantine | quarantine_reason |
+| --- | --- | --- | --- |
+| `[lesson-candidate]` with `recurrence ≥ 3`, no `[external]` | `high` | `false` | — |
+| `[lesson-candidate]` / `[decision-candidate]` / `[concept-candidate]`, no `[external]`, single-source | `medium` | `false` | — |
+| Any candidate carrying `[external]` (web fetch, untrusted tool output) | `low` | `true` | `external-source` |
+| Candidate that contradicts an active `policy` (resolved in memory's favor) | `low` | `true` | `policy-conflict` |
+| Candidate the user explicitly flags as unverified | `low` | `true` | `unverified` |
+
+Quarantined entries appear in the KB but are deprioritized by `kb-search` and surfaced by `drift-scan` until the user clears them.
+
+#### Memory subfolder promotion (earn-the-folder, v0.3+)
+
+When a domain has ≥ 3 daily entries tagged with it over the last 14 days, `memory-distill` proposes promoting it to its own `memory/<domain>/daily/` lane. After approval:
+
+1. Validate the domain exists and is `active` in `knowledge/_meta/domains.md` (defer to `domain-registry` if not).
+2. Create `memory/<domain>/daily/.gitkeep` and `memory/<domain>/_index.md` (a short index pointing to the parent `memory/_index.md` for the lane contract).
+3. From now on, signals tagged with that domain land in `memory/<domain>/daily/<today>.md`. The flat `memory/daily/<today>.md` continues to receive cross-domain and unearned-domain signals.
+4. Existing flat entries are **not** migrated — git history preserves them in place.
+
+The threshold and procedure are deliberately conservative: the goal is to keep the flat lane lean, not to enforce per-domain bureaucracy.
 
 ### 9. Log the run
 
@@ -153,10 +188,13 @@ This is the audit trail. Append-only. Never pruned.
 
 - [ ] All daily notes parsed
 - [ ] Commitments parsed (active + resolved)
-- [ ] Each candidate scored with recency weighting
+- [ ] Each candidate scored with 14-day half-life recency weighting
 - [ ] `kb-search` run for each promotion candidate
 - [ ] Conflicts surfaced with `⚠`
-- [ ] `[external]` flags handled with stricter review
+- [ ] `[external]` flags handled with stricter review and quarantine on promotion
+- [ ] `provenance` / `trust` / `quarantine` stamped on every promoted KB entry
+- [ ] `last_referenced` set to today on every promoted KB entry
 - [ ] Domain registry validated for each candidate
+- [ ] Earn-the-folder threshold checked for each tagged domain (≥ 3 entries / 14 days)
 - [ ] Pruning proposed only after promotion/aging
 - [ ] Distillation logged to `memory/distillations/<YYYY-MM-DD>.md`

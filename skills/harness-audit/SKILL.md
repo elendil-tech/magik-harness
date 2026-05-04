@@ -114,7 +114,14 @@ For each domain:
 - Undistilled signals: count of `[lesson-candidate]` / `[decision-candidate]` / `[concept-candidate]` not yet promoted or rejected.
 - Commitment backlog: count of active commitments past their `due` date.
 - Oldest unprocessed daily note: flag if > 14 days since last distill run.
-- `[external]` entries awaiting review.
+- `[external]` entries awaiting review (these become `quarantine: true` on promotion).
+- Earn-the-folder candidates: domains with ≥ 3 daily entries tagged with them over the last 14 days but no `memory/<domain>/` folder yet.
+
+### 4b. Analyze KB trust + freshness
+
+- Quarantined KB entries (any). Surface every one — they need to be reviewed and cleared.
+- Low-trust KB entries (`trust: low`, `provenance != direct`) older than 14 days without a `last_referenced` bump — review-gate signal.
+- Stale KB entries (`freshness < 0.06`, ~ > 56 days). Advisory only — recommend either bumping `last_referenced` after re-validation or deprecating.
 
 ### 5. Analyze scaffolding health
 
@@ -149,7 +156,10 @@ Produce 0–N **proposals**:
 ## Health
 - Domains: 5 active, 0 deprecated
 - KB entries: 42 (active 28 / draft 11 / deprecated 3)
+- KB trust: high 9 / medium 26 / low 4 / quarantined 1
+- KB freshness: fresh 18 / aging 7 / stale 3 (14-day half-life)
 - Memory: 12 daily notes (last 14 days), 4 commitments active, last distill 2026-04-29
+- Earned memory subfolders: 2 of 5 active domains
 - Skills: 17 (services 4 / domain 3 / task 10 / core 5)
 - Drift: 1 high, 2 medium, 5 low
 

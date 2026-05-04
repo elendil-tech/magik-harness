@@ -58,7 +58,7 @@ Format: one bullet per signal, domain tag required when domain-relevant.
 - [commitment] [marketing] launch copy review by Fri 2026-05-08
 ```
 
-External-sourced content (web fetches, tool output) gets an extra `[external]` tag so distill can flag it for stricter review.
+External-sourced content (web fetches, tool output) gets an extra `[external]` tag so distill can flag it for stricter review. When such an entry is promoted to the KB, it lands with `trust: low`, `quarantine: true`, `quarantine_reason: external-source` and stays there until the user explicitly clears the quarantine. See `rules/drift-control.mdc` "Trust model."
 
 ## Session lifecycle
 
@@ -77,13 +77,23 @@ Memory → knowledge promotion is **proposal-only**. The agent never auto-applie
 
 The `memory-distill` skill is the one path:
 
-1. Scans `memory/daily/*.md`, scores by tag distribution + recency + domain.
+1. Scans `memory/daily/*.md`, scores by tag distribution + recency (14-day half-life) + domain.
 2. Identifies clusters: lesson-candidates with `recurrence ≥ 3`, decision-candidates older than N days still active, repeated observations on the same surface.
 3. Produces a numbered proposal list — same format as `harness-audit`.
 4. User approves; distill hands off to `knowledge-base` to write the KB entry.
-5. Distillations are logged to `memory/distillations/<YYYY-MM-DD>.md` (audit trail).
+5. The KB entry is stamped with `provenance: memory-distill@<YYYY-MM-DD>` and a `trust` derived from `recurrence` and source (`[external]` always lands as `trust: low` + `quarantine: true`).
+6. Distillations are logged to `memory/distillations/<YYYY-MM-DD>.md` (audit trail).
 
 After promotion, the daily note that contained the candidate stays in place as the chronological record. The promoted KB entry is the durable home.
+
+## Earn-the-folder trigger
+
+When a domain has ≥ 3 daily entries tagged with it over the last 14 days, `memory-distill` (and `harness-audit`) propose promoting it to its own `memory/<domain>/daily/` subdirectory. After approval:
+
+- Future signals tagged with that domain land in `memory/<domain>/daily/<today>.md`.
+- The flat `memory/daily/<today>.md` continues to receive cross-domain and unearned-domain signals.
+- Existing flat entries are *not* migrated — git history preserves them in place.
+- An `_index.md` is created at `memory/<domain>/_index.md` describing the lane.
 
 ## Retention
 

@@ -5,6 +5,11 @@ domain: <domain-slug>
 status: draft
 created: YYYY-MM-DD
 updated: YYYY-MM-DD
+last_referenced: YYYY-MM-DD     # bumped when this entry informs a substantive task; defaults to `updated`
+provenance: direct              # direct | memory-distill@<YYYY-MM-DD> | imported
+trust: medium                   # low | medium | high
+quarantine: false               # true if sourced from unverified external content
+quarantine_reason: ""           # external-source | policy-conflict | unverified — set when quarantine: true
 deciders: []
 supersedes: []
 superseded_by: []

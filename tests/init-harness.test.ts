@@ -109,12 +109,38 @@ test("empty project — full seed creates expected files", () => {
     );
 
     const agents = readFileSync(join(root, "AGENTS.md"), "utf-8");
-    assert.match(agents, /<!-- harness:primer:start v=0\.2\.1 -->/);
+    assert.match(agents, /<!-- harness:primer:start v=0\.3\.0 -->/);
     assert.match(agents, /<!-- harness:primer:end -->/);
 
     const gi = readFileSync(join(root, ".gitignore"), "utf-8");
-    assert.match(gi, /^# harness:gitignore:start v=0\.2\.1$/m);
+    assert.match(gi, /^# harness:gitignore:start v=0\.3\.0$/m);
     assert.match(gi, /^# harness:gitignore:end$/m);
+
+    // v0.3 schema frontmatter additions — make sure trust / provenance /
+    // quarantine / last_referenced are present in every schema template.
+    for (const schema of [
+      "concept",
+      "decision",
+      "policy",
+      "specification",
+      "fieldnote",
+    ]) {
+      const body = readFileSync(
+        join(root, "knowledge", "_meta", "schemas", `${schema}.md`),
+        "utf-8",
+      );
+      for (const field of [
+        "last_referenced:",
+        "provenance:",
+        "trust:",
+        "quarantine:",
+      ]) {
+        assert.ok(
+          body.includes(field),
+          `schemas/${schema}.md should include frontmatter field "${field}"`,
+        );
+      }
+    }
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -133,7 +159,7 @@ test("existing AGENTS.md — primer is prepended; user content preserved verbati
 
     const merged = readFileSync(join(root, "AGENTS.md"), "utf-8");
     assert.ok(
-      merged.startsWith("<!-- harness:primer:start v=0.2.1 -->"),
+      merged.startsWith("<!-- harness:primer:start v=0.3.0 -->"),
       "primer block should be at the top of AGENTS.md",
     );
     assert.ok(
@@ -253,7 +279,7 @@ test("stale marker upgrade — replaces primer/gitignore blocks in place, preser
     assert.equal(status, 0, `hook failed: ${stdout}`);
 
     const agents = readFileSync(join(root, "AGENTS.md"), "utf-8");
-    assert.match(agents, /<!-- harness:primer:start v=0\.2\.1 -->/);
+    assert.match(agents, /<!-- harness:primer:start v=0\.3\.0 -->/);
     assert.ok(
       !agents.includes("<!-- harness:primer:start v=0.1.0 -->"),
       "stale primer start marker should be gone",
@@ -276,7 +302,7 @@ test("stale marker upgrade — replaces primer/gitignore blocks in place, preser
     );
 
     const gi = readFileSync(join(root, ".gitignore"), "utf-8");
-    assert.match(gi, /^# harness:gitignore:start v=0\.2\.1$/m);
+    assert.match(gi, /^# harness:gitignore:start v=0\.3\.0$/m);
     assert.ok(
       !gi.includes("# harness:gitignore:start v=0.1.0"),
       "stale gitignore start marker should be gone",

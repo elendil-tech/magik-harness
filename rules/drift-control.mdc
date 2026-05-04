@@ -32,8 +32,42 @@ alwaysApply: false
 | Skill references a service not used anywhere else | Skills internal | low |
 | `policy` violated by code or by another skill | KB ↔ {Skills, Code} | high |
 | `fieldnote` recurrence ≥ 3 with no policy or skill change | KB internal | medium |
-| Active KB entry not updated in > 180 days | KB internal | low (advisory) |
+| `quarantine: true` KB entry — sourced from unverified content, not yet reviewed | KB internal | high |
+| KB entry with `trust: low`, `provenance != direct`, older than 14 days, never reviewed | KB internal | medium |
+| KB entry freshness < 0.06 (≈ ≥ 56 days since `updated` or `last_referenced`) | KB internal | low (advisory) |
+| Domain has ≥ 3 daily entries tagged with it over last 14 days but no `memory/<domain>/` folder | Memory ↔ Registry | low (advisory; "earn the folder" trigger) |
 | Daily note older than 30 days, never distilled | Memory internal | low (advisory) |
+
+## Freshness model (14-day half-life)
+
+Every KB entry has a freshness score:
+
+```
+freshness = 0.5 ^ ((today − max(updated, last_referenced)) / 14)
+```
+
+| Bucket | Range | Meaning |
+| --- | --- | --- |
+| Fresh | freshness ≥ 0.25 (≤ 28 days) | Recently touched or referenced. |
+| Aging | 0.06 ≤ freshness < 0.25 (29–56 days) | Healthy but worth a glance during the next audit. |
+| Stale | freshness < 0.06 (> 56 days) | Advisory; no action required, but flag during audit. The right action is usually either bumping `last_referenced` after a re-validation, or deprecating the entry if it's no longer true. |
+
+The same model applies to active memory daily notes — past 28 days, distill is overdue; past 56 days, the daily note is a prune-or-promote candidate.
+
+This replaces the v0.2 binary "180-day stale" advisory with a continuous score.
+
+## Trust model
+
+Every KB entry has `trust ∈ {low, medium, high}` and a `provenance`:
+
+| Field | Source | Defaults to |
+| --- | --- | --- |
+| `provenance: direct` | User or agent direct write | `trust: medium` |
+| `provenance: memory-distill@<run>` with `recurrence ≥ 3` and not `[external]` | Promotion | `trust: high` |
+| `provenance: memory-distill@<run>` otherwise | Promotion | `trust: medium` |
+| Any source with `[external]` flag (web fetch, untrusted tool output) | Promotion | `trust: low`, `quarantine: true`, `quarantine_reason: external-source` |
+
+Only the user can clear a `quarantine` (set `quarantine: false`, optionally bump `trust`). Drift-scan flags any `quarantine: true` entry at high severity until cleared.
 
 ## Reconciliation protocol
 

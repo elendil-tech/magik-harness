@@ -1,5 +1,52 @@
 # magik-repo
 
+## 0.3.0 — 2026-05-04
+
+Tracks `harness@0.3.0`. Refinements on top of the v0.2 memory layer: trust scoring on KB entries, quarantine for externally-sourced content, 14-day half-life recency weighting, and the "earn-the-folder" trigger for `memory/<domain>/`.
+
+### Added
+
+- **Trust + provenance + quarantine frontmatter on every KB schema.** All five schemas (`concept`, `decision`, `policy`, `specification`, `fieldnote`) now carry:
+  - `last_referenced` — bumped when the entry informs a substantive task; defaults to `updated`. Drives the freshness score.
+  - `provenance` — `direct` for hand-written, `memory-distill@<YYYY-MM-DD>` for promotions, `imported` reserved for batch ingest.
+  - `trust` — `low | medium | high`. Default `medium` for direct authoring; promotions derive from recurrence and source.
+  - `quarantine` + `quarantine_reason` — set `true` when a promoted entry came from `[external]`-tagged memory (web fetches, untrusted tool output) or contradicts an active policy. Only the user can clear.
+- **`fieldnote.md` schema gains a "Trust and quarantine" section** explaining the lifecycle.
+- **Drift-scan: 8 new checks (D2m, D3m, D14–D21).** Memory-domain ⊆ registry, memory-bullet domain validation, quarantine review gate (high), low-trust review gate (medium), freshness-based stale advisory (low; replaces the binary 180-day rule), recurring lesson-without-fieldnote, decision-candidate-aging, memory-vs-policy contradiction, commitment-past-due, earn-the-folder trigger for `memory/<domain>/`, and undistilled daily notes older than 30 days.
+- **Earn-the-folder trigger.** When a domain accumulates ≥ 3 daily entries tagged with it over the last 14 days, `memory-distill` and `harness-audit` propose promoting it to `memory/<domain>/daily/`. Procedure is documented in `rules/memory.mdc`, `rules/domains.mdc`, `seed-sources/memory/_index.md`, and `skills/memory-distill/SKILL.md` (validate registry → create lane → future signals route there → existing flat entries are not migrated; git history preserves them).
+- **Schema-sanity test.** `tests/init-harness.test.ts` now asserts every schema template carries the new frontmatter fields, so future changes can't silently drop them.
+
+### Changed
+
+- **`rules/drift-control.mdc` — adds a "Freshness model" section.** Continuous score `freshness = 0.5^((today − max(updated, last_referenced)) / 14)` with three buckets (`fresh ≥ 0.25`, `aging 0.06–0.25`, `stale < 0.06`). Replaces the v0.2 binary "180-day stale" advisory. Same model applies to memory daily notes.
+- **`rules/drift-control.mdc` — adds a "Trust model" section.** Codifies the derivation of `trust` and `quarantine` from `provenance` and `[external]` flags, and the user-only contract for clearing quarantines.
+- **`rules/memory.mdc` — `[external]` content lands quarantined.** When a memory candidate carrying `[external]` is promoted, it lands with `trust: low`, `quarantine: true`, `quarantine_reason: external-source` and stays there until the user explicitly clears it.
+- **`skills/memory-distill/SKILL.md` — stamps every promotion** with `provenance`, `trust`, `quarantine`, `quarantine_reason` (when applicable), and `last_referenced` per the contract. Also encodes the earn-the-folder procedure end to end.
+- **`skills/drift-scan/SKILL.md` — five-layer model.** Adds memory layer to the inventory (daily notes, earned memory subfolders, commitments, parsed bullet domain tags). Computes freshness per entry. Mode flags renumbered (shallow = layers 1–4, deep includes layer 5).
+- **`skills/kb-search/SKILL.md` — surfaces trust + freshness + quarantine.** Output table now includes Trust and Freshness columns; quarantined entries get a `⚠ quarantined (<reason>)` flag and are deprioritized in scoring.
+- **`skills/harness-audit/SKILL.md` — health table extended.** Reports KB trust distribution (`high / medium / low / quarantined`), KB freshness distribution (`fresh / aging / stale`), earn-the-folder candidates, and adds an "Analyze KB trust + freshness" step (4b) that surfaces quarantined and stale entries.
+- **`skills/knowledge-base/SKILL.md` — authoring writes the new fields.** Frontmatter checklist now includes `last_referenced`, `provenance`, `trust`, `quarantine`. Updating section adds a `last_referenced` bump rule (deliberate re-validation, not casual reads) and the user-only quarantine-clearing contract.
+- **`seed-sources/memory/_index.md` — explains the earn-the-folder trigger** and how routing changes after promotion.
+
+### Migration from 0.2.x
+
+`/init-harness` is idempotent. Re-running on a v0.2.x project upgrades the `v=0.2.0` / `v=0.2.1` primer / gitignore blocks in place to `v=0.3.0`. **Existing KB entries do not gain the new frontmatter fields automatically** — they're additive at the schema-template level. Existing entries continue to work; fields are read with sensible defaults:
+
+- Missing `last_referenced` → falls back to `updated`.
+- Missing `provenance` → treated as `direct`.
+- Missing `trust` → treated as `medium`.
+- Missing `quarantine` → treated as `false`.
+
+When you next edit an existing entry, add the four fields. `harness-audit` will surface entries missing them as a low-severity advisory.
+
+### Deferred
+
+- **Auto-bump `last_referenced` when an entry is cited in a chat** — currently bumped only by deliberate skill action. Lands in `0.4.0` once Cursor exposes a hook for tool-result citation events.
+- **`pre-compact` hook.** Still relies on agent discipline rather than a Cursor-side automation.
+- **`--migrate=copy|subtree|submodule|none`** for code-at-root.
+- **Atomic rollback on partial failure.**
+- **Comprehensive refusal exit codes.**
+
 ## 0.2.1 — 2026-05-04
 
 Tracks `harness@0.2.1`. Clarifying patch on top of 0.2.0 — sharpens the conceptual relationship between the new memory layer and the existing `fieldnote` KB schema, so the agent doesn't blur them.
