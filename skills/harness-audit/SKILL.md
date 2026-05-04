@@ -97,25 +97,37 @@ Next steps:
 
 Invoke the `drift-scan` skill (default mode, or `--deep` if a codebase exists). Capture the report.
 
-### 2. Analyze KB health
+### 2. Run memory-distill
+
+Invoke the `memory-distill` skill. It produces its own proposal list (promotions, conflicts, structural moves, pruning) which is folded into the audit's overall proposal output. Memory hygiene is a first-class section of the audit, not an afterthought.
+
+### 3. Analyze KB health
 
 For each domain:
 
 - Count entries by schema and status.
 - Flag: domains with > 80% `draft`, domains with no entries in > 90 days, domains with `decision` but no `policy`/`spec`.
 
-### 3. Analyze scaffolding health
+### 4. Analyze memory hygiene
+
+- Daily notes count vs. retention window (active `daily/` should be ≤ 30 days of entries).
+- Undistilled signals: count of `[lesson-candidate]` / `[decision-candidate]` / `[concept-candidate]` not yet promoted or rejected.
+- Commitment backlog: count of active commitments past their `due` date.
+- Oldest unprocessed daily note: flag if > 14 days since last distill run.
+- `[external]` entries awaiting review.
+
+### 5. Analyze scaffolding health
 
 - Skills not referenced from any domain index in > 90 days.
 - Service skills whose service is not used in any other entry.
 - Skill count per domain — flag domains with > 10 skills as candidates for splitting; flag domains with 0 skills + > 5 KB entries as candidates for adding a domain skill.
 
-### 4. Analyze fieldnote signals
+### 6. Analyze fieldnote signals
 
 - Fieldnotes with `recurrence ≥ 3` — propose promotion to `policy`.
 - Fieldnotes with the same `tags` cluster — propose a `concept` to consolidate.
 
-### 5. Recommend structural changes
+### 7. Recommend structural changes
 
 Produce 0–N **proposals**:
 
@@ -127,8 +139,9 @@ Produce 0–N **proposals**:
 | Promote fieldnote | `recurrence ≥ 3` or `severity: high`. |
 | Add domain skill | Domain has > 3 task skills but no `_domain/SKILL.md`. |
 | **Add domain agent** | Domain has ≥ 1 domain skill, ≥ 3 task skills, and ≥ 1 service skill — i.e., enough specialized surface to warrant a dedicated worker. See `.cursor/rules/subagents.mdc`. |
+| Promote memory subfolder | A domain has ≥ 3 daily entries tagged with it over the last 14 days — earn `memory/<domain>/`. |
 
-### 6. Output
+### 8. Output
 
 ```markdown
 # Harness audit — <YYYY-MM-DD>
@@ -136,27 +149,34 @@ Produce 0–N **proposals**:
 ## Health
 - Domains: 5 active, 0 deprecated
 - KB entries: 42 (active 28 / draft 11 / deprecated 3)
+- Memory: 12 daily notes (last 14 days), 4 commitments active, last distill 2026-04-29
 - Skills: 17 (services 4 / domain 3 / task 10 / core 5)
 - Drift: 1 high, 2 medium, 5 low
 
 ## Drift summary
 <from drift-scan>
 
+## Memory hygiene
+<from memory-distill — promotions, conflicts, prunes>
+
 ## Proposals
 1. Promote fieldnote `kb/engineering/db-migration-foot-gun.md` to a policy.
-2. Add subdomain `engineering/security` (8 entries cluster).
-3. Add domain skill at `.cursor/skills/marketing/_domain/SKILL.md`.
+2. Promote `[decision-candidate] postgres for primary store` to `knowledge/engineering/db-postgres.md`.
+3. Add subdomain `engineering/security` (8 entries cluster).
+4. Add domain skill at `.cursor/skills/marketing/_domain/SKILL.md`.
+5. Earn `memory/engineering/` (3 entries / 14 days).
 
-Approve [1,2,3]? [select / all / none]
+Approve [1,2,3,4,5]? [select / all / none]
 ```
 
-### 7. Apply approvals
+### 9. Apply approvals
 
 Hand off each approved proposal to the appropriate skill:
 
 - domain changes → `domain-registry`
 - KB writes / promotions → `knowledge-base`
 - skill creation → `scaffolding-author`
+- memory promotions / prunes → `memory-distill` (it already produced these; the audit just hands them through to user approval and applies via `memory-distill`'s own apply step)
 
 ## Anti-patterns
 

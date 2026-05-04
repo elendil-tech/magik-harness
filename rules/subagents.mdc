@@ -7,17 +7,19 @@ alwaysApply: false
 
 A subagent is a **specialist worker** with bounded context, a known toolset, and a measurable success signal. The default unit of subagent in this harness is a **project domain** — a `marketing-agent`, `sales-agent`, `engineering-agent`, etc.
 
-Think of each subagent as a human worker hired for that domain: they know their domain's KB, their domain's skills, their domain's services, and they produce artifacts under their domain's workspace folder.
+Think of each subagent as a human worker hired for that domain: they know their domain's KB, their domain's skills, their domain's services, their domain's recent memory, and they produce artifacts under their domain's workspace folder.
 
 ## Default shape — domain agents
 
 Each domain agent inherits:
 
 - **Context** — `knowledge/<domain>/` (read), `knowledge/_meta/` (read), `knowledge/_index.md` (read).
+- **Memory (read)** — `memory/_index.md`, today's and yesterday's `memory/daily/*.md` (filtered to entries domain-tagged with their own domain), `memory/commitments.md` (entries scoped to their domain).
+- **Memory (write)** — append to today's `memory/daily/<today>.md`, but only with entries tagged with their own domain. May add `[commitment]` entries scoped to their domain. May **not** edit other domains' entries or older daily notes.
 - **Skills** — every skill under `.cursor/skills/<domain>/`, plus relevant `.cursor/skills/services/<service>/`.
 - **Workspace** — read/write `workspace/<domain>/`.
 - **Codebase** — read-only by default; only the engineering agent has write access (and only inside `codebase/`).
-- **Core skills** — `domain-registry` and `knowledge-base` are **read-only proposals** for non-core agents (they may surface proposals; only the main agent applies them).
+- **Core skills** — `domain-registry`, `knowledge-base`, and `memory-distill` are **read-only proposals** for non-core agents (they may surface proposals; only the main agent applies them). `kb-search` is fully available — domain agents must run it before substantive work, same as the main agent.
 
 ## When a domain earns an agent
 
@@ -51,15 +53,17 @@ Default to **no** non-domain subagents.
 
 A domain agent that learns a non-trivial lesson should:
 
-1. Write a `fieldnote` under `knowledge/<domain>/` (allowed; this is its memory).
+1. Append a `[lesson-candidate]` (or appropriate tag) to today's `memory/daily/<today>.md`, tagged with its own domain.
 2. Propose a new task skill under its domain via `scaffolding-author` (proposal only).
 3. Surface drift it noticed; the main agent decides whether to mutate the registry.
 
-Domain agents do **not** mutate the domain registry, schemas, or other domains' knowledge.
+Domain agents do **not** mutate the domain registry, schemas, other domains' knowledge, other domains' memory, or write directly to `knowledge/`. Promotion of memory candidates to the KB is the main agent's job (or `/distill` with user approval).
 
 ## Anti-patterns
 
 - Creating a subagent for a domain with no skills yet.
 - Creating one subagent per task (that's a skill, not an agent).
-- Granting a domain agent write access outside its domain.
+- Granting a domain agent write access outside its domain (workspace, memory, knowledge, codebase).
+- Domain agent writing memory entries tagged with another domain.
+- Domain agent skipping `kb-search` because "I'm specialized."
 - Using non-domain subagents as the default form.

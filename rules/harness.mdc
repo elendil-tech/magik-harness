@@ -1,38 +1,56 @@
 ---
-description: The four-component model — knowledge, workspace, codebase, .cursor — that defines how a harness repo is organized.
+description: The five-component model — knowledge, memory, workspace, codebase, .cursor — that defines how a harness repo is organized.
 alwaysApply: false
 ---
 
 # Project harness — operating model
 
-This repo is **a project**, not just a code repo. It has four components:
+This repo is **a project**, not just a code repo. It has five components, split into two layers.
+
+## Project layer (the project itself)
 
 | Component | Path | Git | Role |
 | --- | --- | --- | --- |
 | Knowledge base | `knowledge/` | tracked | Ground truth, organized by project domain. |
-| Workspace | `workspace/` | ignored | Operational artifacts (drafts, pdfs, media). |
+| Workspace | `workspace/` | ignored | Operational artifacts (drafts, PDFs, media, contracts). |
 | Codebase | `codebase/` | tracked | Standard code repo, nested one level. Seeded with a README; may be empty if the project doesn't ship code. |
-| Worker | `.cursor/` | tracked | Rules, skills, agents, commands, hooks. |
+
+## Harness layer (how the agent operates)
+
+| Component | Path | Git | Role |
+| --- | --- | --- | --- |
+| Memory | `memory/` | tracked | Agent's running state — daily notes, commitments, distillation audit trail. |
+| Worker | `.cursor/` | tracked | Agent's config — rules, skills, agents, commands, hooks. |
 
 ## Hard rules
 
 - **Never** place artifacts at repo root. Use the right component.
-- **Never** put code outside `codebase/`. Tooling, lockfiles, package manifests, etc. all live there.
-- **Never** put operational artifacts inside `knowledge/`. Knowledge is *interpretation*; workspace is *artifacts*.
-- **Never** silently re-add `workspace/**` to git.
+- **Never** put code outside `codebase/`. Tooling, lockfiles, package manifests all live there.
+- **Never** put operational artifacts inside `knowledge/`. Knowledge is *interpretation*; workspace is *artifacts*; memory is *agent state*.
+- **Never** put durable knowledge directly into `memory/`. Use the promotion path: `memory/daily/` → `memory-distill` → `knowledge/<domain>/`.
+- **Never** silently re-add `workspace/**` to git. `memory/` is the opposite — it must stay tracked.
 
 ## Domain spine
 
 Every component except `workspace/` is organized by **project domain**. The single source of truth for which domains exist is `knowledge/_meta/domains.md`. Read it before doing anything that touches a domain.
 
-## Read first
+## Read first (mandatory before substantive work)
 
-Before substantive work:
-1. `knowledge/_meta/domains.md` — what domains exist.
-2. The relevant `knowledge/<domain>/_index.md` — what is true in that domain.
-3. Relevant `.cursor/skills/<domain>/` — domain & task skills available.
+Before any task that produces, modifies, or commits content:
+
+1. **`knowledge/_meta/domains.md`** — what domains exist.
+2. **Run `kb-search` over the task description.** Read every `active` `decision`, `policy`, or `specification` it surfaces. If a `policy` would be violated, stop and surface the conflict before proceeding. *This step is non-negotiable.*
+3. **Scan `memory/daily/<today>.md` and `memory/daily/<yesterday>.md`** for unflushed context and recent observations relevant to the task.
+4. **Read `memory/commitments.md`** — there may be a due follow-up that affects this task.
+5. Relevant `.cursor/skills/<domain>/` — domain & task skills available.
+
+A task that skips step 2 is in violation of the harness contract.
 
 ## Memory
 
+The memory contract — capture lane, session lifecycle, compaction safety, promotion to KB — lives in `rules/memory.mdc`. In short:
+
 - **Session memory** → managed by Cursor. Do not duplicate.
-- **Persistent memory** → `knowledge/<domain>/` `fieldnote` entries (see `knowledge/_meta/schemas/fieldnote.md`). Write one when you make a non-trivial mistake or find a non-obvious gotcha.
+- **Short-term project memory** → `memory/daily/<today>.md`, agent-writable, git-tracked.
+- **Persistent project memory** → `knowledge/<domain>/`, promoted from memory via `memory-distill`. The five KB schemas are the durable forms.
+- **Promotion** → proposal-only, user-approved.

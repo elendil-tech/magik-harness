@@ -1,12 +1,15 @@
 #!/usr/bin/env -S npx --yes tsx
 /**
- * /init-harness hook — v0.1.0
+ * /init-harness hook — v0.2.0
  *
  * Deterministic file ops that seed a project with the magik-repo harness:
- *   - AGENTS.md primer (marker-bounded prepend)
- *   - .gitignore harness section (marker-bounded append)
- *   - knowledge/, workspace/, codebase/ skeletons (skip-if-exists)
+ *   - AGENTS.md primer (marker-bounded prepend, in-place upgrade if stale)
+ *   - .gitignore harness section (marker-bounded append, in-place upgrade if stale)
+ *   - knowledge/, memory/, workspace/, codebase/ skeletons (skip-if-exists)
  *   - .cursor/ subtree (skill-authoring templates, services index, skip-if-exists)
+ *
+ * v0.2.0 adds the memory/ component (agent-writable short-term lane, git-tracked)
+ * and an in-place upgrade flow for stale primer/gitignore marker blocks.
  *
  * Source-of-truth for seed payload: <plugin-root>/seeds/, populated by
  * scripts/build.ts from <plugin-root>/seed-sources/.
@@ -26,7 +29,7 @@ import { fileURLToPath } from "node:url";
 
 // --- Constants ---------------------------------------------------------------
 
-const PLUGIN_VERSION = "0.1.0";
+const PLUGIN_VERSION = "0.2.0";
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(HOOK_DIR);
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");
@@ -142,6 +145,13 @@ function detectMarkerState(
   return "stale";
 }
 
+function readMarkerVersion(filePath: string, startRe: RegExp): string | null {
+  if (!existsSync(filePath)) return null;
+  const content = readFileSync(filePath, "utf-8");
+  const m = content.match(startRe);
+  return m?.[1] ?? null;
+}
+
 // --- Seed payload ------------------------------------------------------------
 
 function ensureSeedsAvailable(): void {
@@ -221,13 +231,16 @@ function buildPlan(args: CliArgs): Plan {
         reason: `already harnessed at v=${PLUGIN_VERSION}`,
       });
       break;
-    case "stale":
+    case "stale": {
+      const oldVersion = readMarkerVersion(agentsPath, PRIMER_START_RE);
       items.push({
-        kind: "skip",
+        kind: "modify",
         target: "AGENTS.md",
-        reason: `harness markers present at a different version (upgrade flow deferred to 0.2.0)`,
+        reason: `upgrade harness primer block (v=${oldVersion ?? "unknown"} → v=${PLUGIN_VERSION})`,
+        source: "AGENTS.primer.md",
       });
       break;
+    }
     case "corrupt":
       items.push({
         kind: "skip",
@@ -268,13 +281,16 @@ function buildPlan(args: CliArgs): Plan {
         reason: `already harnessed at v=${PLUGIN_VERSION}`,
       });
       break;
-    case "stale":
+    case "stale": {
+      const oldVersion = readMarkerVersion(gitignorePath, GITIGNORE_START_RE);
       items.push({
-        kind: "skip",
+        kind: "modify",
         target: ".gitignore",
-        reason: "harness markers present at a different version (upgrade flow deferred to 0.2.0)",
+        reason: `upgrade harness section (v=${oldVersion ?? "unknown"} → v=${PLUGIN_VERSION})`,
+        source: "gitignore.harness",
       });
       break;
+    }
     case "corrupt":
       items.push({
         kind: "skip",
@@ -300,6 +316,26 @@ function buildPlan(args: CliArgs): Plan {
         target,
         reason: "create from seed",
         source: join("knowledge", relPath),
+      });
+    }
+  }
+
+  // memory/
+  for (const relPath of listSeedTree("memory")) {
+    const target = join("memory", relPath);
+    const fullTarget = join(root, target);
+    if (existsSync(fullTarget)) {
+      items.push({
+        kind: "skip",
+        target,
+        reason: "exists; not overwriting",
+      });
+    } else {
+      items.push({
+        kind: "create",
+        target,
+        reason: "create from seed",
+        source: join("memory", relPath),
       });
     }
   }
@@ -493,6 +529,35 @@ function appendGitignoreSection(filePath: string, body: string): void {
   writeFileSync(filePath, `${normalized}\n${block}\n`);
 }
 
+/**
+ * Replace an existing marker-bounded block in place. Used to upgrade an
+ * older harness version's primer/gitignore section to the current one
+ * while preserving everything outside the markers verbatim.
+ */
+function replaceMarkerBlock(
+  filePath: string,
+  startRe: RegExp,
+  endRe: RegExp,
+  newBlock: string,
+): void {
+  const existing = readFileSync(filePath, "utf-8");
+  const startMatch = existing.match(startRe);
+  const endMatch = existing.match(endRe);
+  if (!startMatch || !endMatch) {
+    throw new Error(
+      `cannot replace block in ${filePath}: start or end marker missing`,
+    );
+  }
+  const startIdx = existing.indexOf(startMatch[0]);
+  const endIdx = existing.indexOf(endMatch[0]) + endMatch[0].length;
+  if (startIdx < 0 || endIdx <= startIdx) {
+    throw new Error(`cannot replace block in ${filePath}: marker order invalid`);
+  }
+  const before = existing.slice(0, startIdx);
+  const after = existing.slice(endIdx);
+  writeFileSync(filePath, `${before}${newBlock}${after}`);
+}
+
 function copySeedFile(seedRelPath: string, targetAbs: string): void {
   ensureDir(dirname(targetAbs));
   cpSync(join(SEEDS_DIR, seedRelPath), targetAbs);
@@ -505,13 +570,29 @@ function applyPlan(plan: Plan): void {
 
     if (item.target === "AGENTS.md") {
       const body = readSeed("AGENTS.primer.md");
-      prependPrimer(target, body);
+      const state = detectMarkerState(target, PRIMER_START_RE, PRIMER_END_RE);
+      if (state === "stale") {
+        const block = `${PRIMER_START}\n\n${body.trim()}\n\n${PRIMER_END}`;
+        replaceMarkerBlock(target, PRIMER_START_RE, PRIMER_END_RE, block);
+      } else {
+        prependPrimer(target, body);
+      }
       continue;
     }
 
     if (item.target === ".gitignore") {
       const body = readSeed("gitignore.harness");
-      appendGitignoreSection(target, body);
+      const state = detectMarkerState(
+        target,
+        GITIGNORE_START_RE,
+        GITIGNORE_END_RE,
+      );
+      if (state === "stale") {
+        const block = `${GITIGNORE_START}\n\n${body.trim()}\n\n${GITIGNORE_END}`;
+        replaceMarkerBlock(target, GITIGNORE_START_RE, GITIGNORE_END_RE, block);
+      } else {
+        appendGitignoreSection(target, body);
+      }
       continue;
     }
 

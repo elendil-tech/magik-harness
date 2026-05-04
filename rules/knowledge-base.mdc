@@ -13,9 +13,13 @@ alwaysApply: false
 - `specification` — formal spec (feature, clause, asset, component).
 - `fieldnote` — time-stamped lesson; persistent project memory.
 
-## Read
+## Read (mandatory before producing domain-relevant work)
 
-Before producing domain-relevant work, read `knowledge/<domain>/_index.md` and the entries it links. If ground truth is missing for what you're about to do, **stop and propose a KB entry first**.
+1. **Run the `kb-search` skill** with the task description as the query. Reading `_index.md` directly is not sufficient — it works for narrow cases and misses cross-domain hits and policy conflicts. `kb-search` is the contract.
+2. Read every `active` `decision`, `policy`, and `specification` the search surfaces.
+3. Read the relevant domain's `_index.md` for orientation.
+
+If ground truth is missing for what you're about to do, **stop and propose a KB entry first** (via the `knowledge-base` skill, typically by promoting a `[concept-candidate]` / `[decision-candidate]` from `memory/daily/` first).
 
 ## Write
 
@@ -35,7 +39,9 @@ Don't rewrite a `decision` to flip its choice. Create a new `decision` that supe
 
 ## Fieldnotes (memory)
 
-Write a `fieldnote` whenever you:
+Fieldnotes are the **durable** episodic-memory layer of the KB. They are written by promotion from `memory/daily/` `[lesson-candidate]` entries via the `memory-distill` skill — not by direct authoring during a session.
+
+Write (or promote) a `fieldnote` whenever you:
 - make a non-trivial mistake worth not repeating,
 - discover a gotcha not obvious from reading the code or spec,
 - repeat the same fix.

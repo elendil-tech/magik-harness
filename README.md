@@ -1,16 +1,21 @@
 # magik-repo
 
-> The all-in-one adaptive repo for managing projects/business. Integrates: knowledge base, workspace, codebase, memory. **Try the magik!**
+> The all-in-one adaptive repo for managing projects/business. Integrates: knowledge base, memory, workspace, codebase, worker. **Try the magik!**
 
-A Cursor plugin that gives a single repo the structure, knowledge schema, and agent scaffolding to operate as an entire project — knowledge, artifacts, code, and worker config in one place. Self-adaptive: the harness evolves with the project via five framework skills and seven agent-requestable rules.
+A Cursor plugin that gives a single repo the structure, knowledge schema, agent memory lane, and agent scaffolding to operate as an entire project — knowledge, agent state, artifacts, code, and worker config in one place. Self-adaptive: the harness evolves with the project via seven framework skills and eight agent-requestable rules.
+
+The harness has **five components** in two layers:
+
+- **Project layer** — `knowledge/` (tracked, ground truth), `workspace/` (ignored, operational artifacts), `codebase/` (tracked, code).
+- **Harness layer** — `memory/` (tracked, agent's running state), `.cursor/` (tracked, agent's config).
 
 ## What ships
 
-- **7 agent-requestable rules** (`rules/*.mdc`): `harness`, `domains`, `knowledge-base`, `skills-organization`, `scaffolding`, `drift-control`, `subagents`.
-- **5 framework skills** for harness self-management: `domain-registry`, `knowledge-base`, `drift-scan`, `scaffolding-author`, `harness-audit`.
+- **8 agent-requestable rules** (`rules/*.mdc`): `harness`, `domains`, `knowledge-base`, `memory`, `skills-organization`, `scaffolding`, `drift-control`, `subagents`.
+- **7 framework skills** for harness self-management: `domain-registry`, `knowledge-base`, `kb-search`, `memory-distill`, `drift-scan`, `scaffolding-author`, `harness-audit`.
 - **4 templates** seeded into your project at `.cursor/skills/_templates/` for authoring service / domain / task skills and domain agents.
-- **4 slash commands**: `/init-harness`, `/audit`, `/drift-scan`, `/kb-add`.
-- **`/init-harness` hook** that seeds `AGENTS.md`, `.gitignore`, `knowledge/`, `workspace/`, `codebase/`, and `.cursor/skills/{_templates,services}/` into a project — idempotently, marker-aware, never overwrites user content.
+- **5 slash commands**: `/init-harness`, `/audit`, `/drift-scan`, `/kb-add`, `/distill`.
+- **`/init-harness` hook** that seeds `AGENTS.md`, `.gitignore`, `knowledge/`, `memory/`, `workspace/`, `codebase/`, and `.cursor/skills/{_templates,services}/` into a project — idempotently, marker-aware, never overwrites user content. v0.2 adds in-place upgrade of stale primer / gitignore blocks.
 
 ## Installing in a project (end users)
 
@@ -88,7 +93,7 @@ pnpm clean
 
 ## Versioning
 
-`magik-repo@0.1.0` ships `harness@0.1.0` content. See [CHANGELOG.md](./CHANGELOG.md).
+`magik-repo@0.2.0` ships `harness@0.2.0` content. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## License
 

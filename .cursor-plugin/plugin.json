@@ -1,6 +1,6 @@
 {
   "name": "magik-repo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "The all-in-one adaptive repo for managing projects/business. Integrates: knowledge base, workspace, codebase, memory. Try the magik!",
   "author": {
     "name": "LaLi"

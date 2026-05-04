@@ -40,7 +40,12 @@ knowledge/
 
 ## Memory
 
-Cursor's harness manages session/conversation memory. **Persistent project memory lives here as `fieldnote` entries.** When you make a mistake worth remembering, write a fieldnote.
+Cursor manages session/conversation memory. The harness then has two memory lanes:
+
+- **Short-term, agent-writable memory** lives in `memory/daily/<YYYY-MM-DD>.md` (sister component to `knowledge/`, also git-tracked). Observations, lesson candidates, decision candidates, and commitments captured during sessions land here first.
+- **Persistent project memory** lives in `knowledge/<domain>/` as `fieldnote` entries (and the other four schemas for non-lesson content). Promotion from `memory/` to `knowledge/` is proposal-only via the `memory-distill` skill — the user approves.
+
+When something durable is learned, the path is: `memory/daily/` → `/distill` → `knowledge/<domain>/`.
 
 ## Indexes
 
