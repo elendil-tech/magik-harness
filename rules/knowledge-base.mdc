@@ -39,7 +39,9 @@ Don't rewrite a `decision` to flip its choice. Create a new `decision` that supe
 
 ## Fieldnotes (memory)
 
-Fieldnotes are the **durable** episodic-memory layer of the KB. They are written by promotion from `memory/daily/` `[lesson-candidate]` entries via the `memory-distill` skill — not by direct authoring during a session.
+Fieldnotes are the **curated, durable** layer of episodic memory in the KB — the only KB schema that's not atemporal. The four other schemas (`concept`, `decision`, `policy`, `specification`) are declarative knowledge.
+
+Most fieldnotes originate from `[lesson-candidate]` entries in `memory/daily/` via `memory-distill`. Direct authoring is fine when the lesson is already crisp (the user states it explicitly). See `rules/memory.mdc` "Memory vs. fieldnotes" for the conceptual split.
 
 Write (or promote) a `fieldnote` whenever you:
 - make a non-trivial mistake worth not repeating,

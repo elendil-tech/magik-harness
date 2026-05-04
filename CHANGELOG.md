@@ -1,5 +1,15 @@
 # magik-repo
 
+## 0.2.1 — 2026-05-04
+
+Tracks `harness@0.2.1`. Clarifying patch on top of 0.2.0 — sharpens the conceptual relationship between the new memory layer and the existing `fieldnote` KB schema, so the agent doesn't blur them.
+
+### Changed
+
+- **`rules/memory.mdc` — adds a "Memory vs. fieldnotes" section.** Frames the five KB schemas: `concept` / `decision` / `policy` / `specification` are declarative (atemporal); `fieldnote` is the only **episodic** schema and the curated subset of memory that earned promotion. Memory is the raw form, fieldnotes are the curated form. Memory and fieldnotes are stages of the same pipeline, not parallel mechanisms — and a fieldnote without a memory phase, or a memory entry without a fieldnote, are both fine by design.
+- **`rules/knowledge-base.mdc` — Fieldnotes section reframed.** Notes that fieldnote is the only non-atemporal schema, and that most fieldnotes originate from `[lesson-candidate]` entries via `memory-distill` (with direct authoring fine when the lesson is already crisp). Cross-links to the new memory rule.
+- **Re-runs of `/init-harness` upgrade the v=0.2.0 primer / gitignore blocks in place to v=0.2.1.** No new files, no new behavior — just the clarifying frame.
+
 ## 0.2.0 — 2026-05-04
 
 Tracks `harness@0.2.0`. Adds the **memory** component — the agent's running-state layer of the harness — and promotes the operating model from four components to five.

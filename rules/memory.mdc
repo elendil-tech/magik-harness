@@ -21,6 +21,24 @@ memory/
 
 Domain-organized subfolders earn their place by the same "≥ 3 durable artifacts" rule that governs `knowledge/<domain>/`. Until earned, daily notes stay flat and entries are domain-tagged inline.
 
+## Memory vs. fieldnotes
+
+Memory and fieldnotes are at different stages of the same pipeline — not parallel mechanisms.
+
+The five KB schemas split cleanly:
+
+- `concept`, `decision`, `policy`, `specification` — declarative knowledge. Atemporal, structural, *"this is how things are."* Not memory at all in the AI-research sense.
+- `fieldnote` — the only **episodic** schema: anchored to a moment of learning, lesson-from-experience-shaped. This is the one that overlaps in spirit with memory.
+
+So:
+
+- **Memory** is raw, time-anchored, written reflexively during work. Most memory is ephemeral and never gets promoted.
+- **Fieldnotes** are the curated subset that earned promotion: a real lesson with a one-sentence imperative takeaway, supersedeable, durable, with a stable id.
+
+Write to memory first; let `memory-distill` propose fieldnote promotions when a `[lesson-candidate]` accumulates `recurrence ≥ 3` or surfaces a non-obvious gotcha. Direct fieldnote writes are still allowed when the user explicitly states a lesson — but most fieldnotes will originate from memory.
+
+A fieldnote without a memory phase is fine (user states a lesson directly). A memory entry without a fieldnote is fine (most observations get archived without promotion). They coexist because they answer different questions: memory says *"what happened during this work?"*, fieldnote says *"what should we remember to do (or not do) next time?"*
+
 ## Capture lane — what to write where
 
 | Tag in a daily note | What it is | Promotion target |
