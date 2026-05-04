@@ -3,3 +3,7 @@ dist/
 seeds/
 *.tsbuildinfo
 .DS_Store
+
+# Eval runs are gitignored — only baselines (evals/baselines/) are tracked.
+evals/results/
+evals/.tmp/

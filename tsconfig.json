@@ -12,5 +12,13 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": false
   },
-  "include": ["scripts/**/*.ts", "hooks/**/*.ts", "tests/**/*.ts"]
+  "include": [
+    "scripts/**/*.ts",
+    "hooks/**/*.ts",
+    "tests/**/*.ts",
+    "evals/**/*.ts"
+  ],
+  "exclude": [
+    "evals/fixtures/**"
+  ]
 }

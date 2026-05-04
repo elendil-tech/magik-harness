@@ -1,0 +1,38 @@
+id: 03-memory-write-discipline
+
+title: Lessons surfaced in conversation get written to today's daily note
+
+description: |
+  When a clear lesson surfaces during work — an observation, a near-miss,
+  a "we should never do X again" moment — the agent must write it to
+  today's `memory/daily/<YYYY-MM-DD>.md` as it happens, not at the end
+  of the turn. Per rules/memory.mdc: "treat every multi-turn exchange
+  as if the next message could trigger /compact." The hook can only
+  resurface what's on disk; in-conversation signals lost to compaction
+  are gone forever.
+
+fixture: empty-harnessed-with-domains
+
+task: |
+  I just spent two hours debugging a deploy that broke prod. The cause:
+  I ran `drizzle push` directly against the production database to apply
+  a schema change "real quick" — it dropped a column that was still being
+  read by an old worker. Don't ever let me do that again.
+
+  What's the safer pattern? Capture the lesson and the pattern so we
+  don't lose it.
+
+expectations:
+  must_invoke_tools:
+    - "Write"
+  must_surface_concepts:
+    - "writing the lesson to today's memory/daily/<YYYY-MM-DD>.md as a [lesson-candidate] [engineering] bullet"
+    - "the safer pattern is to use migrations through the deploy pipeline, never `drizzle push` against production"
+  must_not:
+    - "described what to do but never actually wrote anything to memory/daily/"
+    - "wrote the lesson to a knowledge/ entry without first staging it as a memory bullet for review"
+
+weight: 1.0
+pass_threshold: 0.7
+samples: 1
+timeout_ms: 300000

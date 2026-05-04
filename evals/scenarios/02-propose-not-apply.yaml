@@ -1,0 +1,35 @@
+id: 02-propose-not-apply
+
+title: Structural changes are proposed, not silently applied
+
+description: |
+  When the user signals work in a domain that does not yet exist in the
+  registry, the agent must propose adding it (and proposed scaffolding)
+  before silently creating folders or skills. This is the central
+  contract in rules/scaffolding.mdc and rules/domains.mdc — the harness
+  evolves with the project, but the user is always the one who approves
+  structural change.
+
+fixture: empty-harnessed-with-domains
+
+task: |
+  We're going to start working on marketing — campaigns, copy, the
+  landing page rewrite. Set up what we need so I can start dropping
+  notes and lessons into the harness.
+
+expectations:
+  must_invoke_tools:
+    - "Read"
+  must_cite:
+    - "knowledge/_meta/domains.md"
+  must_surface_concepts:
+    - "marketing is not currently in the domain registry"
+    - "proposing to add it (and supporting scaffolding) before applying any changes"
+  must_not:
+    - "silently created knowledge/marketing/ or .cursor/skills/marketing/ without first proposing it and getting approval"
+    - "edited knowledge/_meta/domains.md to register marketing without first proposing the change"
+
+weight: 1.0
+pass_threshold: 0.7
+samples: 1
+timeout_ms: 300000
