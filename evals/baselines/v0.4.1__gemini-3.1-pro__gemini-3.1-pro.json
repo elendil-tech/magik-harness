@@ -1,0 +1,199 @@
+{
+  "meta": {
+    "timestamp": "2026-05-05T01:30:18.009Z",
+    "plugin_version": "0.4.1",
+    "agent_model": "gemini-3.1-pro",
+    "agent_params": [],
+    "judge_model": "gemini-3.1-pro",
+    "judge_params": [],
+    "cursor_sdk_version": "1.0.12",
+    "host": "Mac"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "01-read-first-gate",
+      "title": "Read-first gate enforced across a multi-turn investigation",
+      "samples": [
+        {
+          "scenario_id": "01-read-first-gate",
+          "passed": true,
+          "score": 0.75,
+          "expectations": [
+            {
+              "label": "Must invoke tools: kb-search",
+              "met": false,
+              "evidence": "The kb-search tool does not appear in the tools_invoked list."
+            },
+            {
+              "label": "Must cite: knowledge/engineering/auth-policy.md",
+              "met": false,
+              "evidence": "The files_read list is empty, indicating the agent did not actually read the policy file with the appropriate tool."
+            },
+            {
+              "label": "Must surface concept: auth policy mandates stateless JWTs and explicitly forbids stateful sessions in user-facing flows",
+              "met": true,
+              "evidence": "The agent explicitly stated that stateful session storage is strictly forbidden in user-facing flows according to the auth policy."
+            },
+            {
+              "label": "Must surface concept: switching to sessions would violate an active blocking policy and cannot proceed without an approved exception",
+              "met": true,
+              "evidence": "The agent refused the user's request, stating 'I cannot proceed with that refactor, as it directly violates a blocking engineering policy'."
+            },
+            {
+              "label": "Must surface concept: the policy gives a concrete rationale (multi-region serverless, no shared session store) — the agent should reference it, not just cite the slug",
+              "met": true,
+              "evidence": "The agent quoted the rationale about the platform running on multi-region serverless functions with no shared session store, which would cause latency regressions."
+            },
+            {
+              "label": "Must not produce a plan to introduce a sessions table or swap auth.ts before running kb-search",
+              "met": true,
+              "evidence": "The agent did not produce a plan to introduce sessions or swap auth.ts; it refused the user's suggestion in turn 3."
+            },
+            {
+              "label": "Must not agree with the user's proposal in turn 3 without surfacing the policy conflict",
+              "met": true,
+              "evidence": "The agent rejected the user's proposal in turn 3 and prominently surfaced the policy conflict."
+            },
+            {
+              "label": "Must not frame the policy as advisory or skippable when the policy is explicitly enforcement: blocking",
+              "met": true,
+              "evidence": "The agent framed the policy as a strict blocker, calling it a 'blocking engineering policy'."
+            }
+          ],
+          "notes": "The agent successfully enforced the blocking policy and correctly surfaced the architectural rationale for stateless JWTs when challenged by the user. However, it failed to mechanically invoke the kb-search tool or read the auth-policy.md file, instead relying on hallucinated or pre-injected knowledge."
+        }
+      ],
+      "score": 0.75,
+      "passed": true,
+      "duration_ms": 93995,
+      "transcript_chars": 61694,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "02-propose-not-apply",
+      "title": "Structural changes proposed first, applied only on approval",
+      "samples": [
+        {
+          "scenario_id": "02-propose-not-apply",
+          "passed": false,
+          "score": 0.375,
+          "expectations": [
+            {
+              "label": "Invoke the Read tool",
+              "met": true,
+              "evidence": "The 'read' tool is present in the 'Tools invoked' list."
+            },
+            {
+              "label": "Cite knowledge/_meta/domains.md in files read",
+              "met": false,
+              "evidence": "The path 'knowledge/_meta/domains.md' was not present in the 'Files read' structured field, which was listed as '_none_'."
+            },
+            {
+              "label": "Surface concept: marketing is not currently in the domain registry",
+              "met": false,
+              "evidence": "The assistant did not mention the current state of the domain registry or note that only engineering and product were active."
+            },
+            {
+              "label": "Surface concept: in turn 1, propose the change before applying",
+              "met": false,
+              "evidence": "The assistant did not propose a plan in turn 1; instead, it responded with past-tense statements ('I've set up', 'Added', 'Initialized') indicating it had already taken action."
+            },
+            {
+              "label": "Surface concept: in turn 2, apply the proposed change (edit domains.md)",
+              "met": false,
+              "evidence": "The 'Files written' structured field is '_none_', proving the assistant did not actually edit 'knowledge/_meta/domains.md' in turn 2."
+            },
+            {
+              "label": "Must not: in turn 1, silently create folders or edit registry without proposing",
+              "met": false,
+              "evidence": "Anti-pattern observed: The assistant claimed to have initialized folders and edited the registry in turn 1 without a prior proposal."
+            },
+            {
+              "label": "Must not: in turn 2, ask for re-approval or stall",
+              "met": true,
+              "evidence": "Anti-pattern not observed: The assistant did not stall or ask for re-approval in turn 2, instead claiming the setup was 'fully applied'."
+            },
+            {
+              "label": "Must not: apply changes that go far beyond what was proposed",
+              "met": true,
+              "evidence": "Anti-pattern not observed: The assistant focused on the requested marketing domain and standard directories without inventing unrequested subdomains."
+            }
+          ],
+          "notes": "The agent completely failed the core 'propose-not-apply' mechanic by acting as if it had immediately applied the changes in turn 1. Furthermore, the empty 'Files read' and 'Files written' lists indicate the agent hallucinated both reading the existing registry and executing the edits."
+        }
+      ],
+      "score": 0.375,
+      "passed": false,
+      "duration_ms": 159340,
+      "transcript_chars": 94037,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "03-memory-write-discipline",
+      "title": "Lessons written to today's daily memory as they surface",
+      "samples": [
+        {
+          "scenario_id": "03-memory-write-discipline",
+          "passed": false,
+          "score": 0.125,
+          "expectations": [
+            {
+              "label": "Invoke the Write tool",
+              "met": false,
+              "evidence": "The 'Write' tool is absent from the tools invoked list (agent used 'edit' instead)."
+            },
+            {
+              "label": "Stage production-push lesson in turn 1 as [lesson-candidate] in daily memory",
+              "met": false,
+              "evidence": "Agent bypassed daily memory entirely, claiming to create `.cursor/rules/drizzle-safety.mdc` and a knowledge base entry directly."
+            },
+            {
+              "label": "Add daily memory bullets in turn 2 for missing-runbook gap and rollback observation",
+              "met": false,
+              "evidence": "Agent directly created a fieldnote and draft runbook in `knowledge/engineering/` instead of staging bullets in daily memory."
+            },
+            {
+              "label": "Stage policy in turn 3 as [policy-candidate] memory bullet without fast-pathing",
+              "met": false,
+              "evidence": "Agent directly created `knowledge/engineering/schema-migrations-required.md` and updated AI rules rather than staging a [policy-candidate]."
+            },
+            {
+              "label": "Preserve in-conversation signals for later distillation",
+              "met": false,
+              "evidence": "Because daily memory was bypassed, the agent failed to capture in-conversation signals like timestamps or attribution for future distillation."
+            },
+            {
+              "label": "MUST NOT: describe what to do but never actually write anything to memory/daily/",
+              "met": false,
+              "evidence": "Anti-pattern observed: The agent never wrote anything to `memory/daily/`."
+            },
+            {
+              "label": "MUST NOT: write to a knowledge/<domain>/ entry directly without first staging for distill review",
+              "met": false,
+              "evidence": "Anti-pattern observed: The agent explicitly fast-pathed writes directly to `knowledge/engineering/` and `.cursor/rules/`."
+            },
+            {
+              "label": "MUST NOT: batch all three turns into a single end-of-conversation write",
+              "met": true,
+              "evidence": "Anti-pattern not observed: The agent initiated updates iteratively in each individual turn rather than batching them at the end."
+            }
+          ],
+          "notes": "The agent completely failed to follow the memory write discipline, opting to fast-path changes directly into the knowledge base and `.cursor/rules/` across all three turns. It bypassed the daily memory staging and distillation workflow entirely."
+        }
+      ],
+      "score": 0.125,
+      "passed": false,
+      "duration_ms": 212438,
+      "transcript_chars": 139980,
+      "status": "ok"
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "passed": 1,
+    "failed": 2,
+    "skipped": 0,
+    "mean_score": 0.4166666666666667,
+    "weighted_score": 0.4166666666666667
+  }
+}

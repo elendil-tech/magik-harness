@@ -88,7 +88,18 @@ export async function runScenarioOnce(
       id: opts.model,
       params: opts.params && opts.params.length > 0 ? opts.params : undefined,
     },
-    local: { cwd: opts.projectRoot },
+    local: {
+      cwd: opts.projectRoot,
+      // Load ONLY the project's own .cursor/{rules,skills,commands}/.
+      // The fixture builder lays the harness's authored content there,
+      // so this is what makes the agent see the rules + skills under
+      // test. We deliberately exclude `user` (host machine's
+      // ~/.cursor) and `plugins` (real installed plugins) so the
+      // agent's behavior depends only on the harness payload, not on
+      // what the dev running the eval happens to have installed
+      // locally.
+      settingSources: ["project"],
+    },
   });
 
   let timedOut = false;

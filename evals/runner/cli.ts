@@ -49,7 +49,12 @@ import {
   resolveJudgeModel,
   resolveJudgeParams,
 } from "./judge.ts";
-import { buildReport, printSummary, writeReport } from "./report.ts";
+import {
+  buildReport,
+  printSummary,
+  writeReport,
+  writeTranscript,
+} from "./report.ts";
 import { loadScenario, type LoadedScenario } from "./scenario.ts";
 import { runScenarioOnce } from "./runner.ts";
 import type {
@@ -319,6 +324,13 @@ async function main(): Promise<void> {
         err = (e as Error).message;
       } finally {
         if (!args.keep) built.cleanup();
+      }
+
+      if (agentTranscript) {
+        // Persist the transcript even if the judge later errors —
+        // the transcript is exactly what we need to diagnose either
+        // a low score or a judge failure.
+        writeTranscript(meta, scenario.id, i, agentTranscript);
       }
 
       if (runOk && agentTranscript) {

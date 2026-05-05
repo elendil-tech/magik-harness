@@ -10,6 +10,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
+  AgentTranscript,
   JudgeResponse,
   RunReport,
   RunMeta,
@@ -122,6 +123,45 @@ export function writeReport(report: RunReport): string {
   const path = join(RESULTS_DIR, filename);
   writeFileSync(path, `${JSON.stringify(report, null, 2)}\n`);
   return path;
+}
+
+/**
+ * Persist the agent transcript for a single scenario sample to disk
+ * alongside the result file. Used for diagnosis: when a scenario
+ * scores low, the result file tells you *what* failed; the transcript
+ * file tells you *why*. The transcript captures everything the
+ * judge saw — text, tools_invoked, files_read, files_written.
+ *
+ * Returns the absolute path written. Never throws on disk errors —
+ * a failed transcript dump is a debugging convenience, not a
+ * blocking concern; the caller logs and moves on.
+ */
+export function writeTranscript(
+  meta: RunMeta,
+  scenarioId: string,
+  sampleIdx: number,
+  transcript: AgentTranscript,
+): string | null {
+  try {
+    if (!existsSync(RESULTS_DIR)) mkdirSync(RESULTS_DIR, { recursive: true });
+    const stamp = meta.timestamp.replace(/[:.]/g, "-");
+    const filename = `${stamp}__${scenarioId}__sample-${sampleIdx + 1}.transcript.json`;
+    const path = join(RESULTS_DIR, filename);
+    const body = {
+      meta: {
+        timestamp: meta.timestamp,
+        scenario_id: scenarioId,
+        sample_index: sampleIdx,
+        agent_model: meta.agent_model,
+        agent_params: meta.agent_params,
+      },
+      transcript,
+    };
+    writeFileSync(path, `${JSON.stringify(body, null, 2)}\n`);
+    return path;
+  } catch {
+    return null;
+  }
 }
 
 export function printSummary(report: RunReport): void {
