@@ -4,11 +4,13 @@
  * for the active CURSOR_API_KEY. Used to discover model ids + their tunable
  * parameters (e.g. reasoning effort, max mode).
  *
- * Loads .env via Node's --env-file flag at the script-tag level. Run with:
- *   pnpm exec tsx --env-file=.env scripts/inspect-models.ts [filter]
+ * Auto-loads .env via the eval bootstrap (no --env-file flag needed):
+ *   pnpm exec tsx scripts/inspect-models.ts [filter]
  *
  * Optional positional arg filters by `id` substring.
  */
+
+import "../evals/runner/bootstrap.ts";
 
 import { Cursor } from "@cursor/sdk";
 

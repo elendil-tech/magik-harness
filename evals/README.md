@@ -109,43 +109,50 @@ cp .env.example .env
 ### Commands
 
 ```bash
-pnpm eval --list                          # show all scenarios; no API calls
-pnpm eval --dry-run                       # validate scenarios + fixtures; no API calls
-pnpm eval                                 # run all scenarios end-to-end
+pnpm eval --list                                  # show all scenarios; no API calls
+pnpm eval --dry-run                               # validate scenarios + fixtures; no API calls
+pnpm eval                                         # run all scenarios end-to-end
 pnpm eval --only 01-read-first-gate
-pnpm eval --keep                          # keep tmp fixture dirs for debugging
+pnpm eval --keep                                  # keep tmp fixture dirs for debugging
 pnpm eval --agent-model composer-2 \
-          --judge-model claude-opus-4-7 \
-          --judge-effort xhigh
-pnpm eval --judge-no-thinking             # disable judge extended thinking
+          --agent-params "fast=false"
+pnpm eval --judge-model claude-opus-4-6 \
+          --judge-params "thinking=true,context=1m,effort=high,fast=false"
 ```
 
 ### Models
 
 | Surface | Default | Override |
 |---|---|---|
-| Agent under test | `composer-2` | `--agent-model` / `EVAL_AGENT_MODEL` |
-| Judge model | `claude-opus-4-7` | `--judge-model` / `EVAL_JUDGE_MODEL` |
-| Judge effort | `xhigh` (extra high) | `--judge-effort` / `EVAL_JUDGE_EFFORT` |
-| Judge thinking | `true` | `--judge-no-thinking` / `EVAL_JUDGE_THINKING=false` |
+| Agent under test | `gemini-3.1-pro` | `--agent-model` / `EVAL_AGENT_MODEL` |
+| Agent params | (none) | `--agent-params "k=v,k2=v2"` / `EVAL_AGENT_PARAMS` |
+| Judge model | `gemini-3.1-pro` | `--judge-model` / `EVAL_JUDGE_MODEL` |
+| Judge params | (none) | `--judge-params "k=v,k2=v2"` / `EVAL_JUDGE_PARAMS` |
 
-`--judge-effort` accepts `low | medium | high | xhigh | max` (matches the Cursor SDK surface verbatim). **`max` is "max mode" — explicitly NOT the default.** We use `xhigh` ("extra high") for grading, which gives strong reasoning without the latency / cost / unpredictability of max mode.
+`--agent-params` and `--judge-params` accept a CSV of `id=value` pairs that mirror the Cursor SDK's `ModelParameterValue` shape directly — same vocabulary as the SDK + the `inspect-models` script. Each model has its own knobs (Anthropic uses `thinking`, `context`, `effort`; OpenAI Codex uses `reasoning`, `fast`; Gemini has none; etc.); see the discovery section below.
+
+**Why gemini-3.1-pro for both:** It's strong on reasoning, has no subscription-tier gating on a stock `CURSOR_API_KEY`, and runs both sides on the same dependency surface. Same-model evaluation is fine here because the rubric is heavily mechanical (tool invocations, file paths, cited entries) — there's not much for self-grading bias to hide behind. Switch to a stronger / different-family judge for the cases where it matters by passing `--judge-model claude-opus-4-6 --judge-params "thinking=true,context=1m,effort=high,fast=false"`.
+
+**Max mode is intentionally NOT the default for any tier.** When you do reach for an effort knob (e.g. on Anthropic models), use `effort=high` or `effort=xhigh`, never `effort=max`. Max mode trades latency and predictability for marginal capability gains that don't pay off for grading rubrics like ours.
 
 ### Inspecting available models
 
 ```bash
-pnpm exec tsx --env-file=.env scripts/inspect-models.ts opus
+pnpm exec tsx scripts/inspect-models.ts          # full catalog
+pnpm exec tsx scripts/inspect-models.ts opus     # filter by id substring
 ```
 
-…lists every model + variant + parameter the active `CURSOR_API_KEY` can see. Useful when adding a new model or debugging a parameter mismatch.
+…lists every model + variant + parameter the active `CURSOR_API_KEY` can see. The bootstrap module loads `.env` automatically — no `--env-file` flag needed. Useful when picking judge params or debugging a model that returns `status=error` immediately (likely a subscription-tier gating).
 
 ## Results and baselines
 
 Every run writes `evals/results/<UTC>__<agent>__<judge>.json` (gitignored). The file contains:
 
-- `meta`: timestamp, plugin version, agent + judge models, judge effort, judge thinking, Cursor SDK version, host.
+- `meta`: timestamp, plugin version, agent model + params, judge model + params, Cursor SDK version, host.
 - `scenarios[]`: per-scenario verdict, mean score across samples, judge response per sample.
 - `summary`: total / passed / failed / skipped, mean and weighted score.
+
+The model + params are stored in the SDK's verbatim shape so you can paste them back into the CLI without translation.
 
 When a release ships, copy the latest result into `evals/baselines/<agent>__cursor-<sdk>.json`. Future runs compare to that baseline; regressions become diffs in the next PR (Phase 2).
 

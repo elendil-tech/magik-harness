@@ -22,13 +22,15 @@
 
 import { Agent, CursorAgentError } from "@cursor/sdk";
 import type { SDKMessage } from "@cursor/sdk";
-import type { AgentTranscript } from "./types.ts";
+import type { AgentTranscript, ModelParam } from "./types.ts";
 
 export interface RunnerOptions {
   projectRoot: string;
   /** One user message per turn, in order. Length ≥ 1. */
   turns: string[];
   model: string;
+  /** SDK model params, e.g. `[{ id: "fast", value: "false" }]`. */
+  params?: ModelParam[];
   apiKey: string;
   timeoutMs: number;
 }
@@ -82,7 +84,10 @@ export async function runScenarioOnce(
 
   const agent = await Agent.create({
     apiKey: opts.apiKey,
-    model: { id: opts.model },
+    model: {
+      id: opts.model,
+      params: opts.params && opts.params.length > 0 ? opts.params : undefined,
+    },
     local: { cwd: opts.projectRoot },
   });
 

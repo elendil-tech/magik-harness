@@ -1,11 +1,12 @@
 /**
  * tests/evals-runner.test.ts — unit coverage for the eval-runner pieces
  * we *can* test without spending API tokens: scenario YAML loading +
- * schema validation, fixture overlay assembly, and discovery.
+ * schema validation, fixture overlay assembly, the param-CSV parser
+ * shared by the CLI, and discovery.
  *
- * The eval runner's API-touching surface (Cursor SDK + Anthropic) is
- * covered by `pnpm eval --dry-run` and live runs. Here we lock down
- * everything below that boundary.
+ * The eval runner's API-touching surface (the Cursor SDK calls in
+ * runner.ts and judge.ts) is covered by `pnpm eval --dry-run` and live
+ * runs. Here we lock down everything below that boundary.
  */
 
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, readdirSync } from "node:fs";
@@ -17,6 +18,7 @@ import assert from "node:assert/strict";
 
 import { loadScenario } from "../evals/runner/scenario.ts";
 import { buildFixture } from "../evals/runner/fixture.ts";
+import { parseParamCsv } from "../evals/runner/judge.ts";
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(TEST_DIR);
@@ -232,6 +234,54 @@ test("fixture builder — unknown fixture name fails loudly", () => {
     () => buildFixture({ fixture: "this-fixture-does-not-exist-xyz" }),
     /fixture "this-fixture-does-not-exist-xyz" not found/,
     "must reject unknown fixture names with a clear error",
+  );
+});
+
+test("parseParamCsv — empty / undefined → empty array", () => {
+  assert.deepEqual(parseParamCsv(undefined), []);
+  assert.deepEqual(parseParamCsv(""), []);
+  assert.deepEqual(parseParamCsv("   "), []);
+});
+
+test("parseParamCsv — single + multi pair, trimming whitespace", () => {
+  assert.deepEqual(parseParamCsv("fast=false"), [
+    { id: "fast", value: "false" },
+  ]);
+  assert.deepEqual(
+    parseParamCsv(" thinking=true , context=1m, effort=high "),
+    [
+      { id: "thinking", value: "true" },
+      { id: "context", value: "1m" },
+      { id: "effort", value: "high" },
+    ],
+    "leading / trailing whitespace around each pair must be stripped",
+  );
+});
+
+test("parseParamCsv — values with `=` inside survive", () => {
+  // Right-of-first-`=` becomes the entire value. (Not used today by
+  // any model, but defensive: model param values are arbitrary
+  // strings.)
+  assert.deepEqual(parseParamCsv("foo=a=b=c"), [
+    { id: "foo", value: "a=b=c" },
+  ]);
+});
+
+test("parseParamCsv — malformed pairs throw with a helpful message", () => {
+  assert.throws(
+    () => parseParamCsv("not-a-pair"),
+    /no "="/,
+    "missing `=` must be reported",
+  );
+  assert.throws(
+    () => parseParamCsv("=value"),
+    /both key and value must be non-empty/,
+    "empty key must be rejected",
+  );
+  assert.throws(
+    () => parseParamCsv("key="),
+    /both key and value must be non-empty/,
+    "empty value must be rejected",
   );
 });
 

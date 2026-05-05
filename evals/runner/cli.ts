@@ -9,20 +9,24 @@
  *                         tokens or needing CURSOR_API_KEY.
  *   --only <id>           Run only the scenario with the given id.
  *   --keep                Keep fixture tmp dirs after the run (debugging).
- *   --agent-model <id>    Override agent model (default: composer-2).
- *   --judge-model <id>    Override judge model (default: claude-opus-4-7).
- *   --judge-effort <lvl>  Override judge reasoning effort
- *                         (low | medium | high | xhigh | max; default xhigh).
- *                         Note: `max` is "max mode" — not the default.
- *   --judge-no-thinking   Disable judge extended thinking (default: on).
  *
- * Env (loaded via Node's --env-file=.env when invoked through pnpm eval):
+ *   --agent-model <id>    Override agent model (default: gemini-3.1-pro).
+ *   --agent-params <kv>   Comma-separated `k=v` SDK params for the agent,
+ *                         e.g. "fast=false". Default: none.
+ *
+ *   --judge-model <id>    Override judge model (default: gemini-3.1-pro).
+ *   --judge-params <kv>   Comma-separated `k=v` SDK params for the judge,
+ *                         e.g. "thinking=true,context=1m,effort=high".
+ *                         Default: none. Discover the right ids per
+ *                         model with `pnpm exec tsx scripts/inspect-models.ts`.
+ *
+ * Env (auto-loaded from .env / .env.local by bootstrap.ts):
  *   CURSOR_API_KEY            (required for live runs) — used for both
  *                             the agent under test and the judge.
  *   EVAL_AGENT_MODEL          fallback for --agent-model.
+ *   EVAL_AGENT_PARAMS         fallback for --agent-params (CSV).
  *   EVAL_JUDGE_MODEL          fallback for --judge-model.
- *   EVAL_JUDGE_EFFORT         fallback for --judge-effort.
- *   EVAL_JUDGE_THINKING       "1" | "0" | "true" | "false".
+ *   EVAL_JUDGE_PARAMS         fallback for --judge-params (CSV).
  *
  * Exit codes:
  *   0  every selected scenario passed.
@@ -30,26 +34,30 @@
  *   2  one or more scenarios failed or skipped (the eval-result exit).
  */
 
+// MUST be the first import — loads .env and sets CURSOR_RIPGREP_PATH
+// before the Cursor SDK initializes. See evals/runner/bootstrap.ts.
+import "./bootstrap.ts";
+
 import { hostname } from "node:os";
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildFixture } from "./fixture.ts";
 import {
   judge,
-  resolveJudgeEffort,
+  parseParamCsv,
   resolveJudgeModel,
-  resolveJudgeThinking,
+  resolveJudgeParams,
 } from "./judge.ts";
 import { buildReport, printSummary, writeReport } from "./report.ts";
 import { loadScenario, type LoadedScenario } from "./scenario.ts";
 import { runScenarioOnce } from "./runner.ts";
 import type {
   AgentTranscript,
-  CursorEffort,
+  JudgeResponse,
+  ModelParam,
   RunMeta,
   ScenarioRunRecord,
-  JudgeResponse,
 } from "./types.ts";
 
 const RUNNER_DIR = dirname(fileURLToPath(import.meta.url));
@@ -57,42 +65,7 @@ const EVALS_DIR = dirname(RUNNER_DIR);
 const PLUGIN_ROOT = dirname(EVALS_DIR);
 const SCENARIOS_DIR = join(EVALS_DIR, "scenarios");
 
-const DEFAULT_AGENT_MODEL = "composer-2";
-
-/**
- * Load `.env` (and `.env.local`, which overrides) into `process.env` if
- * present. Doesn't overwrite anything that's already set, so explicit
- * shell exports always win. Pure best-effort — missing files are fine,
- * which keeps `pnpm eval --dry-run` working on a fresh checkout.
- *
- * Inline parser (no dotenv dep) — minimal subset that handles
- * `KEY=value`, comments, and surrounding whitespace. No quote stripping
- * fancier than removing matched single/double quotes.
- */
-function loadDotEnv(): void {
-  for (const name of [".env", ".env.local"]) {
-    const path = join(PLUGIN_ROOT, name);
-    if (!existsSync(path)) continue;
-    const raw = readFileSync(path, "utf-8");
-    for (const line of raw.split(/\r?\n/)) {
-      const t = line.trim();
-      if (t.length === 0 || t.startsWith("#")) continue;
-      const eq = t.indexOf("=");
-      if (eq <= 0) continue;
-      const key = t.slice(0, eq).trim();
-      let val = t.slice(eq + 1).trim();
-      if (
-        (val.startsWith('"') && val.endsWith('"')) ||
-        (val.startsWith("'") && val.endsWith("'"))
-      ) {
-        val = val.slice(1, -1);
-      }
-      if (process.env[key] === undefined) process.env[key] = val;
-    }
-  }
-}
-
-loadDotEnv();
+const DEFAULT_AGENT_MODEL = "gemini-3.1-pro";
 
 interface CliArgs {
   list: boolean;
@@ -100,9 +73,9 @@ interface CliArgs {
   only?: string;
   keep: boolean;
   agentModel?: string;
+  agentParams?: ModelParam[];
   judgeModel?: string;
-  judgeEffort?: CursorEffort;
-  judgeThinking?: boolean;
+  judgeParams?: ModelParam[];
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -125,21 +98,18 @@ function parseArgs(argv: string[]): CliArgs {
       case "--agent-model":
         args.agentModel = argv[++i] ?? requireArg("--agent-model");
         break;
+      case "--agent-params":
+        args.agentParams = parseParamCsv(
+          argv[++i] ?? requireArg("--agent-params"),
+        );
+        break;
       case "--judge-model":
         args.judgeModel = argv[++i] ?? requireArg("--judge-model");
         break;
-      case "--judge-effort": {
-        const v = argv[++i] ?? requireArg("--judge-effort");
-        if (!["low", "medium", "high", "xhigh", "max"].includes(v)) {
-          throw new Error(
-            `--judge-effort must be one of low|medium|high|xhigh|max, got "${v}"`,
-          );
-        }
-        args.judgeEffort = v as CursorEffort;
-        break;
-      }
-      case "--judge-no-thinking":
-        args.judgeThinking = false;
+      case "--judge-params":
+        args.judgeParams = parseParamCsv(
+          argv[++i] ?? requireArg("--judge-params"),
+        );
         break;
       case "--help":
       case "-h":
@@ -158,12 +128,14 @@ function requireArg(name: string): never {
 
 function printHelp(): void {
   console.log(`usage: pnpm eval [--list] [--dry-run] [--only <id>] [--keep]
-             [--agent-model <id>] [--judge-model <id>]
-             [--judge-effort low|medium|high|xhigh|max]
-             [--judge-no-thinking]
+             [--agent-model <id>] [--agent-params "k=v,k2=v2"]
+             [--judge-model <id>] [--judge-params "k=v,k2=v2"]
 
-Defaults: agent=composer-2, judge=claude-opus-4-7, effort=xhigh,
-          thinking=on, max-mode=off.
+Defaults: agent=gemini-3.1-pro (no params),
+          judge=gemini-3.1-pro (no params).
+
+Discover available models + their params:
+  pnpm exec tsx scripts/inspect-models.ts [filter]
 
 See evals/README.md for details.`);
 }
@@ -194,6 +166,22 @@ function cursorSdkVersion(): string {
   } catch {
     return "unknown";
   }
+}
+
+function resolveAgentModel(opts: { model?: string }): string {
+  return opts.model ?? process.env.EVAL_AGENT_MODEL ?? DEFAULT_AGENT_MODEL;
+}
+
+function resolveAgentParams(opts: { params?: ModelParam[] }): ModelParam[] {
+  if (opts.params !== undefined) return opts.params;
+  const fromEnv = process.env.EVAL_AGENT_PARAMS;
+  if (fromEnv !== undefined) return parseParamCsv(fromEnv);
+  return [];
+}
+
+function formatParams(params: ModelParam[]): string {
+  if (params.length === 0) return "(default)";
+  return params.map((p) => `${p.id}=${p.value}`).join(",");
 }
 
 async function main(): Promise<void> {
@@ -235,15 +223,15 @@ async function main(): Promise<void> {
     return;
   }
 
-  const agentModel =
-    args.agentModel ?? process.env.EVAL_AGENT_MODEL ?? DEFAULT_AGENT_MODEL;
-  let judgeEffort: CursorEffort;
-  let judgeThinking: boolean;
+  let agentModel: string;
+  let agentParams: ModelParam[];
   let judgeModel: string;
+  let judgeParams: ModelParam[];
   try {
+    agentModel = resolveAgentModel({ model: args.agentModel });
+    agentParams = resolveAgentParams({ params: args.agentParams });
     judgeModel = resolveJudgeModel({ model: args.judgeModel });
-    judgeEffort = resolveJudgeEffort({ effort: args.judgeEffort });
-    judgeThinking = resolveJudgeThinking({ thinking: args.judgeThinking });
+    judgeParams = resolveJudgeParams({ params: args.judgeParams });
   } catch (err) {
     console.error(`error: ${(err as Error).message}`);
     process.exit(1);
@@ -252,7 +240,7 @@ async function main(): Promise<void> {
   // --dry-run validates the wiring without calling any model API.
   if (args.dryRun) {
     console.log(
-      `dry-run: ${scenarios.length} scenario(s); agent=${agentModel} judge=${judgeModel} effort=${judgeEffort} thinking=${judgeThinking}`,
+      `dry-run: ${scenarios.length} scenario(s); agent=${agentModel} ${formatParams(agentParams)} | judge=${judgeModel} ${formatParams(judgeParams)}`,
     );
     for (const s of scenarios) {
       console.log(`  validating ${s.id} (${s.turns.length} turn(s))…`);
@@ -281,21 +269,21 @@ async function main(): Promise<void> {
     timestamp: new Date().toISOString(),
     plugin_version: pluginVersion(),
     agent_model: agentModel,
+    agent_params: agentParams,
     judge_model: judgeModel,
-    judge_effort: judgeEffort,
-    judge_thinking: judgeThinking,
+    judge_params: judgeParams,
     cursor_sdk_version: cursorSdkVersion(),
     host: process.env.CI ? "ci" : hostname(),
   };
 
   console.log(
-    `running ${scenarios.length} scenario(s) — agent=${agentModel} judge=${judgeModel} effort=${judgeEffort} thinking=${judgeThinking}`,
+    `running ${scenarios.length} scenario(s) — agent=${agentModel} ${formatParams(agentParams)} | judge=${judgeModel} ${formatParams(judgeParams)}`,
   );
 
   const records: ScenarioRunRecord[] = [];
 
   for (const scenario of scenarios) {
-    process.stdout.write(`▶ ${scenario.id} (${scenario.turns.length} turn) `);
+    process.stdout.write(`▶ ${scenario.id} (${scenario.turns.length} turns) `);
     const samples: ScenarioRunRecord["samples"] = [];
 
     for (let i = 0; i < scenario.samples; i++) {
@@ -313,6 +301,7 @@ async function main(): Promise<void> {
           projectRoot: built.projectRoot,
           turns: scenario.turns,
           model: agentModel,
+          params: agentParams,
           apiKey: cursorKey,
           timeoutMs: scenario.timeout_ms,
         });
@@ -336,8 +325,7 @@ async function main(): Promise<void> {
         try {
           judgeRes = await judge(scenario, agentTranscript, {
             model: judgeModel,
-            effort: judgeEffort,
-            thinking: judgeThinking,
+            params: judgeParams,
             apiKey: cursorKey,
           });
         } catch (e) {

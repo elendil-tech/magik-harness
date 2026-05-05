@@ -2,27 +2,33 @@
  * evals/runner/judge.ts — LLM-as-judge running on the Cursor SDK only.
  *
  * Uses `Agent.prompt(...)` (Pattern 1: one-shot, auto-disposes) against
- * a strong reasoning model — default `claude-opus-4-7` with
- * `effort=xhigh` and `thinking=true`, NOT `effort=max`. The judge runs
- * in a tmpdir cwd so it cannot accidentally read project files; we
- * also instruct it explicitly not to use any tools and to respond
- * with a single JSON object.
+ * a model the user picks via `--judge-model` (default `gemini-3.1-pro`)
+ * with optional `--judge-params` (default none).
  *
- * The response is parsed by stripping any leading prose / markdown
- * fences and validating against `JudgeResponseSchema`. On parse
- * failure we throw — the caller records the error and the scenario
- * lands in the `judge-error` bucket.
+ * The judge runs in an mkdtemp'd tmpdir cwd with `settingSources: []`
+ * so it can't accidentally read project files; the prompt also tells
+ * it not to use any tools and to emit a single JSON object. Response
+ * parsing strips markdown fences, balances braces, and validates
+ * against `JudgeResponseSchema`. On parse failure we throw — the
+ * caller records the error and the scenario lands in the
+ * `judge-error` bucket.
  *
- * Configuration precedence (highest → lowest) for every knob:
+ * Configuration precedence for every knob:
  *   1. function arg
  *   2. corresponding EVAL_JUDGE_* env var
  *   3. compiled-in default
  *
- * Defaults:
- *   model       claude-opus-4-7
- *   effort      xhigh   (extra high; max mode explicitly OFF)
- *   thinking    true
- *   context     1m
+ * Defaults (chosen because they work with a stock CURSOR_API_KEY
+ * without subscription gating, and because the judge handles long
+ * multi-turn transcripts well in this configuration):
+ *   model:  gemini-3.1-pro
+ *   params: (none — gemini-3.1-pro has no tunable parameters)
+ *
+ * To use a different judge configuration, e.g. claude-opus-4-6 with
+ * extra reasoning:
+ *
+ *   pnpm eval --judge-model claude-opus-4-6 \
+ *             --judge-params "thinking=true,context=1m,effort=high,fast=false"
  */
 
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -33,55 +39,61 @@ import { Agent, CursorAgentError } from "@cursor/sdk";
 import {
   JudgeResponseSchema,
   type AgentTranscript,
-  type CursorEffort,
   type JudgeResponse,
+  type ModelParam,
   type Scenario,
 } from "./types.ts";
 
 const RUNNER_DIR = dirname(fileURLToPath(import.meta.url));
 const SYSTEM_PROMPT_PATH = join(RUNNER_DIR, "prompts", "judge-system.md");
 
-const DEFAULT_JUDGE_MODEL = "claude-opus-4-7";
-const DEFAULT_JUDGE_EFFORT: CursorEffort = "xhigh";
-const DEFAULT_JUDGE_THINKING = true;
-const DEFAULT_JUDGE_CONTEXT = "1m";
-
-const VALID_EFFORTS: readonly CursorEffort[] = [
-  "low",
-  "medium",
-  "high",
-  "xhigh",
-  "max",
-];
+const DEFAULT_JUDGE_MODEL = "gemini-3.1-pro";
+const DEFAULT_JUDGE_PARAMS: ModelParam[] = [];
 
 export interface JudgeOptions {
   model?: string;
-  effort?: CursorEffort;
-  thinking?: boolean;
+  params?: ModelParam[];
   apiKey?: string;
+}
+
+/**
+ * Parse a comma-separated `k=v,k2=v2` string into a `ModelParam[]`.
+ * Surface area matches the CLI flag `--judge-params` and the env var
+ * `EVAL_JUDGE_PARAMS` exactly. Empty / missing → empty array.
+ */
+export function parseParamCsv(csv: string | undefined): ModelParam[] {
+  if (!csv) return [];
+  const out: ModelParam[] = [];
+  for (const pair of csv.split(",")) {
+    const t = pair.trim();
+    if (t.length === 0) continue;
+    const eq = t.indexOf("=");
+    if (eq < 0) {
+      throw new Error(
+        `invalid param "${t}" — expected "key=value" (got no "=")`,
+      );
+    }
+    const id = t.slice(0, eq).trim();
+    const value = t.slice(eq + 1).trim();
+    if (id.length === 0 || value.length === 0) {
+      throw new Error(
+        `invalid param "${t}" — both key and value must be non-empty`,
+      );
+    }
+    out.push({ id, value });
+  }
+  return out;
 }
 
 export function resolveJudgeModel(opts: JudgeOptions = {}): string {
   return opts.model ?? process.env.EVAL_JUDGE_MODEL ?? DEFAULT_JUDGE_MODEL;
 }
 
-export function resolveJudgeEffort(opts: JudgeOptions = {}): CursorEffort {
-  const fromEnv = process.env.EVAL_JUDGE_EFFORT;
-  const candidate =
-    opts.effort ?? (fromEnv as CursorEffort | undefined) ?? DEFAULT_JUDGE_EFFORT;
-  if (!VALID_EFFORTS.includes(candidate)) {
-    throw new Error(
-      `invalid judge effort "${candidate}" — must be one of ${VALID_EFFORTS.join(" | ")}`,
-    );
-  }
-  return candidate;
-}
-
-export function resolveJudgeThinking(opts: JudgeOptions = {}): boolean {
-  if (typeof opts.thinking === "boolean") return opts.thinking;
-  const fromEnv = process.env.EVAL_JUDGE_THINKING;
-  if (fromEnv === undefined) return DEFAULT_JUDGE_THINKING;
-  return fromEnv === "1" || fromEnv.toLowerCase() === "true";
+export function resolveJudgeParams(opts: JudgeOptions = {}): ModelParam[] {
+  if (opts.params !== undefined) return opts.params;
+  const fromEnv = process.env.EVAL_JUDGE_PARAMS;
+  if (fromEnv !== undefined) return parseParamCsv(fromEnv);
+  return DEFAULT_JUDGE_PARAMS;
 }
 
 function buildJudgePrompt(
@@ -205,8 +217,7 @@ export async function judge(
   opts: JudgeOptions = {},
 ): Promise<JudgeResponse> {
   const model = resolveJudgeModel(opts);
-  const effort = resolveJudgeEffort(opts);
-  const thinking = resolveJudgeThinking(opts);
+  const params = resolveJudgeParams(opts);
   const apiKey = opts.apiKey ?? process.env.CURSOR_API_KEY;
   if (!apiKey) {
     throw new Error("judge: CURSOR_API_KEY not set");
@@ -214,22 +225,16 @@ export async function judge(
 
   const prompt = buildJudgePrompt(scenario, transcript);
 
-  // Empty tmpdir cwd — the judge has nothing local to read, so it can't
-  // accidentally exfil project files even if something tells it to.
+  // Empty tmpdir cwd — the judge has nothing local to read, so it
+  // can't accidentally exfil project files even if something tells
+  // it to.
   const judgeCwd = mkdtempSync(join(tmpdir(), "magik-judge-"));
   try {
     let result;
     try {
       result = await Agent.prompt(prompt, {
         apiKey,
-        model: {
-          id: model,
-          params: [
-            { id: "thinking", value: String(thinking) },
-            { id: "context", value: DEFAULT_JUDGE_CONTEXT },
-            { id: "effort", value: effort },
-          ],
-        },
+        model: { id: model, params: params.length > 0 ? params : undefined },
         local: { cwd: judgeCwd, settingSources: [] },
       });
     } catch (err) {

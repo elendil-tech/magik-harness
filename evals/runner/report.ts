@@ -132,10 +132,12 @@ export function printSummary(report: RunReport): void {
   console.log("─".repeat(64));
   console.log(`magik-repo evals — ${meta.timestamp}`);
   console.log(`  plugin:  ${meta.plugin_version}`);
-  console.log(`  agent:   ${meta.agent_model}`);
-  console.log(
-    `  judge:   ${meta.judge_model} (effort=${meta.judge_effort}, thinking=${meta.judge_thinking})`,
-  );
+  const fmt = (params: typeof meta.agent_params): string =>
+    params.length > 0
+      ? params.map((p) => `${p.id}=${p.value}`).join(",")
+      : "(default)";
+  console.log(`  agent:   ${meta.agent_model} ${fmt(meta.agent_params)}`);
+  console.log(`  judge:   ${meta.judge_model} ${fmt(meta.judge_params)}`);
   console.log(`  cursor sdk: ${meta.cursor_sdk_version}`);
   console.log("─".repeat(64));
 

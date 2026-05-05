@@ -128,24 +128,29 @@ export type JudgeResponse = z.infer<typeof JudgeResponseSchema>;
 // --- Runner result ---------------------------------------------------------
 
 /**
- * Cursor SDK effort tier — matches the `effort` parameter on Anthropic
- * models (`claude-opus-4-7`, `claude-sonnet-4-5`, etc.). Surfaced verbatim
- * so anyone reading a result file can pass it back to the SDK without
- * translation.
+ * One Cursor SDK model parameter — `{ id, value }` pairs that mirror
+ * the SDK's `ModelParameterValue` shape verbatim. Examples:
+ *   - Anthropic: `{ id: "thinking", value: "true" }`,
+ *               `{ id: "effort", value: "xhigh" }`
+ *   - OpenAI:    `{ id: "reasoning", value: "extra-high" }`
+ *   - Composer:  `{ id: "fast", value: "false" }`
  *
- * NOTE: `max` is "max mode" — the highest tier. We default to `xhigh`
- * for the judge to get extra-high reasoning *without* opting into max
- * mode pricing/latency.
+ * Stored in RunMeta verbatim so the param list in a result file can be
+ * pasted back into the CLI / SDK without translation. Discover what
+ * params a model accepts via `pnpm exec tsx scripts/inspect-models.ts`.
  */
-export type CursorEffort = "low" | "medium" | "high" | "xhigh" | "max";
+export interface ModelParam {
+  id: string;
+  value: string;
+}
 
 export interface RunMeta {
   timestamp: string;
   plugin_version: string;
   agent_model: string;
+  agent_params: ModelParam[];
   judge_model: string;
-  judge_effort: CursorEffort;
-  judge_thinking: boolean;
+  judge_params: ModelParam[];
   cursor_sdk_version: string;
   /** Hostname or "ci" — useful for triaging cross-environment results. */
   host: string;
