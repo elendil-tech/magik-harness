@@ -132,6 +132,9 @@ The mitigation is discipline: append `[observation]` / `[lesson-candidate]` / `[
 
 ## Anti-patterns
 
+- **Fast-pathing in-conversation signals to `knowledge/<domain>/` or `.cursor/rules/`.** When the user articulates a lesson, observation, decision, or policy during a conversation, the contract is: capture it to today's `memory/daily/<YYYY-MM-DD>.md` with the appropriate `[lesson-candidate]` / `[decision-candidate]` / `[policy-candidate]` tag (and a domain tag), then let `/distill` propose promotion. Direct writes to `knowledge/<domain>/` from in-conversation signals bypass the user-approval gate. The only carve-out is when the user is *explicitly* authoring a KB entry ("let's add a fieldnote for X") — and even then, transient signals around it stage in memory first.
+- **Per-turn cadence violations.** If three lesson-candidates surface across three turns, the contract is three separate writes — one per turn, as each surfaces. Batching all three into a single end-of-conversation write is a violation: any of them could be lost to `/compact` between turns.
+- **Narrating a memory write without invoking the Write / Edit tool.** "I've added [lesson-candidate] X to today's daily note" with `files_written: none` is hallucinated execution. Either invoke the tool, or write "Plan: capture as [lesson-candidate]…".
 - Writing operational artifacts (PDFs, drafts, CSVs) to `memory/`. Those go in `workspace/`.
 - Writing durable knowledge directly to `memory/`. Use `knowledge-base` skill via promotion.
 - Skipping `kb-search` at session start because "I already know."

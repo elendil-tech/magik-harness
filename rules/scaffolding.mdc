@@ -59,3 +59,41 @@ If you can't name a success signal, write a skill, not a subagent.
 ## Default: propose, don't decide
 
 Adding a domain, subagent, or removing anything = **proposal** to the user. New skills from templates and `fieldnote` writes are routine.
+
+## Propose-then-apply contract
+
+The proposal flow is two turns, not one. Past-tense narration of unexecuted work is a contract violation — it has been observed in eval runs and is the failure mode this section exists to close.
+
+**Turn N — propose:**
+
+```
+## Proposed change
+- <list every concrete file / folder / registry edit, in order>
+- <call out side effects: re-runs, hook reseeding, downstream domain links>
+
+Apply? (yes / amend / cancel)
+```
+
+The proposal MUST be in **future tense**. "Add", "create", "register", "rename" — never "added", "created", "I've registered". If you have not invoked a Write / Edit tool yet, the work has not happened.
+
+**Turn N+1 — apply (only on explicit "yes"):**
+
+- Invoke the Write / Edit / `domain-registry` tool calls in the order proposed.
+- Confirm by listing each file written, taken from the structured tool output (not narrated).
+- Do NOT propose new structural changes in the same turn — start a new propose-then-apply pair if more is needed.
+
+**Routine work (no proposal required):**
+
+- New skills authored from a template under `.cursor/skills/_templates/`.
+- `fieldnote` writes that capture a single concrete lesson the user already articulated.
+- Bumping `last_referenced` / similar metadata on existing entries.
+- Memory writes (`[lesson-candidate]`, `[observation]`, etc.) to today's daily note.
+
+Anything that adds / removes / renames a domain, subagent, skill folder, or rule file goes through propose-then-apply. So does any change to `knowledge/_meta/domains.md`.
+
+## Anti-patterns
+
+- Past-tense claims ("Added", "Set up", "Initialized") without a corresponding tool invocation in the same turn. Either run the tool, or write "Proposed:" / "Plan:".
+- Re-proposing on turn N+1 when the user already said yes on turn N. Apply, don't stall.
+- Inventing scaffolding the user didn't ask for ("while I was at it I also added X"). Propose every item explicitly; surprises are out-of-scope.
+- Single-turn "I propose X. I've done X." flows. The two-turn shape is the contract; one turn breaks the user's approval gate.

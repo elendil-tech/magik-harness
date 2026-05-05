@@ -285,6 +285,42 @@ test("parseParamCsv — malformed pairs throw with a helpful message", () => {
   );
 });
 
+test("fixture builder — materializes AGENTS.md from the seeded primer with harness markers", () => {
+  // Pick the smallest-overlay fixture so the test is fast; we only
+  // care about the seeded primer here.
+  const fixtures = existsSync(FIXTURES_DIR)
+    ? readdirSync(FIXTURES_DIR)
+    : [];
+  if (fixtures.length === 0) return;
+
+  const built = buildFixture({ fixture: fixtures[0]! });
+  try {
+    const agentsMd = join(built.projectRoot, "AGENTS.md");
+    assert.ok(
+      existsSync(agentsMd),
+      "AGENTS.md must be materialized at project root so Cursor's primer discovery picks it up",
+    );
+    const body = readFileSync(agentsMd, "utf-8");
+    assert.match(
+      body,
+      /<!-- harness:primer:start v=\d+\.\d+\.\d+ -->/,
+      "AGENTS.md must carry the harness primer start marker with a current version",
+    );
+    assert.match(
+      body,
+      /<!-- harness:primer:end -->/,
+      "AGENTS.md must carry the harness primer end marker",
+    );
+    assert.match(
+      body,
+      /Mandatory protocols/,
+      "AGENTS.md must contain the v0.4.2 'Mandatory protocols' section so the agent under test sees the executable protocols",
+    );
+  } finally {
+    built.cleanup();
+  }
+});
+
 test("fixture builder — overlay file content is what ends up at the destination", () => {
   // Build the populated-kb-with-policy fixture (if present) and verify the
   // policy file's content survives the overlay byte-for-byte.

@@ -27,8 +27,10 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
+  readFileSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -103,6 +105,37 @@ export function buildFixture(opts: BuildFixtureOptions): BuiltFixture {
 
   // 1. Copy the seed payload (the harness as users get it).
   cpSync(SEEDS_DIR, projectRoot, { recursive: true });
+
+  // 1b. Materialize the primer as AGENTS.md so Cursor's primer
+  // discovery picks it up. In production /init-harness does the
+  // marker-aware merge into the user's AGENTS.md; in the eval
+  // fixture the project starts empty so we just wrap the primer
+  // body in the same harness markers and write it out.
+  //
+  // Without this step, the primer (which carries the always-loaded
+  // harness contract) never reaches the agent — the v0.4.1 baseline
+  // ran with this gap and the harness's "mandatory protocols"
+  // language was not in scope. This was the single biggest reason
+  // for the eval-vs-production behavior delta.
+  const primerSrc = join(projectRoot, "AGENTS.primer.md");
+  const agentsMdDst = join(projectRoot, "AGENTS.md");
+  if (existsSync(primerSrc) && !existsSync(agentsMdDst)) {
+    const primerBody = readFileSync(primerSrc, "utf-8").trimEnd();
+    // Read the canonical version from package.json so the marker
+    // stays in sync with releases. The file lives at the plugin
+    // root, two levels above evals/runner/.
+    const pkg = JSON.parse(
+      readFileSync(join(PLUGIN_ROOT, "package.json"), "utf-8"),
+    ) as { version?: string };
+    const v = pkg.version ?? "0.0.0";
+    const wrapped = [
+      `<!-- harness:primer:start v=${v} -->`,
+      primerBody,
+      `<!-- harness:primer:end -->`,
+      "",
+    ].join("\n");
+    writeFileSync(agentsMdDst, wrapped);
+  }
 
   // 2. Lay the plugin's authored content into .cursor/{rules,skills,commands}.
   // In production these come from ~/.cursor/plugins/local/magik-repo/, but

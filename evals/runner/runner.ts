@@ -42,19 +42,36 @@ export interface RunnerResult {
   error?: string;
 }
 
-const WRITE_TOOLS = new Set([
-  "Write",
-  "Edit",
-  "MultiEdit",
-  "StrReplace",
-  "EditNotebook",
-  "Delete",
+// Tool-name matching is case-insensitive. The Cursor SDK currently
+// reports lowercase aliases (`"edit"`, `"read"`, `"write"`); future
+// model releases may emit Capitalized variants. We normalize on
+// recordToolCall and match against these lowercase canonical names.
+const WRITE_TOOL_NAMES = new Set([
+  "write",
+  "edit",
+  "multiedit",
+  "str_replace",
+  "strreplace",
+  "edit_file",
+  "editfile",
+  "editnotebook",
+  "delete",
+  "applypatch",
+  "apply_patch",
 ]);
+const READ_TOOL_NAMES = new Set(["read", "readfile", "read_file"]);
 
 function extractPath(args: unknown): string | null {
   if (!args || typeof args !== "object") return null;
   const a = args as Record<string, unknown>;
-  for (const key of ["path", "file_path", "filePath", "target_file"]) {
+  for (const key of [
+    "path",
+    "file_path",
+    "filePath",
+    "target_file",
+    "file",
+    "filename",
+  ]) {
     const v = a[key];
     if (typeof v === "string" && v.length > 0) return v;
   }
@@ -109,11 +126,12 @@ export async function runScenarioOnce(
 
   function recordToolCall(name: string, args: unknown): void {
     toolsInvoked.add(name);
+    const lc = name.toLowerCase();
     const path = extractPath(args);
     if (!path) return;
     const rel = relativize(path, opts.projectRoot);
-    if (WRITE_TOOLS.has(name)) filesWritten.add(rel);
-    else if (name === "Read") filesRead.add(rel);
+    if (WRITE_TOOL_NAMES.has(lc)) filesWritten.add(rel);
+    else if (READ_TOOL_NAMES.has(lc)) filesRead.add(rel);
   }
 
   try {

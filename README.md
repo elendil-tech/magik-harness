@@ -91,9 +91,27 @@ pnpm clean
 
 `rules/`, `skills/`, `commands/`, and `hooks/` are **plugin-authored, committed**. The build step only produces `seeds/` (a runtime copy of `seed-sources/`).
 
+## How well does the harness work?
+
+The harness is, fundamentally, an AI-instruction artifact — so the only honest signal of "is it doing its job?" is **whether AI agents operating inside a harnessed repo actually follow the rules**. We run a behavioral eval suite that drives multi-turn Cursor SDK sessions through scenarios designed to expose specific contracts (read-first gate, propose-not-apply, memory write discipline, …) and scores the transcript with an LLM judge.
+
+→ **[evals/RESULTS.md](./evals/RESULTS.md)** — current baseline scores per scenario, with the full expectation-by-expectation breakdown.
+
+The harness:
+
+- Is **not** assumed to score 100%. Failing scenarios are concrete signals about which rule / skill language needs sharpening.
+- Is tested across model surfaces (the default baseline runs `gemini-3.1-pro` on both sides because it has no subscription gating; switch the agent / judge with `--agent-model` / `--judge-model`).
+- Has its eval architecture, scenario format, and rubric philosophy documented in [evals/README.md](./evals/README.md).
+
+To add a scenario, see *Adding a scenario* in [evals/README.md](./evals/README.md). To regenerate the public results page after a new baseline, run:
+
+```bash
+pnpm eval:results
+```
+
 ## Versioning
 
-`magik-repo@0.4.1` ships `harness@0.4.1` content. See [CHANGELOG.md](./CHANGELOG.md).
+`magik-repo@0.4.2` ships `harness@0.4.2` content. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## License
 

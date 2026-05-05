@@ -33,8 +33,14 @@ turns:
     a direct `push`. Capture that as the team policy going forward.
 
 expectations:
+  # Any write-shaped tool counts: write, edit, multiedit, str_replace.
+  # Different models reach for different ones first; the contract is
+  # "the signal landed on disk", not a specific tool name. Phrase the
+  # expectation so the judge is forced to look at the structured
+  # tools_invoked / files_written lists rather than literal-matching
+  # one tool name.
   must_invoke_tools:
-    - "Write"
+    - "any write-shaped tool (write / edit / multiedit / str_replace) — and files_written must be non-empty for at least one memory/daily/ path"
   must_surface_concepts:
     - "in turn 1, writing the production-push lesson to today's memory/daily/<YYYY-MM-DD>.md as a [lesson-candidate] [engineering] bullet — referencing rules/memory.mdc tag conventions"
     - "in turn 2, adding additional bullets for the missing-runbook gap and the rollback-under-pressure observation"

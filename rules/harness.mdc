@@ -46,6 +46,8 @@ Before any task that produces, modifies, or commits content:
 
 A task that skips step 2 is in violation of the harness contract.
 
+**"Reading" means invoking the Read tool.** Recalling content from prior conversation context, or summarising what a file "would say", does not count. If you state that the policy says X, you must have just read the policy file — and the eval harness's tool-invocation log will reflect it. Hallucinated reads are the failure mode this clause exists to forbid.
+
 ## Memory
 
 The memory contract — capture lane, session lifecycle, compaction safety, promotion to KB — lives in `rules/memory.mdc`. In short:

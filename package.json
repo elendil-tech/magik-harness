@@ -1,6 +1,6 @@
 {
   "name": "magik-repo",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": true,
   "type": "module",
   "description": "Project Harness — Cursor plugin packaging.",
@@ -12,7 +12,8 @@
     "pretest": "tsx scripts/build.ts",
     "test": "tsx scripts/run-tests.ts",
     "preeval": "tsx scripts/build.ts",
-    "eval": "tsx evals/runner/cli.ts"
+    "eval": "tsx evals/runner/cli.ts",
+    "eval:results": "tsx scripts/build-results.ts"
   },
   "devDependencies": {
     "@cursor/sdk": "^1.0.12",
