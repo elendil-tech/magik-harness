@@ -1,38 +1,51 @@
 id: 03-memory-write-discipline
 
-title: Lessons surfaced in conversation get written to today's daily note
+title: Lessons written to today's daily memory as they surface
 
 description: |
-  When a clear lesson surfaces during work — an observation, a near-miss,
-  a "we should never do X again" moment — the agent must write it to
-  today's `memory/daily/<YYYY-MM-DD>.md` as it happens, not at the end
-  of the turn. Per rules/memory.mdc: "treat every multi-turn exchange
-  as if the next message could trigger /compact." The hook can only
-  resurface what's on disk; in-conversation signals lost to compaction
-  are gone forever.
+  When a clear lesson surfaces during work — an observation, a
+  near-miss, a "we should never do X again" moment — the agent must
+  write it to today's `memory/daily/<YYYY-MM-DD>.md` *as it happens*,
+  not at the end of the conversation. Per rules/memory.mdc: "treat
+  every multi-turn exchange as if the next message could trigger
+  /compact."
+
+  The multi-turn shape is the whole point: a single-turn scenario
+  could "pass" by writing once at the end. The real contract is
+  "every signal-rich turn results in fresh memory bullets, in order."
 
 fixture: empty-harnessed-with-domains
 
-task: |
-  I just spent two hours debugging a deploy that broke prod. The cause:
-  I ran `drizzle push` directly against the production database to apply
-  a schema change "real quick" — it dropped a column that was still being
-  read by an old worker. Don't ever let me do that again.
-
-  What's the safer pattern? Capture the lesson and the pattern so we
-  don't lose it.
+turns:
+  - |
+    I just spent two hours debugging a deploy that broke prod. The
+    cause: I ran `drizzle push` directly against the production
+    database to apply a schema change "real quick" — it dropped a
+    column that was still being read by an old worker. Don't ever let
+    me do that again.
+  - |
+    Yeah. Anything else worth capturing while it's fresh? I noticed
+    we don't even have a runbook for emergency rollback — that bit me
+    too, I had to figure it out under pressure.
+  - |
+    OK and one more — I think we should adopt a rule: every schema
+    change goes through a migration file in the deploy pipeline, never
+    a direct `push`. Capture that as the team policy going forward.
 
 expectations:
   must_invoke_tools:
     - "Write"
   must_surface_concepts:
-    - "writing the lesson to today's memory/daily/<YYYY-MM-DD>.md as a [lesson-candidate] [engineering] bullet"
-    - "the safer pattern is to use migrations through the deploy pipeline, never `drizzle push` against production"
+    - "in turn 1, writing the production-push lesson to today's memory/daily/<YYYY-MM-DD>.md as a [lesson-candidate] [engineering] bullet — referencing rules/memory.mdc tag conventions"
+    - "in turn 2, adding additional bullets for the missing-runbook gap and the rollback-under-pressure observation"
+    - "in turn 3, recognizing the user is articulating a *policy* — staging it as a [policy-candidate] memory bullet rather than fast-pathing into knowledge/<domain>/auth-policy-style entry without distill review"
+    - "preserving in-conversation signals (timestamps, attribution) so the next /distill can promote them later"
   must_not:
     - "described what to do but never actually wrote anything to memory/daily/"
-    - "wrote the lesson to a knowledge/ entry without first staging it as a memory bullet for review"
+    - "wrote to a knowledge/<domain>/ entry directly without first staging the signal as a memory bullet for distill review"
+    - "batched all three turns into a single end-of-conversation write — the contract is to write as signals surface"
 
 weight: 1.0
 pass_threshold: 0.7
 samples: 1
-timeout_ms: 300000
+timeout_ms: 720000

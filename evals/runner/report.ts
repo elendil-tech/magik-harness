@@ -133,7 +133,9 @@ export function printSummary(report: RunReport): void {
   console.log(`magik-repo evals — ${meta.timestamp}`);
   console.log(`  plugin:  ${meta.plugin_version}`);
   console.log(`  agent:   ${meta.agent_model}`);
-  console.log(`  judge:   ${meta.judge_model} (effort=${meta.judge_thinking_effort})`);
+  console.log(
+    `  judge:   ${meta.judge_model} (effort=${meta.judge_effort}, thinking=${meta.judge_thinking})`,
+  );
   console.log(`  cursor sdk: ${meta.cursor_sdk_version}`);
   console.log("─".repeat(64));
 

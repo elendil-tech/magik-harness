@@ -15,11 +15,9 @@
     "eval": "tsx evals/runner/cli.ts"
   },
   "devDependencies": {
-    "@ai-sdk/anthropic": "^3.0.74",
     "@cursor/sdk": "^1.0.12",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.0",
-    "ai": "^6.0.175",
     "js-yaml": "^4.1.1",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",

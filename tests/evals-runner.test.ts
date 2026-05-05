@@ -45,8 +45,9 @@ test("scenario loader — accepts a minimal valid YAML and applies defaults", ()
       "  This is a description that is long enough to satisfy the schema's",
       "  minimum-length validator on description.",
       "fixture: some-fixture",
-      "task: |",
-      "  do a thing",
+      "turns:",
+      "  - do a thing",
+      "  - and then another thing",
       "expectations:",
       "  must_invoke_tools: [Read]",
       "  must_cite: []",
@@ -59,10 +60,11 @@ test("scenario loader — accepts a minimal valid YAML and applies defaults", ()
     const s = loadScenario(path);
     assert.equal(s.id, "01-test-scenario");
     assert.equal(s.fixture, "some-fixture");
+    assert.deepEqual(s.turns, ["do a thing", "and then another thing"]);
     assert.equal(s.weight, 1, "weight defaults to 1");
     assert.equal(s.pass_threshold, 0.7, "pass_threshold defaults to 0.7");
     assert.equal(s.samples, 1, "samples defaults to 1");
-    assert.equal(s.timeout_ms, 5 * 60 * 1000, "timeout_ms defaults to 5min");
+    assert.equal(s.timeout_ms, 12 * 60 * 1000, "timeout_ms defaults to 12min");
     assert.deepEqual(s.expectations.must_invoke_tools, ["Read"]);
   } finally {
     cleanup();
@@ -91,7 +93,8 @@ test("scenario loader — rejects schema violations with field paths", () => {
       "title: short",
       "description: too short",
       "fixture: ok",
-      "task: t",
+      "turns:",
+      "  - t",
       "expectations:",
       "  must_invoke_tools: []",
       "  must_cite: []",
@@ -118,7 +121,8 @@ test("scenario loader — id mismatch with filename is rejected", () => {
       "title: A small but valid scenario",
       "description: This description is long enough for the schema validator to accept.",
       "fixture: some-fixture",
-      "task: do a thing",
+      "turns:",
+      "  - do a thing",
       "expectations:",
       "  must_invoke_tools: []",
       "  must_cite: []",

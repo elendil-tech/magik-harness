@@ -1,19 +1,23 @@
 /**
  * evals/runner/runner.ts — drive a single scenario sample through the
- * Cursor SDK and capture a structured transcript for the judge.
+ * Cursor SDK, multi-turn, and capture a structured transcript for the
+ * judge.
  *
- * Pattern: `await Agent.create` + `agent.send` + iterate `run.stream()` +
- * `run.wait()` + `agent[Symbol.asyncDispose]()` in `finally`. The SDK's
- * stream emits typed `SDKMessage` values; we extract:
- *   - assistant text (concatenated for the judge prompt)
+ * Pattern: `await Agent.create` + loop {`agent.send` + iterate
+ * `run.stream()` + `run.wait()`} for every turn + `agent[Symbol.asyncDispose]`
+ * in `finally`. The SDK's stream emits typed `SDKMessage` values; we
+ * extract:
+ *   - assistant text (concatenated for the judge prompt, with turn
+ *     markers inserted between user messages)
  *   - tool invocations (name + best-effort path) from `assistant`
  *     blocks AND from `tool_call` events (the latter has authoritative
  *     args at execution time, the former is what the agent decided to
  *     call before it ran)
  *   - file paths read / written, derived from tool args
  *
- * Errors are sorted into the `agent-error` bucket — the judge isn't
- * called on a transcript-less run.
+ * `timeout_ms` is the *total* wall-clock for the whole multi-turn
+ * sample, not per-turn — a runaway turn 1 won't be saved by a fresh
+ * budget on turn 2.
  */
 
 import { Agent, CursorAgentError } from "@cursor/sdk";
@@ -22,7 +26,8 @@ import type { AgentTranscript } from "./types.ts";
 
 export interface RunnerOptions {
   projectRoot: string;
-  task: string;
+  /** One user message per turn, in order. Length ≥ 1. */
+  turns: string[];
   model: string;
   apiKey: string;
   timeoutMs: number;
@@ -96,63 +101,68 @@ export async function runScenarioOnce(
   }
 
   try {
-    const run = await agent.send(opts.task);
-
-    for await (const msg of run.stream() as AsyncGenerator<SDKMessage, void>) {
+    for (let i = 0; i < opts.turns.length; i++) {
       if (timedOut) break;
-      try {
-        rawChars += JSON.stringify(msg).length;
-      } catch {
-        // best-effort; circular refs / non-serializable content shouldn't kill the run
-      }
+      const turn = opts.turns[i]!;
+      textChunks.push(`\n──── user (turn ${i + 1}) ────\n${turn}`);
 
-      if (msg.type === "assistant") {
-        for (const block of msg.message.content) {
-          if (block.type === "text") {
-            textChunks.push(block.text);
-          } else if (block.type === "tool_use") {
-            recordToolCall(block.name, block.input);
-          }
-        }
-        continue;
-      }
+      const run = await agent.send(turn);
+      textChunks.push(`\n──── assistant (turn ${i + 1}) ────`);
 
-      if (msg.type === "tool_call") {
-        // `tool_call` carries authoritative args at execution time, plus
-        // a status (running / completed / error). We record on the first
-        // occurrence; status transitions don't multiply-count.
-        recordToolCall(msg.name, msg.args);
-        continue;
-      }
-
-      // `system` / `thinking` / `status` / `request` / `task` events
-      // contribute to rawChars (already counted above) but not to the
-      // judge-facing transcript fields.
-    }
-
-    const result = await run.wait();
-    if (timedOut) {
-      if (run.supports("cancel")) {
+      for await (const msg of run.stream() as AsyncGenerator<SDKMessage, void>) {
+        if (timedOut) break;
         try {
-          await run.cancel();
+          rawChars += JSON.stringify(msg).length;
         } catch {
           // best-effort
         }
+
+        if (msg.type === "assistant") {
+          for (const block of msg.message.content) {
+            if (block.type === "text") {
+              textChunks.push(block.text);
+            } else if (block.type === "tool_use") {
+              recordToolCall(block.name, block.input);
+            }
+          }
+          continue;
+        }
+
+        if (msg.type === "tool_call") {
+          recordToolCall(msg.name, msg.args);
+          continue;
+        }
+
+        // `system` / `thinking` / `status` / `request` / `task` events
+        // contribute to rawChars (already counted above) but not to the
+        // judge-facing transcript fields.
       }
-      return {
-        transcript: assemble(),
-        duration_ms: Date.now() - start,
-        status: "agent-error",
-        error: `agent run exceeded timeout_ms=${opts.timeoutMs}`,
-      };
+
+      const result = await run.wait();
+      if (timedOut) break;
+      if (result.status === "error") {
+        if (run.supports("cancel")) {
+          try {
+            await run.cancel();
+          } catch {
+            // best-effort
+          }
+        }
+        return {
+          transcript: assemble(),
+          duration_ms: Date.now() - start,
+          status: "agent-error",
+          error: `turn ${i + 1}: run.status=error (id=${result.id ?? "?"})`,
+        };
+      }
     }
 
-    if (result.status === "error") {
+    if (timedOut) {
       return {
         transcript: assemble(),
         duration_ms: Date.now() - start,
         status: "agent-error",
-        error: `run.status=error (id=${result.id ?? "?"})`,
+        error: `agent session exceeded timeout_ms=${opts.timeoutMs}`,
       };
     }
 

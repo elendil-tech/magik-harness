@@ -28,8 +28,16 @@ export const ScenarioSchema = z.object({
    */
   fixture: z.string().regex(/^[a-z0-9-]+$/),
 
-  /** The user prompt sent to the agent under test. */
-  task: z.string().min(8),
+  /**
+   * Sequence of user messages, one per turn. The runner sends them through
+   * a single `Agent.create()` session in order, accumulating context as a
+   * real Cursor conversation. Single-turn scenarios are just `[oneMessage]`.
+   *
+   * Long sessions are the preferred shape — they let the judge see how
+   * the agent navigates pushback, follow-ups, and policy conflicts across
+   * a realistic exchange, not just one-shot dispatch.
+   */
+  turns: z.array(z.string().min(4)).min(1),
 
   expectations: z.object({
     /**
@@ -70,10 +78,11 @@ export const ScenarioSchema = z.object({
   samples: z.number().int().positive().default(1),
 
   /**
-   * Hard upper bound on agent wall-clock per run (ms). Keeps a runaway
-   * agent from melting the eval budget. Default 5 minutes.
+   * Hard upper bound on the *total* agent wall-clock for a sample,
+   * across every turn. Keeps a runaway session from melting the eval
+   * budget. Default 12 minutes — multi-turn investigations can be slow.
    */
-  timeout_ms: z.number().int().positive().default(5 * 60 * 1000),
+  timeout_ms: z.number().int().positive().default(12 * 60 * 1000),
 });
 
 export type Scenario = z.infer<typeof ScenarioSchema>;
@@ -118,12 +127,25 @@ export type JudgeResponse = z.infer<typeof JudgeResponseSchema>;
 
 // --- Runner result ---------------------------------------------------------
 
+/**
+ * Cursor SDK effort tier — matches the `effort` parameter on Anthropic
+ * models (`claude-opus-4-7`, `claude-sonnet-4-5`, etc.). Surfaced verbatim
+ * so anyone reading a result file can pass it back to the SDK without
+ * translation.
+ *
+ * NOTE: `max` is "max mode" — the highest tier. We default to `xhigh`
+ * for the judge to get extra-high reasoning *without* opting into max
+ * mode pricing/latency.
+ */
+export type CursorEffort = "low" | "medium" | "high" | "xhigh" | "max";
+
 export interface RunMeta {
   timestamp: string;
   plugin_version: string;
   agent_model: string;
   judge_model: string;
-  judge_thinking_effort: string;
+  judge_effort: CursorEffort;
+  judge_thinking: boolean;
   cursor_sdk_version: string;
   /** Hostname or "ci" — useful for triaging cross-environment results. */
   host: string;
