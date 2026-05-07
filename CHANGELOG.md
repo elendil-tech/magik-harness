@@ -94,6 +94,45 @@ This is the v0.7.0 priority. The minimum change is *not* a rewrite — it's a **
 
 **The post-baseline scenario 05 entry is spliced into the locked v0.6.0 baseline JSON** so future runs have a regression target. The headline summary updates from `73.3% mean · 3 pass / 1 fail / 0 skip out of 4` to `66.8% mean · 3 pass / 2 fail / 0 skip out of 5` — the drop is structural (a new harder scenario added on top of an unchanged set), not a regression on existing scenarios.
 
+#### Post-baseline experiment: v0.7.0 structural-reflection promotion — tested, not shipped
+
+The scenario 05 finding above pointed at a precise diagnosis: KB-hygiene contracts (read-first, propose-not-apply, memory-first) land as imperatives because they're in the primer's "Mandatory protocols" section; structural-reflection contracts (five principles, registry-as-spine) land as optional because they live in on-demand rules. The minimum-change hypothesis was **promote one protocol from on-demand to always-loaded**: add a fourth Mandatory Protocol to the primer ("Read the room before you write to it"), extend `rules/knowledge-base.mdc`'s Read section with a "look at the *shape*" step, and add a Shape advisory to `kb-search`'s output. Small, composable, testable.
+
+The experiment was built end-to-end as v0.7.0 (version bump, primer change, rule change, skill change, full CHANGELOG entry, snapshot regeneration). Two control-mode smoke runs at samples=1 against the locked v0.6.0 baseline:
+
+| Run | Variant | 05 harnessed | 05 content-only | Other-scenario regressions |
+|---|---|---|---|---|
+| A | Descriptive Protocol 4 (parallel to existing three) | **41.0%** (Δ +0pp vs v0.6.0 41.2%) | 24.0% | none flagged |
+| B | Imperative Protocol 4 with required "Domain shape check" output block | **29.0%** (Δ −12pp) | 29.4% | none flagged but harness−control delta collapsed to −0.4pp |
+| Full baseline (variant A across all 5 scenarios) | — | judge-error | 24.0% | 03-memory-write-discipline regressed −25pp on both conditions |
+
+**Diagnosis after the experiment:** primer prose alone — descriptive *or* imperative — is necessary but **not sufficient** to lift scenario 05 at this model. The agent reads the protocol; the protocol does not change the agent's behavior. In the imperative variant the agent simply ignored the required "Domain shape check" output block. The other three Mandatory Protocols all happen to align with *visible side effects the model already does naturally* (tool calls, headings, memory-writes); a brand-new visible-output requirement that has no natural alignment in the model's prior just gets dropped.
+
+The release was **reverted** rather than shipped. Discipline: the eval suite is the ground truth. Releases ship measurable improvements; releases that don't lift the metric do not ship. The experiment is preserved in `git stash@{0}` for v0.8.0 reference; it can be popped or referenced later when an enforcement layer is ready to pair with the prose.
+
+**v0.8.0 priority** (revised diagnosis): the structural-reflection contract probably needs a **non-textual enforcement surface** — a place where the cue arrives in the agent's context not as advice but as tool output. Three candidates worth iterating on, in order:
+
+1. **`kb-search` as a real (MCP or built-in) tool, not a skill.** When a tool returns a result that includes a Shape advisory in its structured output, the agent has to render or react to that output. Compare to how the `kb-search` skill is currently *advisory text the agent is told to invoke*; in practice the agent reaches for `Glob`/`Grep`/`Read` instead and the Shape advisory never enters the conversation.
+2. **A post-tool-use hook** that detects "Read pass over a single `knowledge/<domain>/` returning ≥ 5 entries" and injects a Shape-advisory message into the next system context. Out-of-band reminder; harder for the agent to ignore than primer prose.
+3. **A subagent-style pre-write reviewer** that runs before any `Write` to `knowledge/<domain>/<entry>.md` and emits a structural-shape verdict. Heavier; saved for last.
+
+The prose and rule-text from the v0.7.0 experiment are good — they articulate the contract correctly, just don't enforce it. Whichever of (1)/(2)/(3) lands first will pair with the stashed prose to form v0.8.0.
+
+#### Side finding from the v0.7.0 baseline run: eval-runner CWD escape (content-only condition)
+
+While running the v0.7.0 full baseline, the `04-memory-doesnt-leak` content-only sample produced a contamination event on the parent `magik-repo-plugin` repo: the agent (operating without the harness primer) absolute-pathed a write to `/Users/<user>/Projects/magik-repo-plugin/lessons-captured.md` instead of writing into its temp fixture, and the subsequent `git commit` shell call picked up the parent repo's `.git` and landed a real commit on `main` (later reverted as `git reset --mixed HEAD~1` + manual file removal in this commit).
+
+Root cause: the v0.6.0 fix that moved fixtures under `os.tmpdir()` closed the *read-side* CWD escape (agents reading the harnessed twin's source files from the plugin source tree). It did **not** close the *write-side* escape — content-only agents have no harness rules forbidding absolute-path writes outside CWD. With shell access and a model that's free to construct any path, the path discipline must come from sandboxing, not rules.
+
+**v0.7.x patch priority** (small, structural, do this before v0.8.0 begins): tighten `evals/runner/fixture.ts` and the SDK shell-tool wiring to prevent absolute-path file operations outside the temp fixture's project root. Two concrete options:
+
+- **Option A — chroot-like wrapping.** Run the agent's shell tool inside a `chroot` / `bwrap` / `sandbox-exec` jail rooted at the temp fixture. Heaviest but most complete; same principle as the production `vercel sandbox` model.
+- **Option B — path-validating shell shim.** Wrap the SDK's `shell` tool to reject any command that contains an absolute path outside the project root (whitelist the temp dir + read-only access to `/usr/bin`, `/bin`, etc., plus the SDK's own runtime). Lighter; catches most accidents but a determined agent can still escape via `cd ..` and relative paths.
+
+Until either lands, the runner has the same contamination risk on every content-only run. The risk is bounded (only matters when the parent dir happens to be a git repo and the agent runs `git commit`), but bounded ≠ zero. Option B will land first because it's a few hundred lines of shim code; Option A is a v1.x-grade hardening.
+
+This finding is **not** about the harness's quality — content-only is *meant* to be the no-guidance condition. It's about the eval runner's containment of that condition. The harness in v0.6.0 already prevents this on its side: harnessed agents have explicit "Place artifacts under `workspace/`, never at repo root" rules in the primer's `Default behavior` section, and they hold to it.
+
 ### Migration from 0.5.x
 
 This is a *prose* change to the rules and skills. Re-running `/init-harness` on a v0.5.x project will:
