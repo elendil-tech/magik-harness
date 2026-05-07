@@ -1,6 +1,6 @@
 {
-  "version": "0.4.2",
-  "fileCount": 26,
+  "version": "0.5.0",
+  "fileCount": 22,
   "entries": [
     {
       "path": ".cursor/hooks.json",
@@ -36,7 +36,7 @@
     },
     {
       "path": "AGENTS.primer.md",
-      "sha256": "8834c07ef5f5975bb691b52403bbffc018fa1eaa908fce24949db79edf6aec2d"
+      "sha256": "4e399d5c7d6a07c0546e8dab5c7ecc95ba1df111eeba494322954c0112818c99"
     },
     {
       "path": "codebase/README.md",
@@ -44,11 +44,11 @@
     },
     {
       "path": "gitignore.harness",
-      "sha256": "aea2f0e57e03c338e14e4481f89bb6a0a02d4e2f39acbf618dca870c386129e0"
+      "sha256": "d6472156e2c899e2a8e988ffccf28c829adceac0da9a0ab7be5e23190ad4b154"
     },
     {
       "path": "knowledge/_index.md",
-      "sha256": "1c32b05d010a290eed23620067137ef17007e162f92297162a1d31245198b6a0"
+      "sha256": "ebb1667258cf06725195afe63b01bbc6e65027ec72b7a2e71a04893612640269"
     },
     {
       "path": "knowledge/_meta/domains.md",
@@ -81,22 +81,6 @@
     {
       "path": "knowledge/_meta/subdomain-catalogue.md",
       "sha256": "52eeafb101eafab12708a706fc337c0d3ab4ed610435682e0b263a1e315ed843"
-    },
-    {
-      "path": "memory/_index.md",
-      "sha256": "1b99e1d931a8d7ff6cc3e073b3fb60861c4d15196a4bd1cfabc76ff9b9924dcf"
-    },
-    {
-      "path": "memory/commitments.md",
-      "sha256": "cb0910d1be17dde5016a123be32fb93e3f8e74efdf7d2080089f873759f2d285"
-    },
-    {
-      "path": "memory/daily/.gitkeep",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    {
-      "path": "memory/distillations/.gitkeep",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
       "path": "workspace/.gitkeep",

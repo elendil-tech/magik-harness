@@ -73,7 +73,7 @@ If a domain has accumulated ≥ 3 daily entries tagged with that domain over the
 
 ### 6. Detect pruning targets
 
-- Daily notes older than 30 days where every signal has been promoted, merged, or aged out → propose deletion (git history is the archive).
+- Daily notes older than 30 days where every signal has been promoted, merged, or aged out → propose deletion. (Promoted entries are in the KB; everything else has aged out by design — there is no archive, by intent. `memory/` is gitignored runtime-local state.)
 - Resolved commitments older than 14 days → propose removal from `commitments.md`.
 - Stale `[external]`-flagged entries that never got reviewed → propose review-or-purge.
 - `[external]`-flagged entries that did pass review but contradict a `policy` → propose quarantine and surface as a possible MINJA-style poisoning attempt.
@@ -153,9 +153,9 @@ Quarantined entries appear in the KB but are deprioritized by `kb-search` and su
 When a domain has ≥ 3 daily entries tagged with it over the last 14 days, `memory-distill` proposes promoting it to its own `memory/<domain>/daily/` lane. After approval:
 
 1. Validate the domain exists and is `active` in `knowledge/_meta/domains.md` (defer to `domain-registry` if not).
-2. Create `memory/<domain>/daily/.gitkeep` and `memory/<domain>/_index.md` (a short index pointing to the parent `memory/_index.md` for the lane contract).
+2. Create `memory/<domain>/daily/` and a short `memory/<domain>/_index.md` describing the lane (cross-link the lane contract back to `rules/memory.mdc`, since `memory/` has no top-level index — the rules are the spec). No `.gitkeep` is needed: `memory/` is gitignored as a whole, so the directory's existence is purely runtime-local.
 3. From now on, signals tagged with that domain land in `memory/<domain>/daily/<today>.md`. The flat `memory/daily/<today>.md` continues to receive cross-domain and unearned-domain signals.
-4. Existing flat entries are **not** migrated — git history preserves them in place.
+4. Existing flat entries are **not** migrated — they stay in the flat lane until they age out or are promoted. `memory/` is gitignored, so re-shuffling files just to satisfy structure costs more than it returns.
 
 The threshold and procedure are deliberately conservative: the goal is to keep the flat lane lean, not to enforce per-domain bureaucracy.
 

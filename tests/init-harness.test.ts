@@ -1,9 +1,13 @@
 /**
- * tests/init-harness.test.ts — basic coverage for the /init-harness hook.
+ * tests/init-harness.test.ts — coverage for the /init-harness hook.
  *
- *  1. Empty project   — full seed lays down expected files.
- *  2. Existing AGENTS — primer is prepended; pre-existing content survives verbatim below.
+ *  1. Empty project   — seed lays down knowledge/, workspace/, codebase/, .cursor/.
+ *                       memory/ is NOT seeded (v0.5.0: gitignored runtime-local).
+ *  2. Existing AGENTS — primer is prepended; pre-existing content survives verbatim.
  *  3. Idempotency     — second run produces no changes for already-seeded files.
+ *  4. Pre-existing memory/ — left untouched (covers v0.4.x → v0.5.0 migration).
+ *  5. Stale-marker upgrade, dry run, corrupt markers, code-at-root detection,
+ *     user hooks.json preservation.
  *
  * Tests use only `node:test` and create tmp dirs in `os.tmpdir()`. They invoke
  * the hook by spawning `tsx hooks/init-harness.ts` so we exercise the real CLI
@@ -93,21 +97,13 @@ test("empty project — full seed creates expected files", () => {
       existsSync(join(root, "knowledge", "_meta", "schemas", "concept.md")),
       "schemas/concept.md missing",
     );
+    // v0.5.0: memory/ is gitignored runtime-local state — /init-harness
+    // does NOT seed any memory contents. The agent creates memory/daily/
+    // on the first signal it captures.
     assert.ok(
-      existsSync(join(root, "memory", "_index.md")),
-      "memory/_index.md missing",
-    );
-    assert.ok(
-      existsSync(join(root, "memory", "commitments.md")),
-      "memory/commitments.md missing",
-    );
-    assert.ok(
-      existsSync(join(root, "memory", "daily", ".gitkeep")),
-      "memory/daily/.gitkeep missing",
-    );
-    assert.ok(
-      existsSync(join(root, "memory", "distillations", ".gitkeep")),
-      "memory/distillations/.gitkeep missing",
+      !existsSync(join(root, "memory")),
+      "memory/ should NOT be seeded — it is gitignored, runtime-local. " +
+        "See rules/memory.mdc and rules/harness.mdc for the design.",
     );
     assert.ok(
       existsSync(join(root, "workspace", ".gitkeep")),
@@ -116,6 +112,15 @@ test("empty project — full seed creates expected files", () => {
     assert.ok(
       existsSync(join(root, "codebase", "README.md")),
       "codebase/README.md missing",
+    );
+
+    // The .gitignore must include the v0.5.0 `memory/` rule so contributors
+    // cannot accidentally re-track memory by writing to it.
+    const giBody = readFileSync(join(root, ".gitignore"), "utf-8");
+    assert.match(
+      giBody,
+      /^memory\/$/m,
+      ".gitignore must contain a `memory/` line (v0.5.0)",
     );
 
     assert.ok(
@@ -238,10 +243,6 @@ test("idempotency — second run produces no changes to already-seeded files", (
       "knowledge/_index.md",
       "knowledge/_meta/domains.md",
       "knowledge/_meta/schemas/concept.md",
-      "memory/_index.md",
-      "memory/commitments.md",
-      "memory/daily/.gitkeep",
-      "memory/distillations/.gitkeep",
       "workspace/README.md",
       "codebase/README.md",
     ];
@@ -406,32 +407,62 @@ test("user .cursor/hooks.json present — preserved verbatim, plan emits a notic
   }
 });
 
-test("memory/ — pre-existing content is not overwritten on init", () => {
+test("memory/ — never seeded; pre-existing user content (e.g. from a v0.4.x install) is left untouched", () => {
   ensureBuilt();
   const root = makeTmpProject();
   try {
-    // Simulate a user who has already been writing daily notes.
+    // Simulate two states a real user might bring to a v0.5.0 install:
+    //   1. They have been writing daily notes (the precious case).
+    //   2. They still have leftover scaffolding files from an older v0.4.x
+    //      install of the harness (memory/_index.md, memory/commitments.md,
+    //      memory/daily/.gitkeep, memory/distillations/.gitkeep).
+    // Both must be preserved byte-equivalent — /init-harness is gitignore-
+    // first now and does NOT touch memory/ at all.
     mkdirSync(join(root, "memory", "daily"), { recursive: true });
-    const userDaily = "---\ndate: 2026-05-04\n---\n\n- [observation] [engineering] precious user note\n";
+    mkdirSync(join(root, "memory", "distillations"), { recursive: true });
+    const userDaily =
+      "---\ndate: 2026-05-04\n---\n\n- [observation] [engineering] precious user note\n";
     writeFileSync(join(root, "memory", "daily", "2026-05-04.md"), userDaily);
+    const legacyIndex = "# legacy memory _index from v0.4.x — preserved verbatim\n";
+    writeFileSync(join(root, "memory", "_index.md"), legacyIndex);
+    const legacyCommitments = "# legacy commitments — preserved verbatim\n";
+    writeFileSync(join(root, "memory", "commitments.md"), legacyCommitments);
 
     const { status, stdout } = runHook(root, ["--yes"]);
     assert.equal(status, 0, `hook failed: ${stdout}`);
 
-    const after = readFileSync(
-      join(root, "memory", "daily", "2026-05-04.md"),
-      "utf-8",
+    assert.equal(
+      readFileSync(join(root, "memory", "daily", "2026-05-04.md"), "utf-8"),
+      userDaily,
+      "user daily note must be preserved verbatim",
     );
-    assert.equal(after, userDaily, "user daily note must be preserved verbatim");
+    assert.equal(
+      readFileSync(join(root, "memory", "_index.md"), "utf-8"),
+      legacyIndex,
+      "legacy v0.4.x memory/_index.md must NOT be overwritten — the harness no longer ships one",
+    );
+    assert.equal(
+      readFileSync(join(root, "memory", "commitments.md"), "utf-8"),
+      legacyCommitments,
+      "legacy v0.4.x memory/commitments.md must NOT be overwritten",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
-    // The seed _index.md and commitments.md should still be created.
+test("empty project — no memory/ directory is created (memory is gitignored runtime-local)", () => {
+  ensureBuilt();
+  const root = makeTmpProject();
+  try {
+    const { status, stdout } = runHook(root, ["--yes"]);
+    assert.equal(status, 0, `hook failed: ${stdout}`);
+
     assert.ok(
-      existsSync(join(root, "memory", "_index.md")),
-      "memory/_index.md should be created",
-    );
-    assert.ok(
-      existsSync(join(root, "memory", "commitments.md")),
-      "memory/commitments.md should be created",
+      !existsSync(join(root, "memory")),
+      "memory/ must not be created on a fresh init — it is gitignored, " +
+        "runtime-local agent state. The agent creates memory/daily/ on its " +
+        "first signal capture.",
     );
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -517,7 +548,7 @@ test("code-at-root detection — surfaces a notice for ecosystem files at the re
       "notice should point at codebase/ as the harness convention",
     );
 
-    // The hook is informational only in v0.4.x — files at root must NOT move.
+    // The code-at-root notice is informational only in v0.5.x — files at root must NOT move.
     assert.ok(
       existsSync(join(root, "package.json")),
       "package.json must not be moved",

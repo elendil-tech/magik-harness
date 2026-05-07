@@ -9,25 +9,36 @@ alwaysApply: false
 
 1. **Domain registry** — `knowledge/_meta/domains.md`
 2. **Knowledge base** — `knowledge/<domain>/`
-3. **Memory** — `memory/daily/`, `memory/commitments.md`
+3. **Memory** — `memory/daily/`, `memory/commitments.md` *(gitignored, runtime-local; see "Memory drift is local" below)*
 4. **Agent scaffolding** — `.cursor/skills/<domain>/`, `.cursor/rules/`, `.cursor/agents/`
 5. **Codebase** — `codebase/` (only when the project has one)
 
 `workspace/` is excluded from drift control by default.
 
+## Memory drift is local
+
+`memory/` is gitignored, so memory ↔ KB drift is **per-runtime** — it shows up only on the machine where the memory was captured. Practical consequences:
+
+- Memory drift signals (`memory ↔ KB`, `memory ↔ registry`, `commitment past due`, "earn the folder") surface in the local `/drift-scan` and `/audit`. They do **not** appear in CI, in PR review, or to other contributors — those environments don't see this machine's `memory/`.
+- A `/drift-scan` run in CI (where `memory/` does not exist) will report zero memory drift. That is correct, not a bug.
+- Cross-machine drift (KB ↔ KB, KB ↔ codebase, registry ↔ KB, etc.) still shows up everywhere `memory/` does or does not exist — those layers are tracked.
+- If a memory signal needs to be visible to the team, the answer is the promotion path: `memory/daily/` → `memory-distill` → `knowledge/<domain>/`. Re-adding `memory/` to git is not the answer.
+
 ## Drift signals
+
+Signals marked *(local)* depend on `memory/` and only surface on the runtime where the memory exists; everything else is visible wherever the repo is checked out.
 
 | Signal | Where | Severity |
 | --- | --- | --- |
 | Folder exists under `knowledge/<x>/` but `<x>` not in registry | KB ↔ Registry | high |
-| Folder exists under `memory/<x>/` but `<x>` not in registry | Memory ↔ Registry | high |
+| Folder exists under `memory/<x>/` but `<x>` not in registry | Memory ↔ Registry | high *(local)* |
 | Skill folder under `.cursor/skills/<x>/` but `<x>` not in registry | Skills ↔ Registry | high |
 | `decision` entry contradicts current code in `codebase/` | KB ↔ Codebase | high |
-| Memory entry references a domain not in the registry | Memory ↔ Registry | medium |
-| Memory `[lesson-candidate]` recurring ≥ 3 days with no fieldnote written | Memory ↔ KB | medium |
-| Memory `[decision-candidate]` older than 14 days with no `decision` entry | Memory ↔ KB | medium |
-| Memory contradicts an active `policy` or `decision` | Memory ↔ KB | high |
-| Commitment past `due` date with no resolution or extension | Memory internal | medium |
+| Memory entry references a domain not in the registry | Memory ↔ Registry | medium *(local)* |
+| Memory `[lesson-candidate]` recurring ≥ 3 days with no fieldnote written | Memory ↔ KB | medium *(local)* |
+| Memory `[decision-candidate]` older than 14 days with no `decision` entry | Memory ↔ KB | medium *(local)* |
+| Memory contradicts an active `policy` or `decision` | Memory ↔ KB | high *(local)* |
+| Commitment past `due` date with no resolution or extension | Memory internal | medium *(local)* |
 | Two `concept`s define the same thing differently | KB ↔ KB | medium |
 | Skill references a service not used anywhere else | Skills internal | low |
 | `policy` violated by code or by another skill | KB ↔ {Skills, Code} | high |
@@ -35,8 +46,8 @@ alwaysApply: false
 | `quarantine: true` KB entry — sourced from unverified content, not yet reviewed | KB internal | high |
 | KB entry with `trust: low`, `provenance != direct`, older than 14 days, never reviewed | KB internal | medium |
 | KB entry freshness < 0.06 (≈ ≥ 56 days since `updated` or `last_referenced`) | KB internal | low (advisory) |
-| Domain has ≥ 3 daily entries tagged with it over last 14 days but no `memory/<domain>/` folder | Memory ↔ Registry | low (advisory; "earn the folder" trigger) |
-| Daily note older than 30 days, never distilled | Memory internal | low (advisory) |
+| Domain has ≥ 3 daily entries tagged with it over last 14 days but no `memory/<domain>/` folder | Memory ↔ Registry | low *(local; advisory; "earn the folder" trigger)* |
+| Daily note older than 30 days, never distilled | Memory internal | low *(local; advisory)* |
 
 ## Freshness model (14-day half-life)
 

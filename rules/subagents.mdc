@@ -14,7 +14,7 @@ Think of each subagent as a human worker hired for that domain: they know their 
 Each domain agent inherits:
 
 - **Context** — `knowledge/<domain>/` (read), `knowledge/_meta/` (read), `knowledge/_index.md` (read).
-- **Memory (read)** — `memory/_index.md`, today's and yesterday's `memory/daily/*.md` (filtered to entries domain-tagged with their own domain), `memory/commitments.md` (entries scoped to their domain).
+- **Memory (read)** — today's and yesterday's `memory/daily/*.md` (filtered to entries domain-tagged with their own domain), `memory/commitments.md` (entries scoped to their domain). `memory/` is runtime-local and gitignored; any of these files may be missing — that's fine, just means the runtime hasn't captured anything yet.
 - **Memory (write)** — append to today's `memory/daily/<today>.md`, but only with entries tagged with their own domain. May add `[commitment]` entries scoped to their domain. May **not** edit other domains' entries or older daily notes.
 - **Skills** — every skill under `.cursor/skills/<domain>/`, plus relevant `.cursor/skills/services/<service>/`.
 - **Workspace** — read/write `workspace/<domain>/`.

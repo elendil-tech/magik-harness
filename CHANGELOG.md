@@ -1,5 +1,51 @@
 # magik-repo
 
+## 0.5.0 — 2026-05-07
+
+Tracks `harness@0.5.0`. **`memory/` becomes git-ignored.** The harness now treats memory the same way it treats `workspace/`: agent-runtime output, runtime-personal, never synced across machines or contributors. The split across the five components becomes: **tracked = the durable substrate we agree on, build, and ship; ignored = agent-runtime output**. `workspace/` is craft artifacts (drafts, PDFs, media); `memory/` is thought artifacts (daily notes, commitments, distillations). The promotion path `memory/daily/` → `memory-distill` → `knowledge/<domain>/` becomes the *only* way for a memory signal to cross runtimes — which is what it was already designed to be.
+
+This is a behavioral change for `/init-harness` and a conceptual change for the harness contract; the rest of the runtime (sessionStart hook, memory-distill, kb-search, drift-scan, harness-audit) is unchanged in shape — it just operates on local-only memory now.
+
+### Changed
+
+- **`rules/harness.mdc` — components table flips `memory/` from `tracked` to `ignored`.** Adds a new "Tracked vs. ignored — the seam" section codifying the rule explicitly: tracked = durable substrate; ignored = agent-runtime output. Reframes `workspace/` and `memory/` as parallel (one craft, one thought), not exceptional. The previous "never re-add `workspace/**`; memory is the opposite" hard rule is replaced by a single rule covering both: never re-add `workspace/**` *or* `memory/**` to git.
+- **`rules/memory.mdc` — opening section rewritten.** `git-tracked` becomes `git-ignored`, with explicit framing that memory and workspace are parallel runtime-personal lanes. Adds a "memories themselves are not tracked, the *design* of memory is" clause that pins the design (rules + sessionStart hook + memory-distill skill) to `.cursor/`. Trust model updated to clarify memory is runtime-local and not authoritative for the team. Compaction safety updated to clarify the disk-survives guarantee is per-machine. Anti-patterns section flips: the previous "treating memory as a private agent log" anti-pattern is removed (it *is* a private agent log); the new anti-pattern is "treating memory as durable, team-shared knowledge" or re-adding `memory/` to git "to share it with my teammate".
+- **`rules/drift-control.mdc` — adds a "Memory drift is local" section.** Memory-touching drift signals are annotated *(local)* in the table. Codifies that a CI run sees zero memory drift (correctly). Cross-machine drift goes through promotion to KB; re-adding memory to git is not the answer.
+- **`rules/subagents.mdc`** — domain-agent read list drops `memory/_index.md` (no longer seeded) and notes that any of the memory files may be missing on a fresh runtime.
+- **`skills/memory-distill/SKILL.md`** — drops "git history is the archive" / "git history preserves them in place" assumptions. Aging out of memory is now by design — the durable home for promoted signals is the KB; everything else fades.
+- **`skills/drift-scan/SKILL.md`, `skills/harness-audit/SKILL.md`** — both note that the memory layer is gitignored runtime-local, and that an absent `memory/` (CI runs, fresh clones) is correct, not drift.
+- **`commands/init-harness.md`** — Behavior table updated. Empty-project row no longer mentions `memory/`. New row documents that pre-existing `memory/` files (e.g. from a v0.4.x install) are left untouched; the user can `git rm --cached memory/` to drop them from tracking.
+- **`seed-sources/AGENTS.primer.md` — Five components section reframed.** Memory becomes "git ignored, runtime-personal — created on first write." The "tracked = durable substrate" rule is stated explicitly so an agent that only ever loads the primer still gets the model right.
+- **`seed-sources/knowledge/_index.md` — Memory section reframed.** Same treatment as the primer. Promotion to KB is described as the *only* way for a memory signal to cross runtimes.
+- **`seed-sources/gitignore.harness` — adds `memory/`.** The harness gitignore section now has a single comment block documenting both ignored components (workspace = craft, memory = thought) so the rule shows up at the place it's enforced.
+
+### Removed
+
+- **`seed-sources/memory/` subtree (`_index.md`, `commitments.md`, `daily/.gitkeep`, `distillations/.gitkeep`).** No longer ships. The agent stamps out the structure on first write. The seed-tree snapshot loses 4 files (file count: 26 → 22).
+
+### Migration from 0.4.x
+
+Re-running `/init-harness` on a v0.4.x project:
+
+1. Upgrades the `v=0.4.2` primer block in `AGENTS.md` in place to `v=0.5.0` (no content drama; reflects the components-table change).
+2. **Upgrades the `v=0.4.2` gitignore block in place to `v=0.5.0` — this is how `memory/` lands in your `.gitignore`**. After re-run, `memory/` is gitignored.
+3. Does **not** modify any existing files under `memory/`. Old seed scaffolding (`memory/_index.md`, `memory/commitments.md`, `memory/daily/.gitkeep`, `memory/distillations/.gitkeep`) is left in place — the harness no longer ships these, but it does not delete the user's tracked copies.
+
+To complete the migration, after re-running `/init-harness`:
+
+```bash
+# Drop the previously-tracked memory contents from git (keeps local files):
+git rm --cached -r memory/
+
+# Then commit just the .gitignore + AGENTS.md upgrade:
+git add .gitignore AGENTS.md
+git commit -m "harness: upgrade to v0.5.0 — memory/ becomes runtime-local"
+```
+
+After this commit, contributors who pull will see `memory/` as ignored. Any memory contents on their machines stay where they are; they just don't propagate. New entries land in `memory/daily/<today>.md`, locally only, exactly as before — only the git visibility changed.
+
+If you have memory entries you actually want to share with the team, this is the moment to run `/distill` and promote them to `knowledge/<domain>/` first.
+
 ## 0.4.2 — 2026-05-05
 
 Tracks `harness@0.4.2`. Eval-driven harness sharpening release. The first eval baseline (v0.4.1, `gemini-3.1-pro` on both sides) surfaced two systematic failure modes — past-tense narration without tool invocation, and fast-pathing in-conversation signals straight into `knowledge/` — that the v0.4.1 primer / rules left under-specified. v0.4.2 closes both gaps in the always-loaded primer and reinforces them in the two on-demand rules they bind to. Plus a public **[evals/RESULTS.md](./evals/RESULTS.md)** page generated from the latest baseline.

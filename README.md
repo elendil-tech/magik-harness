@@ -6,8 +6,10 @@ A Cursor plugin that gives a single repo the structure, knowledge schema, agent 
 
 The harness has **five components** in two layers:
 
-- **Project layer** — `knowledge/` (tracked, ground truth), `workspace/` (ignored, operational artifacts), `codebase/` (tracked, code).
-- **Harness layer** — `memory/` (tracked, agent's running state), `.cursor/` (tracked, agent's config).
+- **Project layer** — `knowledge/` (tracked, ground truth), `codebase/` (tracked, code), `workspace/` (ignored, *craft artifacts* — drafts/PDFs/media).
+- **Harness layer** — `.cursor/` (tracked, agent's config), `memory/` (ignored, *thought artifacts* — daily notes/commitments/distillations).
+
+One rule covers the split: **tracked = the durable substrate we agree on, build, and ship; ignored = agent-runtime output, runtime-personal**. `workspace/` is craft, `memory/` is thought; both are created in flight by the agent and don't sync across machines or contributors. Anything in memory that needs to cross runtimes goes through promotion to `knowledge/<domain>/` via `memory-distill`.
 
 ## What ships
 
@@ -15,7 +17,7 @@ The harness has **five components** in two layers:
 - **7 framework skills** for harness self-management: `domain-registry`, `knowledge-base`, `kb-search`, `memory-distill`, `drift-scan`, `scaffolding-author`, `harness-audit`.
 - **4 templates** seeded into your project at `.cursor/skills/_templates/` for authoring service / domain / task skills and domain agents.
 - **5 slash commands**: `/init-harness`, `/audit`, `/drift-scan`, `/kb-add`, `/distill`.
-- **`/init-harness` hook** that seeds `AGENTS.md`, `.gitignore`, `knowledge/`, `memory/`, `workspace/`, `codebase/`, and `.cursor/skills/{_templates,services}/` into a project — idempotently, marker-aware, never overwrites user content. v0.2 adds in-place upgrade of stale primer / gitignore blocks.
+- **`/init-harness` hook** that seeds `AGENTS.md`, `.gitignore`, `knowledge/`, `workspace/`, `codebase/`, and `.cursor/skills/{_templates,services}/` into a project — idempotently, marker-aware, never overwrites user content. `memory/` is **not** seeded — it's gitignored runtime-local agent state (parallel to `workspace/`); the agent creates `memory/daily/<today>.md` on its first signal capture. v0.2 adds in-place upgrade of stale primer / gitignore blocks.
 
 ## Installing in a project (end users)
 
@@ -111,7 +113,7 @@ pnpm eval:results
 
 ## Versioning
 
-`magik-repo@0.4.2` ships `harness@0.4.2` content. See [CHANGELOG.md](./CHANGELOG.md).
+`magik-repo@0.5.0` ships `harness@0.5.0` content. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## License
 

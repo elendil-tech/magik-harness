@@ -7,16 +7,24 @@ alwaysApply: false
 
 `memory/` is the agent's running-state layer of the harness. It sits beside the worker (`.cursor/`) — the worker is the agent's *config*, memory is its *running state*. Together they form the harness layer of the project.
 
-`memory/` is **git-tracked**. It is *not* `workspace/` (that's the business artifact drive — drafts, PDFs, contracts, CSVs). Memory is harness-territory.
+`memory/` is **git-ignored** — runtime-personal, parallel to `workspace/`. The two ignored components carry the same kind of artifact (agent-runtime output) on different surfaces:
+
+- `workspace/` = **craft artifacts** (drafts, PDFs, contracts, media — what the agent *produces*).
+- `memory/` = **thought artifacts** (daily notes, commitments, distillations — what the agent *thinks while working*).
+
+Both survive across sessions on a single machine. Neither syncs across machines, contributors, or CI runs. The *design* of memory (this rule, the `sessionStart` hook, the `memory-distill` skill) lives in `.cursor/` and is tracked. The memories themselves are not.
+
+`knowledge/` is the only multi-runtime durable substrate. Anything in memory that needs to cross machines or contributors must be promoted via `memory-distill`.
 
 ## Layout
 
+`memory/` is created on first write — `/init-harness` does not seed any contents into it. The agent stamps out the structure as needed:
+
 ```
-memory/
-├── _index.md
-├── daily/<YYYY-MM-DD>.md
-├── commitments.md
-└── distillations/<YYYY-MM-DD>.md
+memory/                          ← created on first write; gitignored as a whole
+├── daily/<YYYY-MM-DD>.md        ← created when the first signal of the day surfaces
+├── commitments.md               ← created when the first [commitment] is captured
+└── distillations/<YYYY-MM-DD>.md ← created by /distill on first run
 ```
 
 Domain-organized subfolders earn their place by the same "≥ 3 durable artifacts" rule that governs `knowledge/<domain>/`. Until earned, daily notes stay flat and entries are domain-tagged inline.
@@ -95,12 +103,12 @@ When a domain has ≥ 3 daily entries tagged with it over the last 14 days, `mem
 
 - Future signals tagged with that domain land in `memory/<domain>/daily/<today>.md`.
 - The flat `memory/daily/<today>.md` continues to receive cross-domain and unearned-domain signals.
-- Existing flat entries are *not* migrated — git history preserves them in place.
+- Existing flat entries are *not* migrated — they stay in the flat lane until they age out or get promoted. (`memory/` is gitignored, so re-shuffling files for structural tidiness costs more than it returns.)
 - An `_index.md` is created at `memory/<domain>/_index.md` describing the lane.
 
 ## Retention
 
-- `daily/`: keep the last 30 days verbatim. Older notes are pruned by `memory-distill` after their durable signals have been promoted (git history is the archive).
+- `daily/`: keep the last 30 days verbatim. Older notes are pruned by `memory-distill` after their durable signals have been promoted. There is no archive — the durable home for promoted signals is the KB; everything else is meant to fade.
 - `commitments.md`: resolved entries move to a "Resolved (last 14 days)" section, pruned by distill after 14 days.
 - `distillations/`: append-only audit trail. Never pruned.
 
@@ -110,11 +118,11 @@ Cursor's session memory is volatile. Anything mentioned only in conversation can
 
 Cursor's `preCompact` hook is **observation-only**. It cannot block compaction, cannot read the conversation, and cannot inject context into the agent. By the time it fires, compaction is already happening — no hook can rescue signals that exist only in chat history. (See Cursor docs: hooks > events > preCompact.)
 
-What survives compaction:
+What survives compaction (on the same machine):
 
-1. **Disk state.** `memory/daily/<today>.md`, `memory/commitments.md`, the KB, anything you have written to git.
-2. **Plugin/repo state.** Rules, skills, the harness primer in `AGENTS.md` (Cursor re-reads it).
-3. **Recovery via session restart.** When a fresh Cursor session is created (or after Cursor surfaces a new chat following a hard compact), the harness `sessionStart` hook re-injects today's daily note and active commitments — so disk-resident signals come back automatically.
+1. **Disk state.** `memory/daily/<today>.md`, `memory/commitments.md`, the KB, anything written to local disk. Memory is gitignored — it survives across sessions on this machine, but does not travel to another contributor's clone or to CI.
+2. **Plugin/repo state.** Rules, skills, the harness primer in `AGENTS.md` (Cursor re-reads it). These are tracked, so they do travel.
+3. **Recovery via session restart.** When a fresh Cursor session is created (or after Cursor surfaces a new chat following a hard compact), the harness `sessionStart` hook re-injects today's daily note and active commitments — so disk-resident signals come back automatically *for this machine's runtime*.
 
 What does not survive:
 
@@ -125,8 +133,8 @@ The mitigation is discipline: append `[observation]` / `[lesson-candidate]` / `[
 
 ## Trust model
 
-- `memory/` is **agent-suggested**, not authoritative. It can contain mistakes.
-- Promotion to `knowledge/` requires user approval — without exception.
+- `memory/` is **agent-suggested and runtime-local**, not authoritative for the team. It can contain mistakes; it doesn't represent shared truth.
+- Promotion to `knowledge/` requires user approval — without exception. The KB is the only multi-runtime substrate.
 - `[external]`-tagged entries (fetched web content, tool output) get stricter review during distill — they're the MINJA-style attack surface.
 - Domain agents may write to `memory/daily/<today>.md` (entries tagged with their domain) but never directly to `knowledge/`. The main agent owns promotion.
 
@@ -139,7 +147,8 @@ The mitigation is discipline: append `[observation]` / `[lesson-candidate]` / `[
 - Writing durable knowledge directly to `memory/`. Use `knowledge-base` skill via promotion.
 - Skipping `kb-search` at session start because "I already know."
 - Auto-applying memory-distill proposals without user approval.
-- Treating `memory/` as a private agent log — it's git-tracked, PR-reviewed, team-visible.
+- Treating `memory/` as durable, team-shared knowledge. It is the opposite — runtime-local agent state. Anything that must reach another machine, another contributor, or CI must be promoted to `knowledge/` first.
+- Re-adding `memory/` to git "to share it with my teammate." That defeats the design — promote what matters; let the rest stay personal.
 - Letting daily notes accumulate beyond 30 days without distillation.
 
 ## Quick checklist

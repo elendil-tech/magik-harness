@@ -1,15 +1,25 @@
 #!/usr/bin/env -S npx --yes tsx
 /**
- * /init-harness hook — v0.4.2
+ * /init-harness hook — v0.5.0
  *
  * Deterministic file ops that seed a project with the magik-repo harness:
  *   - AGENTS.md primer (marker-bounded prepend, in-place upgrade if stale)
- *   - .gitignore harness section (marker-bounded append, in-place upgrade if stale)
- *   - knowledge/, memory/, workspace/, codebase/ skeletons (skip-if-exists)
+ *   - .gitignore harness section (marker-bounded append, in-place upgrade if
+ *     stale). v0.5.0: the harness section now also ignores `memory/`.
+ *   - knowledge/, workspace/, codebase/ skeletons (skip-if-exists).
  *   - .cursor/ subtree (skill-authoring templates, services index,
  *     hooks/session-start.js, hooks/last-referenced-bump.js, hooks.json — all
  *     skip-if-exists; existing user hooks.json triggers a notice instead of
  *     a silent skip).
+ *
+ * v0.5.0: `memory/` is no longer seeded. It is gitignored runtime-local
+ * agent state (parallel to workspace/); the agent creates `memory/daily/`
+ * etc. on first write. Re-runs on a v0.4.x project upgrade the gitignore
+ * block in place, which adds the `memory/` ignore line. Pre-existing
+ * tracked memory files in the user's repo are left in place — `git rm`-ing
+ * them is the user's call (CHANGELOG documents the migration). The seeds/
+ * tree no longer contains memory/_index.md, memory/commitments.md, or
+ * memory/{daily,distillations}/.gitkeep.
  *
  * v0.4.0 ships two project-side Cursor hooks:
  *   - sessionStart  → injects today's daily note + active commitments
@@ -35,7 +45,7 @@ import { fileURLToPath } from "node:url";
 
 // --- Constants ---------------------------------------------------------------
 
-const PLUGIN_VERSION = "0.4.2";
+const PLUGIN_VERSION = "0.5.0";
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(HOOK_DIR);
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");

@@ -11,24 +11,34 @@ This repo is **a project**, not just a code repo. It has five components, split 
 
 | Component | Path | Git | Role |
 | --- | --- | --- | --- |
-| Knowledge base | `knowledge/` | tracked | Ground truth, organized by project domain. |
-| Workspace | `workspace/` | ignored | Operational artifacts (drafts, PDFs, media, contracts). |
+| Knowledge base | `knowledge/` | tracked | Ground truth, organized by project domain — *interpretations*. |
 | Codebase | `codebase/` | tracked | Standard code repo, nested one level. Seeded with a README; may be empty if the project doesn't ship code. |
+| Workspace | `workspace/` | ignored | **Craft artifacts** — drafts, PDFs, media, contracts; what the agent *produces*. |
 
 ## Harness layer (how the agent operates)
 
 | Component | Path | Git | Role |
 | --- | --- | --- | --- |
-| Memory | `memory/` | tracked | Agent's running state — daily notes, commitments, distillation audit trail. |
 | Worker | `.cursor/` | tracked | Agent's config — rules, skills, agents, commands, hooks. |
+| Memory | `memory/` | ignored | **Thought artifacts** — daily notes, commitments, distillation log; what the agent *thinks while working*. |
+
+## Tracked vs. ignored — the seam
+
+One rule covers both ignored components: **tracked = the durable substrate we agree on, build, and ship; ignored = agent-runtime output, runtime-personal**. `workspace/` is craft, `memory/` is thought; they are parallel, not exceptional.
+
+Practically:
+
+- Two contributors on the same repo each have their own `memory/`. Neither sees the other's daily notes.
+- The same contributor on two machines has two memory streams. Anything that needs to cross machines belongs in `knowledge/` (via promotion) or in `codebase/`.
+- The *design* of memory (this rule, `rules/memory.mdc`, the `sessionStart` hook, the `memory-distill` skill) lives under `.cursor/` and is tracked. The memories themselves are not.
 
 ## Hard rules
 
 - **Never** place artifacts at repo root. Use the right component.
 - **Never** put code outside `codebase/`. Tooling, lockfiles, package manifests all live there.
 - **Never** put operational artifacts inside `knowledge/`. Knowledge is *interpretation*; workspace is *artifacts*; memory is *agent state*.
-- **Never** put durable knowledge directly into `memory/`. Use the promotion path: `memory/daily/` → `memory-distill` → `knowledge/<domain>/`.
-- **Never** silently re-add `workspace/**` to git. `memory/` is the opposite — it must stay tracked.
+- **Never** put durable knowledge directly into `memory/`. Use the promotion path: `memory/daily/` → `memory-distill` → `knowledge/<domain>/`. Memory is per-runtime; knowledge is the only multi-runtime durable substrate.
+- **Never** silently re-add `workspace/**` or `memory/**` to git. Both are agent-runtime output and stay ignored.
 
 ## Domain spine
 
@@ -53,6 +63,6 @@ A task that skips step 2 is in violation of the harness contract.
 The memory contract — capture lane, session lifecycle, compaction safety, promotion to KB — lives in `rules/memory.mdc`. In short:
 
 - **Session memory** → managed by Cursor. Do not duplicate.
-- **Short-term project memory** → `memory/daily/<today>.md`, agent-writable, git-tracked.
-- **Persistent project memory** → `knowledge/<domain>/`, promoted from memory via `memory-distill`. The five KB schemas are the durable forms.
+- **Short-term project memory** → `memory/daily/<today>.md`, agent-writable, **git-ignored** (per-runtime, like `workspace/`). Survives across sessions on a single machine; does not sync across machines or contributors.
+- **Persistent project memory** → `knowledge/<domain>/`, promoted from memory via `memory-distill`. The five KB schemas are the durable forms and the only multi-runtime substrate.
 - **Promotion** → proposal-only, user-approved.

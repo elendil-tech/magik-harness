@@ -11,11 +11,13 @@ Drift = two layers that should agree, disagreeing. This skill produces a structu
 
 1. **Registry** — `knowledge/_meta/domains.md`
 2. **Knowledge** — `knowledge/<domain>/`
-3. **Memory** — `memory/daily/`, `memory/<domain>/daily/`, `memory/commitments.md`
+3. **Memory** — `memory/daily/`, `memory/<domain>/daily/`, `memory/commitments.md` *(gitignored, runtime-local — see note below)*
 4. **Scaffolding** — `.cursor/skills/<domain>/`, `.cursor/rules/`, `.cursor/agents/`
 5. **Codebase** — `codebase/` (only if present)
 
 `workspace/` is excluded from drift control.
+
+`memory/` is gitignored; checks D2m, D3m, D16–D21 below operate on whatever runtime-local memory exists and report nothing if `memory/` is absent (e.g. CI runs, fresh clones). That is correct, not a bug — see `rules/drift-control.mdc` "Memory drift is local."
 
 ## Procedure
 

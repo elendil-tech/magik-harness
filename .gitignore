@@ -12,3 +12,13 @@ seeds/
 # Eval runs are gitignored — only baselines (evals/baselines/) are tracked.
 evals/results/
 evals/.tmp/
+
+# Harness artifacts — this repo is the plugin, not a harnessed project.
+# If `/init-harness` is ever run here by accident, ignore its outputs so they
+# don't pollute the plugin source tree. The canonical seed payload lives in
+# `seed-sources/{knowledge,memory,workspace}/`.
+/knowledge/
+/memory/
+/workspace/
+/codebase/
+/AGENTS.md

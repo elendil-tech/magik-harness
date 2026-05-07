@@ -1,10 +1,24 @@
 # --- Project harness ----------------------------------------------------------
-# workspace/ holds operational artifacts (drafts, pdfs, media, csvs, contracts).
-# It is intentionally NOT version-controlled. The directory itself is preserved
-# via workspace/.gitkeep and workspace/README.md (whitelisted below).
+# Two harness components are intentionally NOT version-controlled — they are
+# agent-runtime output, runtime-personal:
+#
+#   workspace/  — craft artifacts (drafts, pdfs, media, csvs, contracts).
+#   memory/     — thought artifacts (daily notes, commitments, distillations).
+#
+# The *design* of memory lives in the magik-repo plugin (rules + hooks +
+# memory-distill skill); only the runtime contents are ignored. Per-runtime
+# means: not shared across teammates, not synced across machines, not present
+# in CI. Anything that needs to cross runtimes belongs in knowledge/<domain>/
+# via the memory-distill promotion path.
+#
+# workspace/ keeps a tracked README + .gitkeep so the folder still exists on
+# fresh clones. memory/ is created on first write by the agent — no anchor
+# files are needed.
 workspace/*
 !workspace/.gitkeep
 !workspace/README.md
+
+memory/
 
 # Cursor telemetry / session ephemera (if any tooling drops files here).
 .cursor/telemetry/

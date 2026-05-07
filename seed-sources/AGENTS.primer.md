@@ -4,14 +4,16 @@
 
 **Project layer:**
 
-1. `knowledge/` — *what is true / intended* (git tracked).
-2. `workspace/` — *what was produced* — operational artifacts (git ignored).
-3. `codebase/` — *what is shipped* (git tracked, nested code repo; may be empty).
+1. `knowledge/` — *what is true / intended* — interpretations, ground truth (git tracked).
+2. `codebase/` — *what is shipped* (git tracked, nested code repo; may be empty).
+3. `workspace/` — *what was produced* — craft artifacts: drafts, PDFs, media (git ignored, runtime-personal).
 
 **Harness layer:**
 
-4. `memory/` — *what the agent has lived through* — daily notes, commitments, distillation audit trail (git tracked).
-5. `.cursor/` — *how you operate* — rules, skills, agents, commands, hooks.
+4. `.cursor/` — *how you operate* — rules, skills, agents, commands, hooks (git tracked).
+5. `memory/` — *what the agent has lived through this session* — thought artifacts: daily notes, commitments, distillations (git ignored, runtime-personal — created on first write).
+
+One rule covers the split: **tracked = the durable substrate we agree on, build, and ship; ignored = agent-runtime output**. `workspace/` is craft, `memory/` is thought. Neither syncs across machines or contributors; anything that needs to cross runtimes goes through promotion to `knowledge/` (for memory) or stays the team's discretion (for workspace).
 
 The single source of truth for project domains is `knowledge/_meta/domains.md`. Read it before any domain-relevant work.
 

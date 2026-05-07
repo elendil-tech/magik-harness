@@ -42,10 +42,10 @@ knowledge/
 
 Cursor manages session/conversation memory. The harness then has two memory lanes:
 
-- **Short-term, agent-writable memory** lives in `memory/daily/<YYYY-MM-DD>.md` (sister component to `knowledge/`, also git-tracked). Observations, lesson candidates, decision candidates, and commitments captured during sessions land here first.
-- **Persistent project memory** lives in `knowledge/<domain>/` as `fieldnote` entries (and the other four schemas for non-lesson content). Promotion from `memory/` to `knowledge/` is proposal-only via the `memory-distill` skill — the user approves.
+- **Short-term, agent-writable memory** lives in `memory/daily/<YYYY-MM-DD>.md` — runtime-local and **gitignored** (parallel to `workspace/`; both are agent-runtime output). Observations, lesson candidates, decision candidates, and commitments captured during sessions land here first.
+- **Persistent project memory** lives in `knowledge/<domain>/` as `fieldnote` entries (and the other four schemas for non-lesson content) — git-tracked and the only multi-runtime durable substrate. Promotion from `memory/` to `knowledge/` is proposal-only via the `memory-distill` skill — the user approves.
 
-When something durable is learned, the path is: `memory/daily/` → `/distill` → `knowledge/<domain>/`.
+When something durable is learned, the path is: `memory/daily/` → `/distill` → `knowledge/<domain>/`. Anything that needs to cross machines or contributors *must* travel via this promotion path; `memory/` itself never does.
 
 ## Indexes
 

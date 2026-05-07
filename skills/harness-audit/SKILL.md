@@ -110,6 +110,8 @@ For each domain:
 
 ### 4. Analyze memory hygiene
 
+`memory/` is gitignored and runtime-local; this section operates on whatever memory exists on this machine. If `memory/` is absent (fresh clone, CI run), report this section as "no memory present on this runtime" and continue — the rest of the audit is unaffected.
+
 - Daily notes count vs. retention window (active `daily/` should be ≤ 30 days of entries).
 - Undistilled signals: count of `[lesson-candidate]` / `[decision-candidate]` / `[concept-candidate]` not yet promoted or rejected.
 - Commitment backlog: count of active commitments past their `due` date.
