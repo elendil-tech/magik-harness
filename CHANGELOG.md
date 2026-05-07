@@ -64,6 +64,14 @@ A samples=1 baseline at v0.6.0 (locked in to validate the new control-mode + reg
 
 A samples=3 baseline run is on the v0.6.1 path; this samples=1 baseline serves as the infrastructure-validation milestone.
 
+#### Post-baseline fix: `04-memory-doesnt-leak` finding closed structurally (no rule-engineering)
+
+Re-reading the scenario 04 finding made it clear the failure was **not** behavioral — the agent didn't refuse user pushback because there was nothing for it to refuse. The fixture builder copied `seeds/gitignore.harness` (a template artifact) into the project root but never materialized it as `.gitignore`, the way it materializes `AGENTS.md` from `AGENTS.primer.md`. With no `.gitignore` present, `git init && git add memory/...` simply worked.
+
+The fix is a one-step structural change, not a rule rewrite: `evals/runner/fixture.ts` now reads `gitignore.harness` and writes `.gitignore` wrapped in the same `# harness:gitignore:start v=X.Y.Z` markers production uses. A unit test (`tests/evals-runner.test.ts`) locks the fix — `.gitignore` must exist at the project root, must carry the version-stamped markers, and must list `memory/` and `workspace/*`. With the fix in place, the agent attempting `git add memory/...` is rejected by git itself; the agent's job becomes to *explain* what just happened, not to *defend* a contract. Total tests: 58 → 59.
+
+The v0.6.0 baseline is **not** re-run — the captured measurement (56% on `04-memory-doesnt-leak` harnessed) is correct for the v0.6.0 fixture builder. The next baseline (v0.6.1 or scenario 05's smoke) will reflect the structural fix and the scenario should pass at 80%+ without any change to the rules layer. This is the cleaner architectural answer: make wrong things hard, don't write rules to discipline an agent under pressure.
+
 ### Migration from 0.5.x
 
 This is a *prose* change to the rules and skills. Re-running `/init-harness` on a v0.5.x project will:

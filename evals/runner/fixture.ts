@@ -202,24 +202,55 @@ export function buildFixture(opts: BuildFixtureOptions): BuiltFixture {
   // ran with this gap and the harness's "mandatory protocols"
   // language was not in scope. This was the single biggest reason
   // for the eval-vs-production behavior delta.
+  // Read the canonical version once from package.json so the markers
+  // (primer + gitignore) stay in sync with releases. The file lives at
+  // the plugin root, two levels above evals/runner/.
+  const pkg = JSON.parse(
+    readFileSync(join(PLUGIN_ROOT, "package.json"), "utf-8"),
+  ) as { version?: string };
+  const harnessVersion = pkg.version ?? "0.0.0";
+
   const primerSrc = join(projectRoot, "AGENTS.primer.md");
   const agentsMdDst = join(projectRoot, "AGENTS.md");
   if (existsSync(primerSrc) && !existsSync(agentsMdDst)) {
     const primerBody = readFileSync(primerSrc, "utf-8").trimEnd();
-    // Read the canonical version from package.json so the marker
-    // stays in sync with releases. The file lives at the plugin
-    // root, two levels above evals/runner/.
-    const pkg = JSON.parse(
-      readFileSync(join(PLUGIN_ROOT, "package.json"), "utf-8"),
-    ) as { version?: string };
-    const v = pkg.version ?? "0.0.0";
     const wrapped = [
-      `<!-- harness:primer:start v=${v} -->`,
+      `<!-- harness:primer:start v=${harnessVersion} -->`,
       primerBody,
       `<!-- harness:primer:end -->`,
       "",
     ].join("\n");
     writeFileSync(agentsMdDst, wrapped);
+  }
+
+  // 1c. Materialize .gitignore from gitignore.harness — symmetric to
+  // the primer step above. In production /init-harness does the
+  // marker-aware merge into the user's .gitignore; in the eval
+  // fixture the project starts empty so we just wrap the harness
+  // body in the same `# harness:gitignore:start`/`end` markers
+  // production uses and write it out.
+  //
+  // Without this, the seed payload's gitignore.harness file sits at
+  // the project root as a template artifact — `.gitignore` itself
+  // never exists, so `git add memory/...` succeeds and the v0.5.0
+  // memory contract is structurally unenforced. Scenario
+  // 04-memory-doesnt-leak (v0.6.0 baseline) failed turn 2 entirely
+  // because of this gap. The harness's `.gitignore` (and the
+  // memory/ ignore rule it carries) is the structural enforcement
+  // — the rules layer just explains the contract.
+  const gitignoreSrc = join(projectRoot, "gitignore.harness");
+  const gitignoreDst = join(projectRoot, ".gitignore");
+  if (existsSync(gitignoreSrc) && !existsSync(gitignoreDst)) {
+    const gitignoreBody = readFileSync(gitignoreSrc, "utf-8").trimEnd();
+    const wrapped = [
+      `# harness:gitignore:start v=${harnessVersion}`,
+      "",
+      gitignoreBody,
+      "",
+      `# harness:gitignore:end`,
+      "",
+    ].join("\n");
+    writeFileSync(gitignoreDst, wrapped);
   }
 
   // 2. Lay the plugin's authored content into .cursor/{rules,skills,commands}.

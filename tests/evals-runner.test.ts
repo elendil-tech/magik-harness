@@ -329,6 +329,68 @@ test("fixture builder — materializes AGENTS.md from the seeded primer with har
   }
 });
 
+test("fixture builder — materializes .gitignore from gitignore.harness with harness markers", () => {
+  // The harness's enforcement of the v0.5.0 memory contract is
+  // structural: `.gitignore` carries `memory/`, so `git add memory/...`
+  // is rejected by git itself, not by the agent's discipline. Without
+  // this materialization step, the seed payload's `gitignore.harness`
+  // file sits at the project root as a template artifact and `.gitignore`
+  // never exists — so an agent that runs `git init && git add memory/...`
+  // succeeds at committing memory/ contents, defeating the contract.
+  // Scenario 04 (v0.6.0 baseline) failed turn 2 entirely because of
+  // this gap; this test guards against the bug recurring.
+  const fixtures = existsSync(FIXTURES_DIR)
+    ? readdirSync(FIXTURES_DIR)
+    : [];
+  // Find the first harnessed fixture (skip content-only twins, which
+  // intentionally have no .gitignore).
+  const harnessedFixture = fixtures.find((name) => {
+    const metaPath = join(FIXTURES_DIR, name, ".fixture.json");
+    if (!existsSync(metaPath)) return true;
+    try {
+      const meta = JSON.parse(readFileSync(metaPath, "utf-8")) as {
+        harness?: boolean;
+      };
+      return meta.harness !== false;
+    } catch {
+      return true;
+    }
+  });
+  if (!harnessedFixture) return;
+
+  const built = buildFixture({ fixture: harnessedFixture });
+  try {
+    const gitignore = join(built.projectRoot, ".gitignore");
+    assert.ok(
+      existsSync(gitignore),
+      ".gitignore must be materialized at project root so the v0.5.0 memory contract is enforced structurally by git",
+    );
+    const body = readFileSync(gitignore, "utf-8");
+    assert.match(
+      body,
+      /^# harness:gitignore:start v=\d+\.\d+\.\d+$/m,
+      ".gitignore must carry the harness gitignore start marker with a current version",
+    );
+    assert.match(
+      body,
+      /^# harness:gitignore:end$/m,
+      ".gitignore must carry the harness gitignore end marker",
+    );
+    assert.match(
+      body,
+      /^memory\/$/m,
+      ".gitignore must include `memory/` so `git add memory/...` is structurally rejected",
+    );
+    assert.match(
+      body,
+      /^workspace\/\*$/m,
+      ".gitignore must include `workspace/*` so craft artifacts are runtime-local by default",
+    );
+  } finally {
+    built.cleanup();
+  }
+});
+
 test("fixture builder — overlay file content is what ends up at the destination", () => {
   // Build the populated-kb-with-policy fixture (if present) and verify the
   // policy file's content survives the overlay byte-for-byte.
