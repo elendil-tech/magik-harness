@@ -633,3 +633,183 @@ test("regression gate — invalid baseline path throws a clear error", () => {
     /failed to read baseline/,
   );
 });
+
+// --- Contamination guard ---------------------------------------------------
+//
+// The guard's job is to prevent and detect content-only agents that escape
+// CWD and mutate the parent magik-repo-plugin repo. It has two layers:
+//
+//   1. `withGitCeiling`  — sets GIT_CEILING_DIRECTORIES around a callable.
+//   2. `snapshotParentRepo` + `verifyAndRevert` — pre/post-sample HEAD
+//      check with auto-revert.
+//
+// Tests stand up a real throwaway git repo under tmpdir() (NOT the plugin
+// itself) to verify each layer end-to-end without touching the real
+// magik-repo-plugin .git.
+
+import { execFileSync } from "node:child_process";
+import {
+  snapshotParentRepo,
+  verifyAndRevert,
+  withGitCeiling,
+} from "../evals/runner/contamination-guard.ts";
+
+function makeThrowawayRepo(): {
+  root: string;
+  initialCommit: string;
+  cleanup: () => void;
+} {
+  const root = mkdtempSync(join(tmpdir(), "magik-guard-test-"));
+  // Initialize a self-contained git repo with one commit. We pin the
+  // local user.name / user.email so this works on a fresh CI runner that
+  // doesn't have global git config set up.
+  const env = {
+    ...process.env,
+    GIT_AUTHOR_NAME: "test",
+    GIT_AUTHOR_EMAIL: "test@example.com",
+    GIT_COMMITTER_NAME: "test",
+    GIT_COMMITTER_EMAIL: "test@example.com",
+  };
+  execFileSync("git", ["init", "-q"], { cwd: root });
+  execFileSync("git", ["config", "user.name", "test"], { cwd: root });
+  execFileSync("git", ["config", "user.email", "test@example.com"], {
+    cwd: root,
+  });
+  writeFileSync(join(root, "README.md"), "throwaway test repo\n");
+  execFileSync("git", ["add", "README.md"], { cwd: root, env });
+  execFileSync("git", ["commit", "-q", "-m", "initial"], { cwd: root, env });
+  const initialCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: root,
+    encoding: "utf-8",
+  }).trim();
+  return {
+    root,
+    initialCommit,
+    cleanup: () => rmSync(root, { recursive: true, force: true }),
+  };
+}
+
+test("contamination guard — non-git directory snapshots cleanly with isGitRepo=false", () => {
+  // The guard is a no-op for non-git parents (e.g., release zipball
+  // checkouts). Snapshot must report isGitRepo: false and head: null;
+  // verifyAndRevert must report not-contaminated.
+  const dir = mkdtempSync(join(tmpdir(), "magik-guard-nongit-"));
+  try {
+    const snap = snapshotParentRepo(dir);
+    assert.equal(snap.isGitRepo, false);
+    assert.equal(snap.head, null);
+    const v = verifyAndRevert(snap);
+    assert.equal(v.contaminated, false);
+    assert.equal(v.reverted, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("contamination guard — clean run (no HEAD change) reports contaminated=false", () => {
+  // The happy path: snapshot, do nothing, verify. Must NOT trigger a
+  // false positive even when the guard is fully active on a real git
+  // repo.
+  const { root, initialCommit, cleanup } = makeThrowawayRepo();
+  try {
+    const snap = snapshotParentRepo(root);
+    assert.equal(snap.isGitRepo, true);
+    assert.equal(snap.head, initialCommit);
+    const v = verifyAndRevert(snap);
+    assert.equal(v.contaminated, false);
+    assert.equal(v.preHead, initialCommit);
+    assert.equal(v.postHead, initialCommit);
+    assert.equal(v.reverted, false);
+  } finally {
+    cleanup();
+  }
+});
+
+test("contamination guard — detects HEAD mutation and auto-reverts to pre-snapshot", () => {
+  // Simulate the v0.7.0 bug: snapshot the repo, simulate an agent
+  // landing a commit (i.e., HEAD advances), call verifyAndRevert. The
+  // verdict must report contaminated=true with both heads named, and
+  // the auto-revert must roll the repo back to the pre-sample HEAD.
+  const { root, initialCommit, cleanup } = makeThrowawayRepo();
+  try {
+    const snap = snapshotParentRepo(root);
+    // "Agent escapes CWD": land a new commit on the parent.
+    writeFileSync(join(root, "lessons-captured.md"), "contamination\n");
+    const env = {
+      ...process.env,
+      GIT_AUTHOR_NAME: "evil",
+      GIT_AUTHOR_EMAIL: "evil@example.com",
+      GIT_COMMITTER_NAME: "evil",
+      GIT_COMMITTER_EMAIL: "evil@example.com",
+    };
+    execFileSync("git", ["add", "lessons-captured.md"], { cwd: root, env });
+    execFileSync("git", ["commit", "-q", "-m", "contamination"], {
+      cwd: root,
+      env,
+    });
+    const dirtyHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf-8",
+    }).trim();
+    assert.notEqual(
+      dirtyHead,
+      initialCommit,
+      "test setup: dirty HEAD must differ from initial",
+    );
+
+    const v = verifyAndRevert(snap);
+    assert.equal(v.contaminated, true);
+    assert.equal(v.preHead, initialCommit);
+    assert.equal(v.postHead, dirtyHead);
+    assert.equal(v.reverted, true);
+    assert.equal(v.error, undefined);
+
+    // Verify the parent's HEAD is actually back at the pre-sample SHA.
+    const finalHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: root,
+      encoding: "utf-8",
+    }).trim();
+    assert.equal(
+      finalHead,
+      initialCommit,
+      "auto-revert must roll the repo back to the pre-sample HEAD",
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("contamination guard — withGitCeiling sets and restores GIT_CEILING_DIRECTORIES", async () => {
+  // Save the current value so we can verify restoration afterward.
+  const before = process.env.GIT_CEILING_DIRECTORIES;
+  let observedInside: string | undefined;
+
+  await withGitCeiling("/tmp/expected-boundary", async () => {
+    observedInside = process.env.GIT_CEILING_DIRECTORIES;
+  });
+
+  assert.equal(
+    observedInside,
+    "/tmp/expected-boundary",
+    "GIT_CEILING_DIRECTORIES must be set to the boundary inside the callable",
+  );
+  assert.equal(
+    process.env.GIT_CEILING_DIRECTORIES,
+    before,
+    "GIT_CEILING_DIRECTORIES must be restored to its prior value (or unset) on exit",
+  );
+});
+
+test("contamination guard — withGitCeiling restores prior value even when the callable throws", async () => {
+  // The whole point of the guard's `finally` block is that env state
+  // must NOT leak across samples on error paths. Confirm the
+  // restoration happens even when fn() rejects.
+  const before = process.env.GIT_CEILING_DIRECTORIES;
+  await assert.rejects(
+    withGitCeiling("/tmp/should-restore", async () => {
+      throw new Error("simulated agent crash");
+    }),
+    /simulated agent crash/,
+  );
+  assert.equal(process.env.GIT_CEILING_DIRECTORIES, before);
+});

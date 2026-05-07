@@ -110,6 +110,15 @@ Today's twins:
 
 Built fixtures land under `os.tmpdir()/magik-repo-evals/` rather than `evals/.tmp/` — outside the plugin source tree on purpose, so an agent doing broad `glob`/`grep` from its CWD can't accidentally find the source `evals/fixtures/` and contaminate the run by reading from the harnessed twin.
 
+### Contamination guard (v0.7.x)
+
+The `os.tmpdir()` move closes the *read-side* CWD escape. A separate two-layer guard in `evals/runner/contamination-guard.ts` closes the *write-side* escape — the case where an agent absolute-pathed a write into the plugin source tree and `git commit` picked up the parent repo's `.git`, landing a real commit on `main`. (This actually happened during the v0.7.0 baseline run; commit `42944ce` was reverted manually and the patch was authored same-day.)
+
+- **Prevention** — every sample runs inside `withGitCeiling(os.tmpdir(), ...)`, which sets `GIT_CEILING_DIRECTORIES` for the duration of the agent run. Git's `.git` ancestor walk stops at the OS tmp-dir boundary, so an agent that accidentally `cd`s above its temp fixture cannot find the parent repo's `.git`. Restored to its prior value (or unset state) even on throw.
+- **Detection + auto-revert** — `snapshotParentRepo(PLUGIN_ROOT)` reads `git rev-parse HEAD` of the parent before each sample. After the sample, `verifyAndRevert` reads HEAD again. If it changed, the agent escaped CWD explicitly and committed to the parent — the guard runs `git reset --hard <pre-snapshot>`, prints a loud `⚠ CONTAMINATION` block to stderr, and marks the sample as `agent-escape:` (judge automatically skipped). The transcript is preserved for debugging.
+
+Doesn't cover non-git escape (file writes outside the temp dir that don't touch git). Full sandbox-exec / bwrap-style isolation is deferred to v0.8.x; the HEAD-snapshot guard is the cheap layer that catches the worst case deterministically.
+
 ## Running
 
 ### Prerequisites

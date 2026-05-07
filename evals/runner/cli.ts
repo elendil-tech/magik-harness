@@ -95,6 +95,12 @@ import {
 } from "./regression.ts";
 import { loadScenario, type LoadedScenario } from "./scenario.ts";
 import { runScenarioOnce } from "./runner.ts";
+import {
+  snapshotParentRepo,
+  verifyAndRevert,
+  withGitCeiling,
+} from "./contamination-guard.ts";
+import { tmpdir } from "node:os";
 import type {
   AgentTranscript,
   FixtureCondition,
@@ -428,6 +434,10 @@ async function main(): Promise<void> {
     for (let i = 0; i < sampleCount; i++) {
       process.stdout.write(`[${i + 1}/${sampleCount}] `);
       const built = buildFixture({ fixture });
+      // Snapshot the parent repo's HEAD before the sample runs. The
+      // post-sample verifyAndRevert below catches CWD-escape commits
+      // (the v0.7.x patch — see evals/runner/contamination-guard.ts).
+      const parentSnapshot = snapshotParentRepo(PLUGIN_ROOT);
       let runOk = true;
       let agentTranscript: AgentTranscript | null = null;
       let judgeRes: JudgeResponse | null = null;
@@ -436,14 +446,20 @@ async function main(): Promise<void> {
       let err: string | undefined;
 
       try {
-        const result = await runScenarioOnce({
-          projectRoot: built.projectRoot,
-          turns: scenario.turns,
-          model: agentModel,
-          params: agentParams,
-          apiKey: cursorKey,
-          timeoutMs: scenario.timeout_ms,
-        });
+        // Set GIT_CEILING_DIRECTORIES to the OS tmp dir so any git
+        // invocation from inside the temp fixture does its `.git`
+        // ancestor walk only within /tmp — it cannot accidentally
+        // attach to the parent magik-repo's `.git` via tree walk.
+        const result = await withGitCeiling(tmpdir(), () =>
+          runScenarioOnce({
+            projectRoot: built.projectRoot,
+            turns: scenario.turns,
+            model: agentModel,
+            params: agentParams,
+            apiKey: cursorKey,
+            timeoutMs: scenario.timeout_ms,
+          }),
+        );
         duration = result.duration_ms;
         transcriptChars = result.transcript.raw_chars;
 
@@ -458,6 +474,26 @@ async function main(): Promise<void> {
         err = (e as Error).message;
       } finally {
         if (!args.keep) built.cleanup();
+      }
+
+      // Detection layer: if the parent's HEAD changed despite the
+      // GIT_CEILING_DIRECTORIES guard above, the agent escaped CWD
+      // explicitly (e.g., `git -C /abs/path commit`). Auto-revert and
+      // mark the sample as failed so the contaminated result is not
+      // credited. The transcript is preserved for debugging.
+      const verdict = verifyAndRevert(parentSnapshot);
+      if (verdict.contaminated) {
+        process.stderr.write(
+          `\n  ⚠ CONTAMINATION: parent repo HEAD changed during this sample\n` +
+            `      pre-sample HEAD:  ${verdict.preHead}\n` +
+            `      post-sample HEAD: ${verdict.postHead}\n` +
+            (verdict.reverted
+              ? `      ✓ auto-reverted to pre-sample HEAD\n`
+              : `      ✗ auto-revert FAILED: ${verdict.error ?? "unknown"}\n` +
+                `      manually run: git -C ${parentSnapshot.root} reset --hard ${verdict.preHead}\n`),
+        );
+        runOk = false;
+        err = `agent-escape: parent repo HEAD ${verdict.preHead?.slice(0, 8) ?? "?"} → ${verdict.postHead?.slice(0, 8) ?? "?"}; ${verdict.reverted ? "auto-reverted" : "NOT REVERTED — see stderr"}`;
       }
 
       if (agentTranscript) {

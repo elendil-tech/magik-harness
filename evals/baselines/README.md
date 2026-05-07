@@ -134,5 +134,14 @@ The minimum change for v0.7.0 is to lift the structural-reflection prompt into t
 
 ### Side finding: eval-runner write-side CWD escape (content-only)
 
-The v0.7.0 baseline run also surfaced a containment bug in the runner: the `04-memory-doesnt-leak` content-only sample produced a real commit on the parent `magik-repo-plugin` `main` (reverted in the same commit as this writeup). The agent, operating without harness rules, wrote `lessons-captured.md` via an absolute path into the plugin source tree and then ran `git commit`, which picked up the parent repo's `.git`. The v0.6.0 `os.tmpdir()` move only closed the *read-side* escape; the *write-side* escape requires sandboxing or a path-validating shell shim. Tracked as **v0.7.x patch priority** in `CHANGELOG.md` (Option B — path-validating shell shim — recommended as the first cut).
+The v0.7.0 baseline run also surfaced a containment bug in the runner: the `04-memory-doesnt-leak` content-only sample produced a real commit on the parent `magik-repo-plugin` `main` (reverted manually in the same commit as the v0.7.0 writeup). The agent, operating without harness rules, wrote `lessons-captured.md` via an absolute path into the plugin source tree and then ran `git commit`, which picked up the parent repo's `.git`. The v0.6.0 `os.tmpdir()` move only closed the *read-side* escape; the *write-side* escape needed its own guard.
+
+**Closed by the v0.7.x contamination-guard patch.** `evals/runner/contamination-guard.ts` adds a two-layer guard around each per-sample `runScenarioOnce` call:
+
+- **Prevention** — `GIT_CEILING_DIRECTORIES` env var set to `os.tmpdir()` while the agent runs, so git tree-walks inside the temp fixture never reach the parent's `.git`.
+- **Detection** — pre-sample `git rev-parse HEAD` of the parent repo, post-sample verification, auto-revert via `git reset --hard <pre-snapshot>` on mutation, sample marked as `agent-escape:` and judge skipped.
+
+Five unit tests in `tests/evals-runner.test.ts` lock the guard's behaviour (non-git parents, clean runs, HEAD-mutation detection + auto-revert, env-var set/restore on success and on throw). Total test count 64/64.
+
+Doesn't cover all forms of escape — file writes outside the temp dir that don't touch git remain possible. Full sandbox-exec / bwrap-style isolation is deferred to v0.8.x; the HEAD-snapshot guard is the cheap layer that catches the worst case (real commits on `main`) deterministically.
 - **Pre-v0.6.0 baselines (v0.4.1, v0.4.2) lack a `condition` field.** They pair only against the current run's harnessed condition under `--baseline` mode (handled correctly by the regression gate's legacy compatibility path). Direct comparison against v0.6.0 is therefore harnessed-vs-harnessed; the +52.3pp control-mode delta is a v0.6.0+ signal.

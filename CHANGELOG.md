@@ -133,6 +133,25 @@ Until either lands, the runner has the same contamination risk on every content-
 
 This finding is **not** about the harness's quality — content-only is *meant* to be the no-guidance condition. It's about the eval runner's containment of that condition. The harness in v0.6.0 already prevents this on its side: harnessed agents have explicit "Place artifacts under `workspace/`, never at repo root" rules in the primer's `Default behavior` section, and they hold to it.
 
+#### v0.7.x patch SHIPPED — eval-runner contamination guard (HEAD-snapshot detection + GIT_CEILING_DIRECTORIES prevention)
+
+Two-layer guard, lighter than the original Option-A/B framing above and pragmatic enough to land same-day. Lives in `evals/runner/contamination-guard.ts` (~190 LOC including doc comments) and wires into `evals/runner/cli.ts` around each per-sample `runScenarioOnce` call:
+
+1. **Prevention via `GIT_CEILING_DIRECTORIES`.** Every sample runs inside `withGitCeiling(os.tmpdir(), ...)` which sets the env var on the calling process for the duration of the agent run, then restores the prior value (or unset state) — even when the callable throws. The agent inherits this env via the SDK; any `git` invocation from inside the temp fixture has its `.git` ancestor walk capped at the OS tmp-dir boundary, so it cannot accidentally attach to the parent magik-repo's `.git` via tree walk. Doesn't block an agent that explicitly runs `git -C /abs/path/to/parent ...` — that case is handled by layer 2.
+2. **Detection via HEAD snapshot + auto-revert.** Per sample, `snapshotParentRepo(PLUGIN_ROOT)` records the parent repo's commit SHA before the agent runs. Post-sample, `verifyAndRevert(snapshot)` reads HEAD again. If it changed, the agent landed a commit on the parent — the guard runs `git reset --hard <pre-snapshot-SHA>`, prints a loud `⚠ CONTAMINATION` block to stderr (pre/post HEADs, revert success, manual-recovery command if the revert failed), and marks the sample as `runOk = false` with `err: "agent-escape: ..."`. The judge is automatically skipped (existing logic gates the judge call on `runOk`); the contaminated sample shows up in the summary as `! (agent-escape: ...)` rather than as a credited score. The transcript is preserved either way for debugging.
+
+What the guard does NOT cover (deferred to v0.8.x as a heavier hardening pass): file writes outside the temp dir that don't touch git. An agent could still write a `.txt` to the parent's working tree without committing it; the guard doesn't notice that. The fix is sandbox-exec / bwrap / chroot-style isolation, which requires either invoking the eval CLI inside a sandbox or having the SDK expose a tool-allowlist hook (it doesn't, as of `@cursor/sdk@1.0.12`). Both are real work; the HEAD-snapshot guard is the cheap layer that catches the worst case (parent-repo commits) deterministically.
+
+**Test coverage** (`tests/evals-runner.test.ts`, +5 cases, 64/64 pass):
+
+- non-git directory snapshots cleanly with `isGitRepo: false` (release-zipball checkout case)
+- clean run reports `contaminated: false` (false-positive prevention)
+- HEAD-mutation detected; auto-revert rolls the throwaway repo back to the pre-sample SHA
+- `withGitCeiling` sets the env var inside the callable and restores it after
+- `withGitCeiling` restores the env var even when the callable throws
+
+Each case stands up its own throwaway git repo under `os.tmpdir()` — the tests never touch the real magik-repo-plugin `.git`.
+
 ### Migration from 0.5.x
 
 This is a *prose* change to the rules and skills. Re-running `/init-harness` on a v0.5.x project will:
