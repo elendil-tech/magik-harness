@@ -21,10 +21,13 @@ evals/
 ├── scenarios/                                 # one YAML per behavioral contract
 │   ├── 01-read-first-gate.yaml
 │   ├── 02-propose-not-apply.yaml
-│   └── 03-memory-write-discipline.yaml
+│   ├── 03-memory-write-discipline.yaml
+│   └── 04-memory-doesnt-leak.yaml             # v0.5.0: memory is git-ignored, only promoted
 ├── fixtures/                                  # scenario-specific overlays
-│   ├── populated-kb-with-policy/
-│   └── empty-harnessed-with-domains/
+│   ├── populated-kb-with-policy/              # harnessed
+│   ├── populated-kb-no-harness/               # content-only twin (no .cursor/, no AGENTS.md)
+│   ├── empty-harnessed-with-domains/          # harnessed
+│   └── empty-no-harness/                      # bare twin
 ├── runner/
 │   ├── cli.ts                                 # `pnpm eval` entry
 │   ├── scenario.ts                            # YAML → zod-validated Scenario
@@ -32,6 +35,7 @@ evals/
 │   ├── runner.ts                              # @cursor/sdk Agent.create + multi-turn stream
 │   ├── judge.ts                               # @cursor/sdk Agent.prompt LLM-as-judge
 │   ├── report.ts                              # aggregator + result writer
+│   ├── regression.ts                          # baseline diff + 15pp regression gate
 │   ├── types.ts                               # shared zod schemas + types
 │   └── prompts/
 │       └── judge-system.md
@@ -93,6 +97,19 @@ A fixture is a directory of files that get *overlaid* on top of a fresh seed pay
 
 An empty fixture directory is valid — that means "fresh harness, no extra state".
 
+### No-harness fixtures (control twins)
+
+A fixture may declare `{"harness": false}` in a `.fixture.json` file in its root. When set, the runner skips steps 1 and 2 entirely — no `seeds/`, no `AGENTS.md`, no `.cursor/{rules,skills,commands}/`. The fixture's contents are copied verbatim as the project root.
+
+These no-harness fixtures pair with harnessed twins via the scenario's `control_fixture:` field. Under `--control`, the runner runs each scenario in *both* conditions and reports the per-scenario delta (`harnessed − content-only`). Holding the *content* constant across both conditions and varying only *the system around it* isolates what the harness contributes — its organization, retrieval skills, primer, and rules — from what the model can do given raw markdown.
+
+Today's twins:
+
+- `populated-kb-with-policy/` ↔ `populated-kb-no-harness/` — same auth-policy content; the no-harness twin flattens it into a `docs/` folder with no schemas, no registry, no `_index.md`.
+- `empty-harnessed-with-domains/` ↔ `empty-no-harness/` — the empty fixture's only state is a populated domain registry, which is itself a harness concept; the no-harness twin is a bare project with a README.
+
+Built fixtures land under `os.tmpdir()/magik-repo-evals/` rather than `evals/.tmp/` — outside the plugin source tree on purpose, so an agent doing broad `glob`/`grep` from its CWD can't accidentally find the source `evals/fixtures/` and contaminate the run by reading from the harnessed twin.
+
 ## Running
 
 ### Prerequisites
@@ -114,8 +131,28 @@ pnpm eval --dry-run                               # validate scenarios + fixture
 pnpm eval                                         # run all scenarios end-to-end
 pnpm eval --only 01-read-first-gate
 pnpm eval --keep                                  # keep tmp fixture dirs for debugging
-pnpm eval --agent-model composer-2 \
-          --agent-params "fast=false"
+pnpm eval --samples 1                             # override every scenario's `samples:` for this run
+
+# Control mode — run each scenario harnessed AND content-only;
+# report the per-scenario delta (= what the harness contributed).
+# Doubles cost and runtime; use when you want to measure the harness's
+# contribution to self-steering (rather than just whether the harnessed
+# agent passed in absolute terms).
+pnpm eval --control
+
+# Compare against a baseline. Always prints the comparison table; exits
+# code 3 if any scenario regressed beyond 15pp without --accept-regression.
+pnpm eval --baseline evals/baselines/v0.6.0__gpt-5.3-codex-spark__gemini-3.1-pro.json
+
+# Cross-family portability check — same scenarios on a different agent.
+pnpm eval --agent-model gemini-3.1-pro
+
+# Push codex-spark harder on a single contract.
+pnpm eval --agent-model gpt-5.3-codex-spark \
+          --agent-params "reasoning=high" \
+          --only 01-read-first-gate
+
+# Spot-check the judge with a different family.
 pnpm eval --judge-model claude-opus-4-6 \
           --judge-params "thinking=true,context=1m,effort=high,fast=false"
 ```
@@ -124,16 +161,21 @@ pnpm eval --judge-model claude-opus-4-6 \
 
 | Surface | Default | Override |
 |---|---|---|
-| Agent under test | `gemini-3.1-pro` | `--agent-model` / `EVAL_AGENT_MODEL` |
+| Agent under test | `gpt-5.3-codex-spark` | `--agent-model` / `EVAL_AGENT_MODEL` |
 | Agent params | (none) | `--agent-params "k=v,k2=v2"` / `EVAL_AGENT_PARAMS` |
 | Judge model | `gemini-3.1-pro` | `--judge-model` / `EVAL_JUDGE_MODEL` |
 | Judge params | (none) | `--judge-params "k=v,k2=v2"` / `EVAL_JUDGE_PARAMS` |
 
-`--agent-params` and `--judge-params` accept a CSV of `id=value` pairs that mirror the Cursor SDK's `ModelParameterValue` shape directly — same vocabulary as the SDK + the `inspect-models` script. Each model has its own knobs (Anthropic uses `thinking`, `context`, `effort`; OpenAI Codex uses `reasoning`, `fast`; Gemini has none; etc.); see the discovery section below.
+`--agent-params` and `--judge-params` accept a CSV of `id=value` pairs that mirror the Cursor SDK's `ModelParameterValue` shape directly — same vocabulary as the SDK + the `inspect-models` script. Each model has its own knobs (Anthropic uses `thinking`, `context`, `effort`; OpenAI Codex uses `reasoning`, optionally `fast`; Gemini has none; etc.); see the discovery section below.
 
-**Why gemini-3.1-pro for both:** It's strong on reasoning, has no subscription-tier gating on a stock `CURSOR_API_KEY`, and runs both sides on the same dependency surface. Same-model evaluation is fine here because the rubric is heavily mechanical (tool invocations, file paths, cited entries) — there's not much for self-grading bias to hide behind. Switch to a stronger / different-family judge for the cases where it matters by passing `--judge-model claude-opus-4-6 --judge-params "thinking=true,context=1m,effort=high,fast=false"`.
+**Why this split:** the agent under test runs many turns × samples × scenarios — a volume profile. The judge is a single transcript-grading call per sample with a longer prompt — a low-volume profile. We pair them to match the account economics:
 
-**Max mode is intentionally NOT the default for any tier.** When you do reach for an effort knob (e.g. on Anthropic models), use `effort=high` or `effort=xhigh`, never `effort=max`. Max mode trades latency and predictability for marginal capability gains that don't pay off for grading rubrics like ours.
+- **Agent → `gpt-5.3-codex-spark`.** Free / high-volume on the active `CURSOR_API_KEY` tier. The agent is *the thing being measured*, so a smaller, free model is actually a more honest test of what the harness contributes (a stronger model can fake some of what the harness gives via raw capability). Cost-free agent runs unlock `samples=3+`, broader scenario coverage, and per-PR runs without budget pressure.
+- **Judge → `gemini-3.1-pro`.** Strong reasoning, no subscription-tier gating, well-suited to "low-volume, longer-session" grading. Pairing different model families on the two surfaces also reduces self-grading bias (a Gemini judge has no incentive to cover for Codex idiosyncrasies).
+- **Cross-family agent runs are one flag away.** `--agent-model gemini-3.1-pro` (or `EVAL_AGENT_MODEL=gemini-3.1-pro pnpm eval`) gives you a portability check across the same scenario set — a different but valuable question: "does the harness lift one family but not another?"
+- **Cross-family judge runs are one flag away too.** `--judge-model claude-opus-4-6 --judge-params "thinking=true,context=1m,effort=high,fast=false"` swaps the grader. Worth doing periodically to spot-check that the gemini judge isn't drifting.
+
+**Max mode is intentionally NOT the default for any tier.** When you do reach for an effort knob (e.g. on Anthropic models), use `effort=high` or `effort=xhigh`, never `effort=max`. Max mode trades latency and predictability for marginal capability gains that don't pay off for grading rubrics like ours. For codex-spark specifically, `reasoning=medium` (the SDK default) is a sensible starting point; bump to `reasoning=high` only if a contract has shown to need it.
 
 ### Inspecting available models
 
@@ -154,14 +196,30 @@ Every run writes `evals/results/<UTC>__<agent>__<judge>.json` (gitignored). The 
 
 The model + params are stored in the SDK's verbatim shape so you can paste them back into the CLI without translation.
 
-When a release ships, copy the latest result into `evals/baselines/<agent>__cursor-<sdk>.json`. Future runs compare to that baseline; regressions become diffs in the next PR (Phase 2).
+When a release ships, copy the latest result into `evals/baselines/<version>__<agent>__<judge>.json`. Future runs compare against the baseline via `--baseline <path>`; per-scenario regressions beyond a 15pp tolerance fail the run (exit code 3) unless `--accept-regression` is also passed.
+
+The 15pp tolerance is deliberately generous and fixed for now. With `samples: 3`, a derived per-scenario tolerance (`2.5 × score_stddev`) would itself be too noisy — three points is not enough to estimate stddev stably. We'll switch to a derived tolerance after enough baselines accumulate per scenario; see the comment block at the top of `evals/runner/regression.ts` for the rationale and the criteria for the switch.
+
+### What the regression report shows
+
+For each `(scenario_id, condition)` pair found in either the baseline or the current run, the gate prints:
+
+- `OK` — within tolerance, current ≥ baseline (or improved).
+- `DIP` — current < baseline but within tolerance. Worth noting; not a failure.
+- `REGRESS` — current dropped more than the tolerance. Fails the run (exit 3) unless `--accept-regression`.
+- `NEW` — present in the current run, not in the baseline (a newly-added scenario or condition). Never a regression.
+- `MISSING` — present in the baseline, absent from the current run (a removed/disabled scenario). Never a regression.
+
+The table sorts by `scenario_id`, with `harnessed` before `content-only` for each id. Pre-v0.6.0 baselines without a `condition` field are treated as `harnessed`-only and pair only against the current run's harnessed condition.
 
 ## Costs and discipline
 
-- A scenario sample is one multi-turn agent session + one judge call. Plan for **3–8 minutes per scenario** and a **dollar-scale spend per full run** depending on samples × scenarios × models.
-- Evals are **not** in `pnpm test`. They run on demand via `pnpm eval`. Treat them like a release gate, not a per-push check.
+- A scenario sample is one multi-turn agent session + one judge call. Plan for **roughly 1–3 minutes per scenario** with the default models (codex-spark agent, gemini judge); longer with stronger reasoning levels.
+- **Default cost profile is near-zero**: agent runs land on the free codex-spark tier; only the judge call consumes paid quota, and judging is one short call per sample. A full default run (3 scenarios × 1 sample) is currently a handful of cents at most. Bumping `samples` to 3 ≈ triples the judge spend, still cheap.
+- This makes it sustainable to run evals **frequently** — per-PR or per-meaningful-change, not just at release. Use `--baseline` to keep CI honest.
+- If you switch the agent to `gemini-3.1-pro` (cross-family check) or to a paid Anthropic model, expect **dollar-scale spend per full run** depending on samples × scenarios. Reach for that deliberately, not by default.
+- Evals are **not** in `pnpm test`. They run on demand via `pnpm eval`. The deterministic test suite (`pnpm test`) catches "I broke the artifact"; evals catch "the artifact is intact but the behavior degraded." Both stay valuable. Don't conflate them.
 - Eval failures are signal, not noise. If a scenario regresses without a corresponding rule / skill change, that's the harness telling you a model or Cursor-internal change shifted behavior.
-- The deterministic test suite (`pnpm test`) catches "I broke the artifact." Evals catch "the artifact is intact but the behavior degraded." Both stay valuable. Don't conflate them.
 
 ## Adding a scenario
 
@@ -173,3 +231,13 @@ When a release ships, copy the latest result into `evals/baselines/<agent>__curs
 6. Iterate on the rubric until the verdict is consistent across 2–3 sample runs.
 
 A good scenario is **specific** (one contract, not five), **measurable** (mostly mechanical expectations), and **realistic** (the task is something a real user would type). Multi-turn scenarios that include user pushback or follow-ups give the strongest signal.
+
+### A note on `samples`
+
+Default is `samples: 3` — not 1. Single-run scoring carries ~±25pp of judge-induced variance (observed empirically in v0.4.x baselines, where the same scenario scored 62.5% on one run and 87.5% on the next). With 3 samples:
+
+- The standard error of the reported mean drops by roughly `√3`.
+- Each scenario's `score_min` / `score_max` band — printed in the summary line and stored on disk — surfaces that variance directly. Any "improvement" claim has to move both bounds, not just the mean.
+- The new `pass_rate` field tells you "2/3 samples individually passed", which is often a more honest read than the mean-thresholded verdict.
+
+Bump higher (`samples: 5`) for scenarios that prove especially noisy, lower (`samples: 1`) only when iterating locally on a fresh scenario before committing it.

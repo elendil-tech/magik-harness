@@ -13,6 +13,13 @@ seeds/
 evals/results/
 evals/.tmp/
 
+# Eval-fixture pollution: when an eval runs against a fixture, the agent
+# may write into the fixture's runtime-local lanes (workspace/, memory/).
+# These writes are craft / thought artifacts of the run, not part of the
+# fixture's checked-in state — keep them out of git.
+evals/fixtures/*/workspace/
+evals/fixtures/*/memory/
+
 # Harness artifacts — this repo is the plugin, not a harnessed project.
 # If `/init-harness` is ever run here by accident, ignore its outputs so they
 # don't pollute the plugin source tree. The canonical seed payload lives in

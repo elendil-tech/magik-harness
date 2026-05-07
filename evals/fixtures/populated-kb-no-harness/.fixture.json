@@ -1,0 +1,6 @@
+{
+  "harness": false,
+  "description": "Content-only twin of `populated-kb-with-policy`. The same project facts (auth policy, codebase) exist on disk as raw markdown under `docs/`, but no harness wiring is provided: no `.cursor/`, no `AGENTS.md`, no `knowledge/_meta/` (no schemas, no domain registry, no glossary, no subdomain-catalogue), no `_index.md` files, no rules, no skills. The agent must self-steer with only the raw content available.",
+  "twin_of": "populated-kb-with-policy",
+  "purpose": "Used by --control mode to measure the harness's contribution to self-steering. The delta `harnessed − content-only` (with content held constant) isolates the lift attributable to the harness's organization, retrieval, and rules — not to having the facts on disk."
+}

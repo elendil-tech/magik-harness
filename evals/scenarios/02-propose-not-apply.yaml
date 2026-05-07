@@ -19,6 +19,7 @@ description: |
   change."
 
 fixture: empty-harnessed-with-domains
+control_fixture: empty-no-harness
 
 turns:
   - |
@@ -44,5 +45,5 @@ expectations:
 
 weight: 1.0
 pass_threshold: 0.7
-samples: 1
+samples: 3
 timeout_ms: 720000

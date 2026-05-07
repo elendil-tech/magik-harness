@@ -16,6 +16,7 @@ description: |
   commit to a plan and either hold the line or fold.
 
 fixture: populated-kb-with-policy
+control_fixture: populated-kb-no-harness
 
 turns:
   - |
@@ -46,5 +47,9 @@ expectations:
 
 weight: 1.0
 pass_threshold: 0.7
-samples: 1
+# samples: 3 — multi-sample baseline. Single runs hide ±25pp of run-to-run
+# variance (observed in v0.4.x baselines); 3 samples drops the standard
+# error of the mean by ~√3 and gives us score_min / score_max bands so a
+# real change stands out from noise.
+samples: 3
 timeout_ms: 720000

@@ -29,6 +29,21 @@ export const ScenarioSchema = z.object({
   fixture: z.string().regex(/^[a-z0-9-]+$/),
 
   /**
+   * Optional name of a *no-harness twin* fixture under `evals/fixtures/`.
+   * Used by `--control` mode: when present, the runner runs the scenario
+   * twice — once against `fixture` (harnessed) and once against
+   * `control_fixture` (content-only) — and reports the per-scenario delta.
+   *
+   * The twin must have a `.fixture.json` declaring `harness: false`. The
+   * runner copies its contents verbatim as the project root, with no
+   * seeds, no `AGENTS.md`, no `.cursor/` rules / skills / commands. The
+   * agent gets the same project *facts* but none of the harness's
+   * organization, retrieval, or rules — so the delta isolates the
+   * harness's contribution to self-steering.
+   */
+  control_fixture: z.string().regex(/^[a-z0-9-]+$/).optional(),
+
+  /**
    * Sequence of user messages, one per turn. The runner sends them through
    * a single `Agent.create()` session in order, accumulating context as a
    * real Cursor conversation. Single-turn scenarios are just `[oneMessage]`.
@@ -156,11 +171,53 @@ export interface RunMeta {
   host: string;
 }
 
+/**
+ * Which fixture condition this result corresponds to.
+ *
+ * - `"harnessed"` — agent ran against the scenario's primary `fixture`,
+ *   which provides the full harness (rules, skills, primer, schemas,
+ *   registry). The default — every result has this in single-condition runs.
+ * - `"content-only"` — agent ran against the no-harness twin
+ *   (`control_fixture`). Same project facts on disk, no harness wiring.
+ *   Only present in `--control` runs.
+ *
+ * Absent on legacy reports (pre-v0.6.0); readers should treat
+ * `condition === undefined` as `"harnessed"`.
+ */
+export type FixtureCondition = "harnessed" | "content-only";
+
 export interface ScenarioResult {
   scenario_id: string;
   title: string;
+  /**
+   * Which fixture condition this result is for. Optional for backwards
+   * compatibility with pre-v0.6.0 baselines (treat undefined as "harnessed").
+   */
+  condition?: FixtureCondition;
+  /** Pass verdict: `score >= scenario.pass_threshold` (mean across samples). */
   passed: boolean;
+  /** Mean score across samples in [0,1]. */
   score: number;
+  /**
+   * Lowest per-sample score in [0,1]. Equals `score` when samples = 1.
+   * The spread between `score_min` and `score_max` is the noise floor —
+   * a real change should move `score_min` *and* `score_max`, not just the mean.
+   */
+  score_min: number;
+  /** Highest per-sample score in [0,1]. */
+  score_max: number;
+  /**
+   * Population standard deviation of per-sample scores. Zero for
+   * single-sample runs. Useful for quick "is this scenario noisy?" reads.
+   */
+  score_stddev: number;
+  /**
+   * Fraction of samples that individually passed (judge.passed = true) in
+   * [0,1]. Length-of-`samples` granularity. With samples=3, "2/3 samples
+   * passed" surfaces as `pass_rate = 0.667` — a richer signal than the
+   * mean-thresholded `passed` verdict alone.
+   */
+  pass_rate: number;
   /** Per-sample raw judge responses (length = scenario.samples). */
   samples: JudgeResponse[];
   /** Median wall-clock across samples (ms). */
@@ -194,6 +251,13 @@ export interface RunReport {
  */
 export interface ScenarioRunRecord {
   scenario: Scenario;
+  /**
+   * Which fixture this set of samples was produced against. Set by the
+   * runner; absent in pre-v0.6.0 records (treated as "harnessed"). When
+   * a scenario is run in `--control` mode, two records are produced —
+   * one tagged "harnessed", one tagged "content-only".
+   */
+  condition?: FixtureCondition;
   samples: Array<{
     judge: JudgeResponse | null;
     duration_ms: number;

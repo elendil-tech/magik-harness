@@ -19,6 +19,14 @@ import assert from "node:assert/strict";
 import { loadScenario } from "../evals/runner/scenario.ts";
 import { buildFixture } from "../evals/runner/fixture.ts";
 import { parseParamCsv } from "../evals/runner/judge.ts";
+import {
+  checkRegression,
+  DEFAULT_REGRESSION_TOLERANCE,
+} from "../evals/runner/regression.ts";
+import type {
+  RunReport,
+  ScenarioResult,
+} from "../evals/runner/types.ts";
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(TEST_DIR);
@@ -352,4 +360,214 @@ test("fixture builder — overlay file content is what ends up at the destinatio
   } finally {
     built.cleanup();
   }
+});
+
+// --- Regression gate -------------------------------------------------------
+
+function makeScenarioResult(
+  scenarioId: string,
+  score: number,
+  condition?: ScenarioResult["condition"],
+): ScenarioResult {
+  return {
+    scenario_id: scenarioId,
+    title: scenarioId,
+    condition,
+    passed: score >= 0.7,
+    score,
+    score_min: score,
+    score_max: score,
+    score_stddev: 0,
+    pass_rate: score >= 0.7 ? 1 : 0,
+    samples: [],
+    duration_ms: 0,
+    transcript_chars: 0,
+    status: "ok",
+  };
+}
+
+function makeReport(scenarios: ScenarioResult[]): RunReport {
+  return {
+    meta: {
+      timestamp: "1970-01-01T00:00:00.000Z",
+      plugin_version: "0.0.0-test",
+      agent_model: "test-agent",
+      agent_params: [],
+      judge_model: "test-judge",
+      judge_params: [],
+      cursor_sdk_version: "test",
+      host: "test",
+    },
+    scenarios,
+    summary: {
+      total: scenarios.length,
+      passed: 0,
+      failed: 0,
+      skipped: 0,
+      mean_score: 0,
+      weighted_score: 0,
+    },
+  };
+}
+
+function writeBaseline(report: RunReport): {
+  path: string;
+  cleanup: () => void;
+} {
+  const dir = mkdtempSync(join(tmpdir(), "magik-regression-test-"));
+  const path = join(dir, "baseline.json");
+  writeFileSync(path, JSON.stringify(report));
+  return { path, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
+}
+
+test("regression gate — clean run flags zero regressions", () => {
+  const baseline = makeReport([
+    makeScenarioResult("01-foo", 0.8, "harnessed"),
+    makeScenarioResult("02-bar", 0.7, "harnessed"),
+  ]);
+  const current = makeReport([
+    makeScenarioResult("01-foo", 0.8, "harnessed"),
+    makeScenarioResult("02-bar", 0.72, "harnessed"),
+  ]);
+  const { path, cleanup } = writeBaseline(baseline);
+  try {
+    const r = checkRegression(current, path);
+    assert.equal(r.regressions.length, 0);
+    assert.equal(r.entries.length, 2);
+    for (const e of r.entries) assert.equal(e.status, "compared");
+  } finally {
+    cleanup();
+  }
+});
+
+test("regression gate — flags scenarios that drop more than the tolerance", () => {
+  const baseline = makeReport([makeScenarioResult("01-foo", 0.8, "harnessed")]);
+  // 0.8 -> 0.6 = -20pp, which is beyond the default 15pp tolerance.
+  const current = makeReport([makeScenarioResult("01-foo", 0.6, "harnessed")]);
+  const { path, cleanup } = writeBaseline(baseline);
+  try {
+    const r = checkRegression(current, path);
+    assert.equal(r.regressions.length, 1);
+    const reg = r.regressions[0]!;
+    assert.equal(reg.scenario_id, "01-foo");
+    assert.ok(reg.is_regression);
+    assert.ok(reg.delta < -DEFAULT_REGRESSION_TOLERANCE);
+  } finally {
+    cleanup();
+  }
+});
+
+test("regression gate — dips within tolerance are NOT regressions", () => {
+  const baseline = makeReport([makeScenarioResult("01-foo", 0.8, "harnessed")]);
+  // 0.8 -> 0.7 = -10pp, within the 15pp tolerance.
+  const current = makeReport([makeScenarioResult("01-foo", 0.7, "harnessed")]);
+  const { path, cleanup } = writeBaseline(baseline);
+  try {
+    const r = checkRegression(current, path);
+    assert.equal(
+      r.regressions.length,
+      0,
+      "a 10pp dip is within tolerance and must not be flagged",
+    );
+    assert.equal(r.entries.length, 1);
+    assert.equal(r.entries[0]!.status, "compared");
+  } finally {
+    cleanup();
+  }
+});
+
+test("regression gate — improvements over baseline are never flagged", () => {
+  const baseline = makeReport([makeScenarioResult("01-foo", 0.5, "harnessed")]);
+  const current = makeReport([makeScenarioResult("01-foo", 0.9, "harnessed")]);
+  const { path, cleanup } = writeBaseline(baseline);
+  try {
+    const r = checkRegression(current, path);
+    assert.equal(r.regressions.length, 0);
+    assert.ok(
+      r.entries[0]!.delta > 0,
+      "a positive delta must not be a regression regardless of magnitude",
+    );
+  } finally {
+    cleanup();
+  }
+});
+
+test("regression gate — pairs by (scenario_id, condition); harnessed and content-only compared independently", () => {
+  const baseline = makeReport([
+    makeScenarioResult("01-foo", 0.9, "harnessed"),
+    makeScenarioResult("01-foo", 0.5, "content-only"),
+  ]);
+  // Harnessed regresses by 30pp; content-only improves by 30pp. The
+  // harnessed regression must still be flagged even though the *mean*
+  // is unchanged.
+  const current = makeReport([
+    makeScenarioResult("01-foo", 0.6, "harnessed"),
+    makeScenarioResult("01-foo", 0.8, "content-only"),
+  ]);
+  const { path, cleanup } = writeBaseline(baseline);
+  try {
+    const r = checkRegression(current, path);
+    assert.equal(r.regressions.length, 1);
+    assert.equal(r.regressions[0]!.condition, "harnessed");
+    assert.equal(r.regressions[0]!.scenario_id, "01-foo");
+  } finally {
+    cleanup();
+  }
+});
+
+test("regression gate — pre-v0.6.0 baseline (no condition) matches current run's harnessed", () => {
+  const baseline = makeReport([makeScenarioResult("01-foo", 0.8 /* no condition */)]);
+  const current = makeReport([makeScenarioResult("01-foo", 0.5, "harnessed")]);
+  const { path, cleanup } = writeBaseline(baseline);
+  try {
+    const r = checkRegression(current, path);
+    assert.equal(r.regressions.length, 1, "legacy baseline must pair with harnessed");
+    assert.equal(r.regressions[0]!.scenario_id, "01-foo");
+  } finally {
+    cleanup();
+  }
+});
+
+test("regression gate — entries present in only one side are surfaced but not flagged", () => {
+  const baseline = makeReport([
+    makeScenarioResult("01-old-only", 0.9, "harnessed"),
+    makeScenarioResult("02-shared", 0.7, "harnessed"),
+  ]);
+  const current = makeReport([
+    makeScenarioResult("02-shared", 0.7, "harnessed"),
+    makeScenarioResult("03-new-only", 0.8, "harnessed"),
+  ]);
+  const { path, cleanup } = writeBaseline(baseline);
+  try {
+    const r = checkRegression(current, path);
+    assert.equal(r.regressions.length, 0);
+    const oldOnly = r.entries.find((e) => e.scenario_id === "01-old-only");
+    const newOnly = r.entries.find((e) => e.scenario_id === "03-new-only");
+    assert.equal(oldOnly?.status, "baseline-only");
+    assert.equal(newOnly?.status, "current-only");
+  } finally {
+    cleanup();
+  }
+});
+
+test("regression gate — custom tolerance overrides the default", () => {
+  const baseline = makeReport([makeScenarioResult("01-foo", 0.8, "harnessed")]);
+  const current = makeReport([makeScenarioResult("01-foo", 0.7, "harnessed")]);
+  // 10pp dip — within the default 15pp tolerance, but BEYOND a 5pp tolerance.
+  const { path, cleanup } = writeBaseline(baseline);
+  try {
+    const lenient = checkRegression(current, path);
+    assert.equal(lenient.regressions.length, 0);
+    const strict = checkRegression(current, path, { tolerance: 0.05 });
+    assert.equal(strict.regressions.length, 1);
+  } finally {
+    cleanup();
+  }
+});
+
+test("regression gate — invalid baseline path throws a clear error", () => {
+  assert.throws(
+    () => checkRegression(makeReport([]), "/nonexistent/path/baseline.json"),
+    /failed to read baseline/,
+  );
 });

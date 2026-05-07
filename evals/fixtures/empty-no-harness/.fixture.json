@@ -1,0 +1,6 @@
+{
+  "harness": false,
+  "description": "Bare project — no harness wiring, no docs, no .cursor/, no AGENTS.md, no domain registry. Twin of `empty-harnessed-with-domains`. The `empty-harnessed-with-domains` fixture exists to test agent behavior on a fresh harnessed project with a populated registry; this twin removes the harness entirely so the delta isolates the harness's contribution to contract adherence (propose-then-apply, memory-first, read-first) and self-steering.",
+  "twin_of": "empty-harnessed-with-domains",
+  "purpose": "Used by --control mode. The empty-harnessed-with-domains fixture seeds a populated registry — but the registry itself is a harness concept, so the content-only twin doesn't have one. The model gets a bare project and is asked the same questions; the delta measures the harness's behavioral contribution (which is most of what scenarios 02 + 03 test)."
+}

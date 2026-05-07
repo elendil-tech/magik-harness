@@ -29,6 +29,18 @@ function median(nums: number[]): number {
   return s.length % 2 === 0 ? (s[mid - 1]! + s[mid]!) / 2 : s[mid]!;
 }
 
+/**
+ * Population standard deviation. Returns 0 for a single-sample input —
+ * the report treats samples=1 as "no variance estimate" rather than NaN.
+ */
+function stddev(nums: number[]): number {
+  if (nums.length <= 1) return 0;
+  const mean = nums.reduce((a, n) => a + n, 0) / nums.length;
+  const variance =
+    nums.reduce((a, n) => a + (n - mean) ** 2, 0) / nums.length;
+  return Math.sqrt(variance);
+}
+
 function aggregateScenario(rec: ScenarioRunRecord): ScenarioResult {
   const judges = rec.samples
     .map((s) => s.judge)
@@ -39,8 +51,13 @@ function aggregateScenario(rec: ScenarioRunRecord): ScenarioResult {
     return {
       scenario_id: rec.scenario.id,
       title: rec.scenario.title,
+      condition: rec.condition,
       passed: false,
       score: 0,
+      score_min: 0,
+      score_max: 0,
+      score_stddev: 0,
+      pass_rate: 0,
       samples: [],
       duration_ms: median(rec.samples.map((s) => s.duration_ms)),
       transcript_chars: rec.samples.reduce(
@@ -56,13 +73,21 @@ function aggregateScenario(rec: ScenarioRunRecord): ScenarioResult {
     };
   }
 
-  const meanScore =
-    judges.reduce((a, j) => a + j.score, 0) / judges.length;
+  const scores = judges.map((j) => j.score);
+  const meanScore = scores.reduce((a, s) => a + s, 0) / scores.length;
+  const passRate =
+    judges.filter((j) => j.passed).length / judges.length;
+
   return {
     scenario_id: rec.scenario.id,
     title: rec.scenario.title,
+    condition: rec.condition,
     samples: judges,
     score: meanScore,
+    score_min: Math.min(...scores),
+    score_max: Math.max(...scores),
+    score_stddev: stddev(scores),
+    pass_rate: passRate,
     passed: meanScore >= rec.scenario.pass_threshold,
     duration_ms: median(rec.samples.map((s) => s.duration_ms)),
     transcript_chars: rec.samples.reduce(
@@ -132,6 +157,10 @@ export function writeReport(report: RunReport): string {
  * file tells you *why*. The transcript captures everything the
  * judge saw — text, tools_invoked, files_read, files_written.
  *
+ * `sampleTag` is either a 0-based sample index (single-condition runs)
+ * or a `${condition}-${idx}` string (control-mode runs, so transcripts
+ * from the two conditions don't overwrite each other).
+ *
  * Returns the absolute path written. Never throws on disk errors —
  * a failed transcript dump is a debugging convenience, not a
  * blocking concern; the caller logs and moves on.
@@ -139,19 +168,21 @@ export function writeReport(report: RunReport): string {
 export function writeTranscript(
   meta: RunMeta,
   scenarioId: string,
-  sampleIdx: number,
+  sampleTag: number | string,
   transcript: AgentTranscript,
 ): string | null {
   try {
     if (!existsSync(RESULTS_DIR)) mkdirSync(RESULTS_DIR, { recursive: true });
     const stamp = meta.timestamp.replace(/[:.]/g, "-");
-    const filename = `${stamp}__${scenarioId}__sample-${sampleIdx + 1}.transcript.json`;
+    const slug =
+      typeof sampleTag === "number" ? `sample-${sampleTag + 1}` : sampleTag;
+    const filename = `${stamp}__${scenarioId}__${slug}.transcript.json`;
     const path = join(RESULTS_DIR, filename);
     const body = {
       meta: {
         timestamp: meta.timestamp,
         scenario_id: scenarioId,
-        sample_index: sampleIdx,
+        sample_tag: sampleTag,
         agent_model: meta.agent_model,
         agent_params: meta.agent_params,
       },
@@ -167,6 +198,10 @@ export function writeTranscript(
 export function printSummary(report: RunReport): void {
   const { summary, scenarios, meta } = report;
   const pct = (n: number): string => `${(n * 100).toFixed(1)}%`;
+  const ppDelta = (n: number): string => {
+    const v = (n * 100).toFixed(1);
+    return n >= 0 ? `+${v}pp` : `${v}pp`;
+  };
 
   console.log("");
   console.log("─".repeat(64));
@@ -181,7 +216,57 @@ export function printSummary(report: RunReport): void {
   console.log(`  cursor sdk: ${meta.cursor_sdk_version}`);
   console.log("─".repeat(64));
 
+  // Group results by scenario_id so control-mode runs render the two
+  // conditions together (with the delta) rather than as separate rows
+  // far apart in the report. Single-condition runs still render one
+  // row per scenario.
+  const byScenario = new Map<string, ScenarioResult[]>();
   for (const s of scenarios) {
+    const list = byScenario.get(s.scenario_id) ?? [];
+    list.push(s);
+    byScenario.set(s.scenario_id, list);
+  }
+
+  for (const [scenarioId, group] of byScenario) {
+    // Single condition (the common case): one row, same as before.
+    if (group.length === 1) {
+      printScenarioRow(group[0]!, "");
+      continue;
+    }
+
+    // Multi-condition (control mode): render harnessed first, then
+    // content-only, then a delta line. Order is deterministic: harnessed
+    // before content-only, then anything else by string sort (defensive).
+    const sorted = [...group].sort((a, b) => {
+      const order = (c?: string): number =>
+        c === "harnessed" ? 0 : c === "content-only" ? 1 : 2;
+      return order(a.condition) - order(b.condition);
+    });
+    console.log(`  ${scenarioId}`);
+    for (const s of sorted) {
+      const condTag = s.condition ?? "harnessed";
+      printScenarioRow(s, `[${condTag}]`, /*indent*/ true);
+    }
+    const harnessed = sorted.find((s) => s.condition === "harnessed");
+    const content = sorted.find((s) => s.condition === "content-only");
+    if (
+      harnessed &&
+      content &&
+      harnessed.status === "ok" &&
+      content.status === "ok"
+    ) {
+      const delta = harnessed.score - content.score;
+      console.log(
+        `      delta ${ppDelta(delta).padStart(8)}   (harnessed − content-only)`,
+      );
+    }
+  }
+
+  function printScenarioRow(
+    s: ScenarioResult,
+    suffix: string,
+    indent: boolean = false,
+  ): void {
     const tag =
       s.status === "ok"
         ? s.passed
@@ -189,10 +274,21 @@ export function printSummary(report: RunReport): void {
           : "FAIL"
         : s.status.toUpperCase();
     const score = s.status === "ok" ? pct(s.score) : "—";
+    const lead = indent ? "    " : "  ";
+    const idCol = indent ? suffix : `${s.scenario_id} ${suffix}`.trim();
     console.log(
-      `  ${tag.padEnd(13)} ${s.scenario_id.padEnd(36)} ${score.padStart(7)}   (${(s.duration_ms / 1000).toFixed(1)}s)`,
+      `${lead}${tag.padEnd(13)} ${idCol.padEnd(36)} ${score.padStart(7)}   (${(s.duration_ms / 1000).toFixed(1)}s)`,
     );
-    if (s.error) console.log(`                ↳ ${s.error}`);
+    if (s.status === "ok" && s.samples.length > 1) {
+      const passedCount = Math.round(s.pass_rate * s.samples.length);
+      console.log(
+        `${lead}            ↳ ${s.samples.length} samples · ` +
+          `range ${pct(s.score_min)}–${pct(s.score_max)} · ` +
+          `σ=${(s.score_stddev * 100).toFixed(1)}pp · ` +
+          `${passedCount}/${s.samples.length} samples passed`,
+      );
+    }
+    if (s.error) console.log(`${lead}            ↳ ${s.error}`);
   }
 
   console.log("─".repeat(64));
@@ -202,5 +298,29 @@ export function printSummary(report: RunReport): void {
   console.log(
     `  mean score: ${pct(summary.mean_score)} · weighted: ${pct(summary.weighted_score)}`,
   );
+
+  // In control mode, also print an aggregate delta across all scenarios
+  // that had both conditions. It's a one-number "did the harness help?"
+  // signal — but read it alongside the per-scenario deltas, since a
+  // mean can hide one-scenario regressions.
+  const paired: Array<{ scenarioId: string; delta: number }> = [];
+  for (const [scenarioId, group] of byScenario) {
+    const harnessed = group.find(
+      (s) => s.condition === "harnessed" && s.status === "ok",
+    );
+    const content = group.find(
+      (s) => s.condition === "content-only" && s.status === "ok",
+    );
+    if (harnessed && content) {
+      paired.push({ scenarioId, delta: harnessed.score - content.score });
+    }
+  }
+  if (paired.length > 0) {
+    const meanDelta =
+      paired.reduce((a, p) => a + p.delta, 0) / paired.length;
+    console.log(
+      `  control: ${paired.length} scenario(s) paired · mean delta ${ppDelta(meanDelta)} (harnessed − content-only)`,
+    );
+  }
   console.log("─".repeat(64));
 }

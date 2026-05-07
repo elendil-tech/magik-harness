@@ -9,10 +9,43 @@
  *                         tokens or needing CURSOR_API_KEY.
  *   --only <id>           Run only the scenario with the given id.
  *   --keep                Keep fixture tmp dirs after the run (debugging).
+ *   --samples <n>         Override every scenario's `samples:` for this run.
+ *                         Useful for fast wiring checks (`--samples 1`) or
+ *                         a one-off noise study (`--samples 5`). Does not
+ *                         persist into the YAML.
  *
- *   --agent-model <id>    Override agent model (default: gemini-3.1-pro).
+ *   --control             Run each scenario in two conditions: harnessed
+ *                         (the scenario's primary `fixture`) and content-
+ *                         only (the scenario's `control_fixture` twin).
+ *                         The report renders the per-scenario delta
+ *                         (`harnessed - content-only`), which isolates
+ *                         the harness's contribution to self-steering
+ *                         (content held constant across both runs). A
+ *                         scenario without a `control_fixture` declared
+ *                         is skipped with a warning under `--control`.
+ *
+ *   --baseline <path>     Compare this run's per-scenario means against
+ *                         the baseline file at <path> (a previous
+ *                         RunReport JSON). Always prints a comparison
+ *                         table; exits non-zero (code 3) if any
+ *                         scenario regressed beyond the tolerance
+ *                         (default 15pp).
+ *   --accept-regression   Acknowledge regressions found by --baseline
+ *                         comparison without failing the run. The
+ *                         comparison table still prints; only the exit
+ *                         code is suppressed. Use sparingly — a real
+ *                         regression should usually be investigated.
+ *
+ *   --agent-model <id>    Override agent model (default: gpt-5.3-codex-spark
+ *                         — free, high-volume tier; ideal for the agent
+ *                         under test which runs many turns × samples ×
+ *                         scenarios). Use `--agent-model gemini-3.1-pro`
+ *                         (or set EVAL_AGENT_MODEL) for cross-family
+ *                         portability checks.
  *   --agent-params <kv>   Comma-separated `k=v` SDK params for the agent,
- *                         e.g. "fast=false". Default: none.
+ *                         e.g. "reasoning=high". Default: none. codex-
+ *                         spark exposes `reasoning` (low|medium|high|
+ *                         extra-high); gemini has no tunable params.
  *
  *   --judge-model <id>    Override judge model (default: gemini-3.1-pro).
  *   --judge-params <kv>   Comma-separated `k=v` SDK params for the judge,
@@ -32,6 +65,7 @@
  *   0  every selected scenario passed.
  *   1  CLI / config error (bad flag, missing key, scenario load failure).
  *   2  one or more scenarios failed or skipped (the eval-result exit).
+ *   3  --baseline comparison flagged unaccepted regressions.
  */
 
 // MUST be the first import — loads .env and sets CURSOR_RIPGREP_PATH
@@ -55,10 +89,15 @@ import {
   writeReport,
   writeTranscript,
 } from "./report.ts";
+import {
+  checkRegression,
+  printRegressionReport,
+} from "./regression.ts";
 import { loadScenario, type LoadedScenario } from "./scenario.ts";
 import { runScenarioOnce } from "./runner.ts";
 import type {
   AgentTranscript,
+  FixtureCondition,
   JudgeResponse,
   ModelParam,
   RunMeta,
@@ -70,13 +109,23 @@ const EVALS_DIR = dirname(RUNNER_DIR);
 const PLUGIN_ROOT = dirname(EVALS_DIR);
 const SCENARIOS_DIR = join(EVALS_DIR, "scenarios");
 
-const DEFAULT_AGENT_MODEL = "gemini-3.1-pro";
+// codex-spark is unrestricted on the active CURSOR_API_KEY tier
+// (high-volume inferencing) which fits the agent-under-test profile:
+// many turns × samples × scenarios. The judge is a single transcript-
+// grading call per sample with longer-session shape, so it stays on
+// `gemini-3.1-pro` (low-volume sweet spot). Override either via flags
+// or the EVAL_AGENT_MODEL / EVAL_JUDGE_MODEL env vars.
+const DEFAULT_AGENT_MODEL = "gpt-5.3-codex-spark";
 
 interface CliArgs {
   list: boolean;
   dryRun: boolean;
   only?: string;
   keep: boolean;
+  control: boolean;
+  samplesOverride?: number;
+  baseline?: string;
+  acceptRegression: boolean;
   agentModel?: string;
   agentParams?: ModelParam[];
   judgeModel?: string;
@@ -84,7 +133,13 @@ interface CliArgs {
 }
 
 function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { list: false, dryRun: false, keep: false };
+  const args: CliArgs = {
+    list: false,
+    dryRun: false,
+    keep: false,
+    control: false,
+    acceptRegression: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     switch (a) {
@@ -97,8 +152,26 @@ function parseArgs(argv: string[]): CliArgs {
       case "--keep":
         args.keep = true;
         break;
+      case "--control":
+        args.control = true;
+        break;
       case "--only":
         args.only = argv[++i] ?? requireArg("--only");
+        break;
+      case "--samples": {
+        const raw = argv[++i] ?? requireArg("--samples");
+        const n = Number.parseInt(raw, 10);
+        if (!Number.isFinite(n) || n < 1) {
+          throw new Error(`--samples must be a positive integer, got "${raw}"`);
+        }
+        args.samplesOverride = n;
+        break;
+      }
+      case "--baseline":
+        args.baseline = argv[++i] ?? requireArg("--baseline");
+        break;
+      case "--accept-regression":
+        args.acceptRegression = true;
         break;
       case "--agent-model":
         args.agentModel = argv[++i] ?? requireArg("--agent-model");
@@ -132,12 +205,23 @@ function requireArg(name: string): never {
 }
 
 function printHelp(): void {
-  console.log(`usage: pnpm eval [--list] [--dry-run] [--only <id>] [--keep]
+  console.log(`usage: pnpm eval [--list] [--dry-run] [--only <id>] [--keep] [--control]
+             [--samples <n>] [--baseline <path>] [--accept-regression]
              [--agent-model <id>] [--agent-params "k=v,k2=v2"]
              [--judge-model <id>] [--judge-params "k=v,k2=v2"]
 
-Defaults: agent=gemini-3.1-pro (no params),
-          judge=gemini-3.1-pro (no params).
+Defaults: agent=gpt-5.3-codex-spark (no params; free / high-volume),
+          judge=gemini-3.1-pro (no params; low-volume / longer sessions).
+
+--control runs each scenario in two conditions (harnessed vs. content-only)
+  and reports the delta. Doubles cost and runtime; use when you want to
+  measure the harness's contribution to self-steering. Scenarios without
+  a control_fixture: declared are skipped with a warning under --control.
+
+--baseline <path> compares this run's per-scenario means against the
+  baseline file at <path>. Exits non-zero (code 3) on any regression
+  beyond the tolerance (15pp by default), unless --accept-regression
+  is also passed. The comparison table prints regardless.
 
 Discover available models + their params:
   pnpm exec tsx scripts/inspect-models.ts [filter]
@@ -242,17 +326,59 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Expand scenarios into per-condition execution units. In default mode
+  // each scenario produces one unit (harnessed). Under --control, each
+  // scenario with a `control_fixture` declared produces two units
+  // (harnessed + content-only); scenarios without a twin are skipped
+  // with a warning.
+  interface ExecUnit {
+    scenario: LoadedScenario;
+    condition: FixtureCondition;
+    fixture: string;
+  }
+  const units: ExecUnit[] = [];
+  if (args.control) {
+    for (const s of scenarios) {
+      if (!s.control_fixture) {
+        console.warn(
+          `  warn: scenario "${s.id}" has no control_fixture; skipping under --control`,
+        );
+        continue;
+      }
+      units.push({ scenario: s, condition: "harnessed", fixture: s.fixture });
+      units.push({
+        scenario: s,
+        condition: "content-only",
+        fixture: s.control_fixture,
+      });
+    }
+    if (units.length === 0) {
+      console.error(
+        "error: --control requested but no scenarios have a control_fixture declared.",
+      );
+      process.exit(1);
+    }
+  } else {
+    for (const s of scenarios) {
+      units.push({ scenario: s, condition: "harnessed", fixture: s.fixture });
+    }
+  }
+
   // --dry-run validates the wiring without calling any model API.
   if (args.dryRun) {
+    const mode = args.control ? "control mode (2 conditions)" : "single condition";
     console.log(
-      `dry-run: ${scenarios.length} scenario(s); agent=${agentModel} ${formatParams(agentParams)} | judge=${judgeModel} ${formatParams(judgeParams)}`,
+      `dry-run: ${scenarios.length} scenario(s) → ${units.length} unit(s) [${mode}]; agent=${agentModel} ${formatParams(agentParams)} | judge=${judgeModel} ${formatParams(judgeParams)}`,
     );
-    for (const s of scenarios) {
-      console.log(`  validating ${s.id} (${s.turns.length} turn(s))…`);
-      const built = buildFixture({ fixture: s.fixture });
+    for (const u of units) {
+      const tag = args.control ? ` [${u.condition}]` : "";
+      console.log(
+        `  validating ${u.scenario.id}${tag} (${u.scenario.turns.length} turn(s))…`,
+      );
+      const built = buildFixture({ fixture: u.fixture });
       try {
         console.log(
-          `    fixture ok: ${built.projectRoot} (${built.overlayFiles.length} overlay file(s))`,
+          `    fixture ok: ${built.projectRoot} (harness=${built.harness}, ${built.overlayFiles.length} file(s))`,
         );
       } finally {
         if (!args.keep) built.cleanup();
@@ -281,19 +407,27 @@ async function main(): Promise<void> {
     host: process.env.CI ? "ci" : hostname(),
   };
 
+  const modeNote = args.control
+    ? ` [control mode: ${scenarios.length} scenario(s) × 2 conditions]`
+    : "";
   console.log(
-    `running ${scenarios.length} scenario(s) — agent=${agentModel} ${formatParams(agentParams)} | judge=${judgeModel} ${formatParams(judgeParams)}`,
+    `running ${units.length} unit(s)${modeNote} — agent=${agentModel} ${formatParams(agentParams)} | judge=${judgeModel} ${formatParams(judgeParams)}`,
   );
 
   const records: ScenarioRunRecord[] = [];
 
-  for (const scenario of scenarios) {
-    process.stdout.write(`▶ ${scenario.id} (${scenario.turns.length} turns) `);
+  for (const unit of units) {
+    const { scenario, condition, fixture } = unit;
+    const tag = args.control ? ` [${condition}]` : "";
+    process.stdout.write(
+      `▶ ${scenario.id}${tag} (${scenario.turns.length} turns) `,
+    );
     const samples: ScenarioRunRecord["samples"] = [];
+    const sampleCount = args.samplesOverride ?? scenario.samples;
 
-    for (let i = 0; i < scenario.samples; i++) {
-      process.stdout.write(`[${i + 1}/${scenario.samples}] `);
-      const built = buildFixture({ fixture: scenario.fixture });
+    for (let i = 0; i < sampleCount; i++) {
+      process.stdout.write(`[${i + 1}/${sampleCount}] `);
+      const built = buildFixture({ fixture });
       let runOk = true;
       let agentTranscript: AgentTranscript | null = null;
       let judgeRes: JudgeResponse | null = null;
@@ -329,8 +463,12 @@ async function main(): Promise<void> {
       if (agentTranscript) {
         // Persist the transcript even if the judge later errors —
         // the transcript is exactly what we need to diagnose either
-        // a low score or a judge failure.
-        writeTranscript(meta, scenario.id, i, agentTranscript);
+        // a low score or a judge failure. In control mode we tag the
+        // sample slug with the condition so files don't collide.
+        const sampleTag: number | string = args.control
+          ? `${condition}-sample-${i + 1}`
+          : i;
+        writeTranscript(meta, scenario.id, sampleTag, agentTranscript);
       }
 
       if (runOk && agentTranscript) {
@@ -353,7 +491,7 @@ async function main(): Promise<void> {
       });
     }
 
-    records.push({ scenario, samples });
+    records.push({ scenario, condition, samples });
 
     const lastJudge = samples[samples.length - 1]?.judge;
     if (lastJudge) {
@@ -371,6 +509,27 @@ async function main(): Promise<void> {
   printSummary(report);
   console.log(`\nresults written to: ${path}`);
 
+  let regressionFailed = false;
+  if (args.baseline) {
+    try {
+      const regressionReport = checkRegression(report, args.baseline);
+      printRegressionReport(regressionReport);
+      if (regressionReport.regressions.length > 0) {
+        if (args.acceptRegression) {
+          console.log(
+            "  --accept-regression set: regressions ack'd; not failing the run.",
+          );
+        } else {
+          regressionFailed = true;
+        }
+      }
+    } catch (err) {
+      console.error(`error: regression check failed: ${(err as Error).message}`);
+      process.exit(1);
+    }
+  }
+
+  if (regressionFailed) process.exit(3);
   process.exit(report.summary.failed + report.summary.skipped > 0 ? 2 : 0);
 }
 
