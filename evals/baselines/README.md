@@ -69,10 +69,10 @@ First eval-driven harness sharpening release. Three independent changes contribu
 
 ## v0.6.0 — gpt-5.3-codex-spark agent, gemini-3.1-pro judge, control mode
 
-**Headline (harnessed condition): 73.3% mean · 3 pass / 1 fail / 0 skip out of 4 scenarios.**
-**Mean control-mode delta: +52.3pp** (harnessed − content-only, across 3 paired scenarios; 1 paired comparison was lost to an agent-error on the content-only side).
+**Headline (harnessed condition): 66.8% mean · 3 pass / 2 fail / 0 skip out of 5 scenarios.**
+**Mean control-mode delta: +52.3pp** (harnessed − content-only, across 3 paired scenarios; 2 paired comparisons were lost to agent-errors on the content-only side, both on scenarios where the harness's structural scaffolding is most load-bearing).
 
-First v0.6.0 baseline. Three structural changes from v0.4.2:
+First v0.6.0 baseline. Captured as a samples=1 smoke that locked the new control-mode infrastructure end-to-end. Then extended *post-tag* with a fifth scenario (`05-domain-split-proactive`) that targets the harness's most ambitious claim — proactive structural self-steering. Three structural changes from v0.4.2:
 
 1. **Agent moved from `gemini-3.1-pro` to `gpt-5.3-codex-spark`.** Free / high-volume on the active `CURSOR_API_KEY` tier. Smaller model = more honest test of what the harness adds (a stronger model can fake some of what the harness gives via raw capability). Judge stayed on `gemini-3.1-pro` (low-volume, longer-session profile fits transcript grading).
 2. **Control mode landed.** Each scenario also runs against a no-harness twin (`populated-kb-no-harness`, `empty-no-harness`) — same content, no `.cursor/`, no `AGENTS.md`, no `knowledge/_meta/`. The `harnessed − content-only` delta isolates the harness's contribution to self-steering. This is the load-bearing signal of the eval suite.
@@ -84,6 +84,7 @@ First v0.6.0 baseline. Three structural changes from v0.4.2:
 | 02-propose-not-apply | 50% | **88%** | **+38** | 25% | **+62.5pp** |
 | 03-memory-write-discipline | 75% | 75% | 0 | 25% | **+50.0pp** |
 | 04-memory-doesnt-leak | _(new)_ | 56% | _(new)_ | 11% | **+44.5pp** |
+| 05-domain-split-proactive | _(new)_ | **41%** | _(new)_ | — _(agent-error)_ | — |
 
 ### What this baseline says
 
@@ -103,8 +104,21 @@ The v0.6.0 baseline above is **not** re-run — the captured measurement is corr
 
 **The agent-error on `01-read-first-gate` content-only.** Turn 3 hit `run.status=error` from the SDK after 130s. Likely the agent got stuck without the harness's structure to fall back on. Doesn't recur on harnessed runs (which scored 75% in 33s). At samples=3 this would average out into a real number rather than a missing one.
 
+**`05-domain-split-proactive` (harnessed) at 41% — the harness's central self-steering claim has a real gap.** This is the load-bearing finding of the v0.6.0 baseline. The harness's claim is "agent self-steers as the repo evolves" — applying the five organizing principles, the five operations, the registry-as-spine to manage structural change *without being asked*. Scenario 05 stress-tests that claim: marketing/ has fragmented across 8 entries in three obviously distinct content shapes (brand-voice / paid-acquisition / content-ops), and the user asks to capture a 9th. A self-steering agent should notice the saturation, surface it, and propose a Split.
+
+The agent at v0.6.0 *engaged with* the harness — it ran the read-first gate (read 6 marketing entries before writing), it consulted the policy schema, it dropped a memory-staging note, it followed propose-not-apply on turn 2. Every contract that has *imperative* always-loaded language landed. But the contracts that depend on the agent looking at the room and reasoning about structure — the five-principles vocabulary, the five-operations vocabulary, the registry-as-spine — landed at 0/6 expectations:
+
+- **T1**: Did not surface that marketing/ has fragmented. Wrote the new entry silently. The pattern was literally in the files it had just read; the agent did not *look* at the shape of what it was reading.
+- **T2**: Misinterpreted "split it" colloquially — split the new policy into three files (policy + measurement spec + audit spec), a reasonable writing decision but the wrong scope. Did not name the five principles. Did not propose any registry operation.
+- **T3**: Applied the policy split. Did not touch `knowledge/_meta/domains.md`. Registry-as-spine is silent.
+
+The diagnosis is precise: **the harness's KB-hygiene contracts are landing as imperatives; the structural-self-steering contracts are landing as optional.** Read-first, propose-not-apply, memory-staging — all in the always-loaded primer's "Mandatory protocols" section, all working. Five principles, five operations as registry vocabulary, "look at the room" — all in *on-demand* rules and skills (`scaffolding.mdc`, `domain-registry/SKILL.md`), and a normal capture request never demands them.
+
+The minimum change for v0.7.0 is to lift the structural-reflection prompt into the always-loaded layer: **after every read against an existing domain, ask whether the domain still passes the five principles**. Probably: a new mandatory protocol in the primer ("Read the room before you write to it"), and a one-line cue at the end of `kb-search` results pointing the agent at `domain-registry` if the room is fragmenting. Not a rewrite of the rules — a *promotion* of the structural-reflection contract from on-demand to always-on.
+
 ### Next iteration
 
-- **Capture a samples=3 v0.6.0 baseline** to replace this samples=1 one. Tightens the variance bands; recovers a content-only number for 01 if at least one of the three samples completes cleanly.
-- **The memory-doesnt-leak finding is closed by the post-baseline structural fix (above).** No rules / primer changes needed. The next baseline that runs against the fixed builder will quantify the lift; expectation is scenario 04 passes at 80%+ with the gitignore in place.
+- **Capture a samples=3 v0.6.0 baseline** to replace this samples=1 one. Tightens the variance bands; recovers content-only numbers for 01 and 05 if at least one of the three samples completes cleanly. Particularly important for 05 — at samples=1 the score is single-shot and we don't know if 41% is its mean or its tail.
+- **The memory-doesnt-leak finding (`04`) is closed by the post-baseline gitignore-materialization fix.** No rules / primer changes needed. The next baseline that runs against the fixed builder will quantify the lift; expectation is scenario 04 passes at 80%+ with the gitignore in place.
+- **The domain-split finding (`05`) is the v0.7.0 priority** and is *not* closed structurally. It needs a primer-level lift of the structural-reflection contract from "on-demand rule" to "mandatory protocol" — see the diagnosis above. The fix is small and composable; the eval will quantify the lift.
 - **Pre-v0.6.0 baselines (v0.4.1, v0.4.2) lack a `condition` field.** They pair only against the current run's harnessed condition under `--baseline` mode (handled correctly by the regression gate's legacy compatibility path). Direct comparison against v0.6.0 is therefore harnessed-vs-harnessed; the +52.3pp control-mode delta is a v0.6.0+ signal.

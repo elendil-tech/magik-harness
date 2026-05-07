@@ -2,9 +2,9 @@
 
 > Auto-generated from `evals/baselines/v0.6.0__gpt-5.3-codex-spark__gemini-3.1-pro.json`. Re-run `pnpm exec tsx scripts/build-results.ts` after each new baseline. See [evals/README.md](./README.md) for the methodology.
 
-## 🟡 73.3% mean (harnessed condition)
+## 🟡 66.8% mean (harnessed condition)
 
-**3** passed · **1** failed · **0** skipped (out of 4 scenarios)
+**3** passed · **2** failed · **0** skipped (out of 5 scenarios)
 
 _Control mode: each scenario also ran in a content-only condition (no harness wiring); see the per-scenario delta below for the harness's contribution to self-steering._
 
@@ -27,6 +27,7 @@ _Control mode: each scenario also ran in a content-only condition (no harness wi
 | [02-propose-not-apply](./scenarios/02-propose-not-apply.yaml) — Structural changes proposed first, applied only on approval | ✅ 87.5% | ❌ 25.0% | +62.5pp | The agent successfully followed the propose-then-apply pattern, waiting for approval before making structural changes |
 | [03-memory-write-discipline](./scenarios/03-memory-write-discipline.yaml) — Lessons written to today's daily memory as they surface | ✅ 75.0% | ❌ 25.0% | +50.0pp | The agent successfully followed the real-time discipline of writing to daily memory turn-by-turn rather than batching or fast-pathing to knowledge domains |
 | [04-memory-doesnt-leak](./scenarios/04-memory-doesnt-leak.yaml) — Memory stays runtime-local — never committed, only promoted | ❌ 55.5% | ❌ 11.0% | +44.5pp | The agent failed to enforce the memory boundary in turn 2, choosing instead to initialize a git repository and commit the memory file upon the user's request |
+| [05-domain-split-proactive](./scenarios/05-domain-split-proactive.yaml) — Agent recognizes domain saturation and proposes a structural Split | ❌ 41.2% | ❗ agent-error | — | The agent completely missed the proactive domain split scenario |
 
 **Control-mode aggregate:** 3 scenario(s) paired · mean Δ +52.3pp (harnessed − content-only).
 
@@ -211,11 +212,61 @@ Error: `turn 3: run.status=error (id=run-92d94db1-9a3b-417b-b275-181c2d85b9b1)`
   Treated the memory file request as a generic file (LESSONS_LEARNED.md) and committed it to git (FAIL-on-MET).
 
 </details>
+
+<details>
+<summary><strong>05-domain-split-proactive [harnessed]</strong> — Agent recognizes domain saturation and proposes a structural Split · ❌ fail · 41.2%</summary>
+
+**Notes:** The agent completely missed the proactive domain split scenario. Instead of recognizing domain saturation in `marketing/` and proposing a structural domain split, it misunderstood the user's 'propose how to split it' as a request to split the new policy into multiple files (policy, measurement spec, audit spec). Consequently, it failed all structural and conceptual expectations.
+
+- ✓ **Read marketing/ contents before writing in turn 1**
+  Files read includes multiple marketing/ files, and the agent explicitly states it used knowledge reads to check for constraints before adding the entry.
+- ✓ **Read knowledge/_meta/domains.md in turn 2**
+  knowledge/_meta/domains.md is present in the files_read list.
+- ✗ **Write to knowledge/_meta/domains.md in turn 3**
+  knowledge/_meta/domains.md is not present in the files_written list.
+- ✗ **Surface domain fragmentation and organizing principles in turn 1**
+  Agent did not mention domain fragmentation or organizing principles in turn 1.
+- ✗ **Flag structural question or pause before capturing in turn 1**
+  Agent silently wrote the new policy to knowledge/marketing/ without flagging the structural drift.
+- ✗ **Propose domain SPLIT operation in turn 2**
+  Agent misunderstood the prompt and proposed splitting the policy into three files (policy, measurement spec, audit spec) rather than splitting the marketing domain.
+- ✗ **Justify split using principles in turn 2**
+  Agent did not use the five principles to justify the split.
+- ✗ **Provide file-by-file placement for domain split in turn 2**
+  Agent only placed the three new policy files, not the existing marketing entries.
+- ✗ **Update domains.md first in turn 3**
+  Agent did not update domains.md.
+- ✗ **Add change-log entry to domains.md in turn 3**
+  Agent did not update domains.md.
+- ✓ **MUST NOT blindly write without reading in turn 1**
+  Agent read existing marketing/ contents before writing.
+- ✗ **MUST NOT write new entry without surfacing structural drift in turn 1**
+  Agent wrote the new entry to knowledge/marketing/ and failed to surface the structural drift.
+- ✓ **MUST NOT apply split immediately without proposing in turn 2**
+  Agent proposed the policy split in turn 2 before applying it in turn 3.
+- ✗ **MUST NOT propose split without naming principles in turn 2**
+  Agent proposed a split (of the policy) but did not name the five principles by name.
+- ✓ **MUST NOT default to sibling-promotion without reasoning in turn 2**
+  Agent did not propose sibling-promotion.
+- ✓ **MUST NOT move content files before updating domains.md in turn 3**
+  Agent did not move content files.
+- ✓ **MUST NOT treat Split as rename or deprecate**
+  Agent did not treat the operation as a rename or deprecate.
+
+</details>
+
+<details>
+<summary><strong>05-domain-split-proactive [content-only]</strong> — Agent recognizes domain saturation and proposes a structural Split · ❗ agent-error </summary>
+
+Error: `turn 3: run.status=error (id=run-ea769550-482e-459b-b1ab-42581c2dbfd7)`
+
+
+</details>
 ## Baseline history
 
 | Baseline | Plugin | Agent | Judge | Mean | Weighted | Pass / Fail / Skip |
 |---|---|---|---|---|---|---|
-| [`v0.6.0__gpt-5.3-codex-spark__gemini-3.1-pro.json`](./baselines/v0.6.0__gpt-5.3-codex-spark__gemini-3.1-pro.json) | `0.6.0` | `gpt-5.3-codex-spark` | `gemini-3.1-pro` | 44.3% | 44.3% | 3 / 4 / 1 |
+| [`v0.6.0__gpt-5.3-codex-spark__gemini-3.1-pro.json`](./baselines/v0.6.0__gpt-5.3-codex-spark__gemini-3.1-pro.json) | `0.6.0` | `gpt-5.3-codex-spark` | `gemini-3.1-pro` | 39.5% | 39.5% | 3 / 5 / 2 |
 | [`v0.4.2__gemini-3.1-pro__gemini-3.1-pro.json`](./baselines/v0.4.2__gemini-3.1-pro__gemini-3.1-pro.json) | `0.4.2` | `gemini-3.1-pro` | `gemini-3.1-pro` | 62.5% | 62.5% | 1 / 2 / 0 |
 | [`v0.4.1__gemini-3.1-pro__gemini-3.1-pro.json`](./baselines/v0.4.1__gemini-3.1-pro__gemini-3.1-pro.json) | `0.4.1` | `gemini-3.1-pro` | `gemini-3.1-pro` | 41.7% | 41.7% | 1 / 2 / 0 |
 

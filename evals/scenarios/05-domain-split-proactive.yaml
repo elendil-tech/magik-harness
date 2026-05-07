@@ -1,0 +1,100 @@
+id: 05-domain-split-proactive
+
+title: Agent recognizes domain saturation and proposes a structural Split
+
+description: |
+  This scenario tests the harness's central claim — that the agent
+  *self-steers structural change as the repo evolves*. The "piping" of
+  the harness (the five organizing principles, the five operations, the
+  domain registry as spine, the propose-then-apply contract) only earns
+  its keep if the agent applies it without being told.
+
+  Setup: `marketing/` has accumulated 8 entries that fall into three
+  obviously distinct content shapes — three brand-voice entries (tone,
+  product naming, visual language), three paid-acquisition entries
+  (channel mix, attribution, budget), two content-ops entries
+  (editorial calendar, UGC policy). The domain registry shows
+  `marketing` as a flat domain with no subdomains. The boundary is
+  blurred; coherence is breached; the principles want a Split.
+
+  The user asks to capture a 9th entry — a paid-acquisition policy.
+  A non-harness agent will simply write the file. A harness-aware
+  agent should:
+
+    - Run kb-search / Read against `knowledge/marketing/` before
+      writing (read-first gate, `rules/harness.mdc`).
+    - Notice the three distinct shapes from the existing entries.
+    - Surface the structural drift to the user, naming the principles
+      (coherence, boundary) by name. This is the load-bearing test of
+      whether the harness teaches *self-steering* — without being
+      asked to audit, just from a routine capture request.
+    - Either pause to propose a Split before writing, or capture under
+      `marketing/` while flagging the open structural question.
+
+  Turn 2 is the propose-not-apply contract on a structural operation.
+  The agent should produce a concrete Split proposal — three
+  subdomains under `marketing/` (default-subdomain per v0.6.0), each
+  justified against the five principles, with file-by-file placement
+  — and explicitly *not apply yet*.
+
+  Turn 3 is registry-as-spine. The agent must update
+  `knowledge/_meta/domains.md` (the spine) *first*, with a change-log
+  entry citing the principle, before moving content files. Per
+  `skills/domain-registry/SKILL.md` and `rules/domains.mdc`.
+
+  Multi-turn shape is essential. Each turn binds a different contract:
+  T1 = read-first + structural recognition; T2 = principle-grounded
+  propose-not-apply; T3 = registry-as-spine. A single-turn variant
+  collapses three different harness contributions into one fuzzy
+  judgment.
+
+fixture: marketing-saturated
+control_fixture: marketing-saturated-no-harness
+
+turns:
+  - |
+    Capture this paid-acquisition policy under marketing: when a
+    paid channel's CPA breaches $50 in a 7-day rolling window, pause
+    that channel for 48h and run an audit before reactivating. The
+    audit checks creative fatigue, audience saturation, and the
+    attribution dashboard for misreads. We want this on file as the
+    standing kill-rule before Q3 spend goes live.
+  - |
+    Yeah, agreed — propose how to split it. What goes where, and why
+    those groupings?
+  - |
+    OK apply the split. Walk me through the changes you're making.
+
+expectations:
+  must_invoke_tools:
+    - "in turn 1, a read-shaped tool (kb-search / Read / Grep / Glob) over knowledge/marketing/ before any write — the read-first gate must fire on a domain that already has substantial existing content, not just on first-time topics"
+    - "in turn 2, a Read against knowledge/_meta/domains.md (the registry inspection precedes any structural proposal — domain-registry skill step 1)"
+    - "in turn 3, a write-shaped tool (write / edit / multiedit / str_replace) targeting knowledge/_meta/domains.md — the registry update is the first artifact of a structural change, before any content move"
+  must_surface_concepts:
+    - "in turn 1, after reading existing marketing/ entries, surfacing that the domain has fragmented into multiple distinct content shapes (brand-voice / paid-acquisition / content-ops or equivalent grouping). Naming the relevant organizing principles by name — at minimum coherence and boundary — drawn from rules/scaffolding.mdc or skills/domain-registry/SKILL.md"
+    - "in turn 1, either capturing the new CPA policy under knowledge/marketing/ AND flagging the open structural question, OR pausing the capture to ask about subdomain placement. Both shapes are acceptable; what is NOT acceptable is silently writing the entry as if marketing/ is healthy"
+    - "in turn 2, proposing a SPLIT operation (named explicitly as 'split' from the five-operations vocabulary). Default to subdomain shape per v0.6.0 — children stay nested under marketing/, e.g. marketing/brand, marketing/paid-acquisition, marketing/content-ops. Sibling-promotion (peer-level domains) is acceptable only with explicit reasoning that the children have outgrown the parent's frame"
+    - "in turn 2, principle-grounded justification — the proposal explicitly answers at least three of the five principles (coherence, boundary, granularity, persistence, discoverability) for the proposed Split, not as a hand-wave but as actual sentences tying the existing entries to each principle's question"
+    - "in turn 2, file-by-file placement — naming which existing entries go where, including the new CPA policy from turn 1. The brand-voice entries (brand-voice-tone, brand-product-naming, brand-visual-language) cluster together; the paid entries (paid-channel-mix, paid-attribution-model, paid-budget-allocation, plus the new CPA policy) cluster together; the content entries (content-editorial-calendar, content-ugc-policy) cluster together"
+    - "in turn 3, updating knowledge/_meta/domains.md FIRST — the registry change precedes file moves. The marketing entry gains its subdomains under subdomains:; status remains active; updated date is today's date"
+    - "in turn 3, adding a change-log entry to knowledge/_meta/domains.md citing the operation and the principle that motivated it (e.g. '2026-05-08 | split marketing into subdomains brand / paid-acquisition / content-ops (subdomain default; coherence breached, three distinct content shapes)')"
+  must_not:
+    - "in turn 1, blindly writing the new entry without reading existing marketing/ contents first — the read-first gate is the single most important contract in rules/harness.mdc"
+    - "in turn 1, writing the new entry to knowledge/marketing/ AND failing to surface the structural drift — the saturation is observable from the existing entries; missing it means the harness's organizing principles are not in scope"
+    - "in turn 2, applying the split immediately without proposing first — propose-not-apply, rules/scaffolding.mdc"
+    - "in turn 2, proposing the split without naming the five principles by name (or naming them generically without explicit per-principle reasoning) — principle-grounded reasoning is the load-bearing reasoning step domain-registry SKILL.md step 3"
+    - "in turn 2, defaulting to sibling-promotion (peer-level domains brand-voice / paid-acquisition / content-ops) without explicit reasoning — v0.6.0 default is subdomain"
+    - "in turn 3, moving content files (knowledge/marketing/<entry>.md to knowledge/marketing/<subdomain>/) before updating knowledge/_meta/domains.md — registry-as-spine, rules/domains.mdc; structural change starts at the spine"
+    - "across turns, treating the Split as a rename of marketing/ or a deprecate of marketing/ rather than a Split — the operation vocabulary is precise; choosing the wrong operation is a harness-contract violation"
+
+weight: 1.0
+pass_threshold: 0.7
+# samples: 3 — multi-sample baseline (matches scenarios 01-04). Structural
+# reasoning has more degrees of freedom than e.g. the read-first gate;
+# variance per sample is likely larger. 3 samples gives us the score_min /
+# score_max bands the regression gate compares against.
+samples: 3
+# 15 minutes — three turns, each potentially involves kb-search + multiple
+# Reads + a multi-paragraph proposal. Turn 3's registry edit + change-log
+# entry is the longest single turn.
+timeout_ms: 900000

@@ -483,14 +483,139 @@
       "duration_ms": 22052,
       "transcript_chars": 31458,
       "status": "ok"
+    },
+    {
+      "scenario_id": "05-domain-split-proactive",
+      "title": "Agent recognizes domain saturation and proposes a structural Split",
+      "condition": "harnessed",
+      "samples": [
+        {
+          "scenario_id": "05-domain-split-proactive",
+          "passed": false,
+          "score": 0.4117647058823529,
+          "expectations": [
+            {
+              "label": "Read marketing/ contents before writing in turn 1",
+              "met": true,
+              "evidence": "Files read includes multiple marketing/ files, and the agent explicitly states it used knowledge reads to check for constraints before adding the entry."
+            },
+            {
+              "label": "Read knowledge/_meta/domains.md in turn 2",
+              "met": true,
+              "evidence": "knowledge/_meta/domains.md is present in the files_read list."
+            },
+            {
+              "label": "Write to knowledge/_meta/domains.md in turn 3",
+              "met": false,
+              "evidence": "knowledge/_meta/domains.md is not present in the files_written list."
+            },
+            {
+              "label": "Surface domain fragmentation and organizing principles in turn 1",
+              "met": false,
+              "evidence": "Agent did not mention domain fragmentation or organizing principles in turn 1."
+            },
+            {
+              "label": "Flag structural question or pause before capturing in turn 1",
+              "met": false,
+              "evidence": "Agent silently wrote the new policy to knowledge/marketing/ without flagging the structural drift."
+            },
+            {
+              "label": "Propose domain SPLIT operation in turn 2",
+              "met": false,
+              "evidence": "Agent misunderstood the prompt and proposed splitting the policy into three files (policy, measurement spec, audit spec) rather than splitting the marketing domain."
+            },
+            {
+              "label": "Justify split using principles in turn 2",
+              "met": false,
+              "evidence": "Agent did not use the five principles to justify the split."
+            },
+            {
+              "label": "Provide file-by-file placement for domain split in turn 2",
+              "met": false,
+              "evidence": "Agent only placed the three new policy files, not the existing marketing entries."
+            },
+            {
+              "label": "Update domains.md first in turn 3",
+              "met": false,
+              "evidence": "Agent did not update domains.md."
+            },
+            {
+              "label": "Add change-log entry to domains.md in turn 3",
+              "met": false,
+              "evidence": "Agent did not update domains.md."
+            },
+            {
+              "label": "MUST NOT blindly write without reading in turn 1",
+              "met": true,
+              "evidence": "Agent read existing marketing/ contents before writing."
+            },
+            {
+              "label": "MUST NOT write new entry without surfacing structural drift in turn 1",
+              "met": false,
+              "evidence": "Agent wrote the new entry to knowledge/marketing/ and failed to surface the structural drift."
+            },
+            {
+              "label": "MUST NOT apply split immediately without proposing in turn 2",
+              "met": true,
+              "evidence": "Agent proposed the policy split in turn 2 before applying it in turn 3."
+            },
+            {
+              "label": "MUST NOT propose split without naming principles in turn 2",
+              "met": false,
+              "evidence": "Agent proposed a split (of the policy) but did not name the five principles by name."
+            },
+            {
+              "label": "MUST NOT default to sibling-promotion without reasoning in turn 2",
+              "met": true,
+              "evidence": "Agent did not propose sibling-promotion."
+            },
+            {
+              "label": "MUST NOT move content files before updating domains.md in turn 3",
+              "met": true,
+              "evidence": "Agent did not move content files."
+            },
+            {
+              "label": "MUST NOT treat Split as rename or deprecate",
+              "met": true,
+              "evidence": "Agent did not treat the operation as a rename or deprecate."
+            }
+          ],
+          "notes": "The agent completely missed the proactive domain split scenario. Instead of recognizing domain saturation in `marketing/` and proposing a structural domain split, it misunderstood the user's 'propose how to split it' as a request to split the new policy into multiple files (policy, measurement spec, audit spec). Consequently, it failed all structural and conceptual expectations."
+        }
+      ],
+      "score": 0.4117647058823529,
+      "score_min": 0.4117647058823529,
+      "score_max": 0.4117647058823529,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 40843,
+      "transcript_chars": 91108,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "05-domain-split-proactive",
+      "title": "Agent recognizes domain saturation and proposes a structural Split",
+      "condition": "content-only",
+      "passed": false,
+      "score": 0,
+      "score_min": 0,
+      "score_max": 0,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "samples": [],
+      "duration_ms": 22705,
+      "transcript_chars": 44754,
+      "status": "agent-error",
+      "error": "turn 3: run.status=error (id=run-ea769550-482e-459b-b1ab-42581c2dbfd7)"
     }
   ],
   "summary": {
-    "total": 8,
+    "total": 10,
     "passed": 3,
-    "failed": 4,
-    "skipped": 1,
-    "mean_score": 0.44256249999999997,
-    "weighted_score": 0.44256249999999997
+    "failed": 5,
+    "skipped": 2,
+    "mean_score": 0.39522647058823523,
+    "weighted_score": 0.39522647058823523
   }
 }

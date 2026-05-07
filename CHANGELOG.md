@@ -70,7 +70,29 @@ Re-reading the scenario 04 finding made it clear the failure was **not** behavio
 
 The fix is a one-step structural change, not a rule rewrite: `evals/runner/fixture.ts` now reads `gitignore.harness` and writes `.gitignore` wrapped in the same `# harness:gitignore:start v=X.Y.Z` markers production uses. A unit test (`tests/evals-runner.test.ts`) locks the fix — `.gitignore` must exist at the project root, must carry the version-stamped markers, and must list `memory/` and `workspace/*`. With the fix in place, the agent attempting `git add memory/...` is rejected by git itself; the agent's job becomes to *explain* what just happened, not to *defend* a contract. Total tests: 58 → 59.
 
-The v0.6.0 baseline is **not** re-run — the captured measurement (56% on `04-memory-doesnt-leak` harnessed) is correct for the v0.6.0 fixture builder. The next baseline (v0.6.1 or scenario 05's smoke) will reflect the structural fix and the scenario should pass at 80%+ without any change to the rules layer. This is the cleaner architectural answer: make wrong things hard, don't write rules to discipline an agent under pressure.
+The v0.6.0 baseline is **not** re-run — the captured measurement (56% on `04-memory-doesnt-leak` harnessed) is correct for the v0.6.0 fixture builder. The next baseline will reflect the structural fix and the scenario should pass at 80%+ without any change to the rules layer. This is the cleaner architectural answer: make wrong things hard, don't write rules to discipline an agent under pressure.
+
+#### New scenario `05-domain-split-proactive` — locks in the harness's central self-steering claim
+
+The harness's most ambitious claim is *agent self-steers structural change as the repo evolves* — applying the five organizing principles, the five operations, the registry-as-spine without being asked. Scenarios 01–04 measure KB-hygiene contracts (read-first, propose-not-apply, memory-staging, gitignored-memory) but none of them tests the structural-self-steering contract directly. Scenario 05 is built for that.
+
+- **`evals/scenarios/05-domain-split-proactive.yaml`** — three turns. Setup: `marketing/` has 8 entries fragmented across three obviously distinct content shapes (brand-voice / paid-acquisition / content-ops). T1: user asks to capture a 9th entry under marketing. T2: "propose how to split it." T3: "apply the split." A harness-aware agent should run the read-first gate, notice the saturation from the existing entries (the pattern is *in* the files, not implicit), surface it, and propose a Split with subdomain shape (per v0.6.0 default), justified by the five principles, with the registry update preceding any content move.
+- **`evals/fixtures/marketing-saturated/`** — populated `marketing/` domain with 8 entries (brand-voice-tone, brand-product-naming, brand-visual-language, paid-channel-mix, paid-attribution-model, paid-budget-allocation, content-editorial-calendar, content-ugc-policy) plus a domain registry showing flat `marketing` (no subdomains).
+- **`evals/fixtures/marketing-saturated-no-harness/`** — content-only twin. Same 8 entries flattened to `docs/marketing/` as raw markdown, no schemas / registry / `_meta/` / `.cursor/`.
+- **17 expectations.** 3 `must_invoke_tools` (T1 read marketing, T2 read domains.md, T3 write domains.md), 6 `must_surface_concepts` (structural drift, Split operation, principle-grounded reasoning, file-by-file placement, registry-update-first, change-log entry), 8 `must_not` (the failure modes the scenario explicitly guards against).
+
+#### v0.6.0 baseline — scenario 05 finding (samples=1)
+
+The v0.6.0 locked baseline above is extended with a scenario-05 entry from the same `gpt-5.3-codex-spark` agent, same `gemini-3.1-pro` judge, same control-mode pairing. Result:
+
+- **Harnessed: 41% FAIL.** The agent engaged with KB hygiene (read 6 marketing entries before writing, consulted the policy schema, dropped a memory-staging note, followed propose-not-apply on T2) — but **did not trigger structural reflection** at any turn. T1: wrote the new entry silently, no mention of the domain's three-shape fragmentation that was *in the files it just read*. T2: misinterpreted "split it" colloquially — split the new policy into three sibling files (policy + measurement spec + audit spec) instead of recognizing the domain Split operation. Did not name the five principles. T3: applied the policy split; did not touch `knowledge/_meta/domains.md`.
+- **Content-only: agent-error.** Turn 3 hit `run.status=error` from the SDK after 22s. Same pattern as scenario 01's content-only — agent gets stuck without the harness's scaffolding when the task requires extended structural reasoning.
+
+The diagnosis from the transcript is precise: **v0.6.0's KB-hygiene contracts land as imperatives; its structural-self-steering contracts land as optional.** Read-first, propose-not-apply, memory-staging are in the primer's "Mandatory protocols" section and they fire reliably. The five principles, the five operations as registry vocabulary, the "read the room before you write to it" reflex — all live in on-demand rules and skills (`scaffolding.mdc`, `domain-registry/SKILL.md`), and a normal capture request never pulls them into context.
+
+This is the v0.7.0 priority. The minimum change is *not* a rewrite — it's a **promotion**: lift the structural-reflection contract from on-demand to always-loaded. Probably: a new "Read the room before you write to it" mandatory protocol in the primer, plus a one-line cue at the end of `kb-search` skill results that prompts the agent to evaluate the domain's principles when it sees content-shape diversity. Small, composable, testable — the eval will quantify the lift.
+
+**The post-baseline scenario 05 entry is spliced into the locked v0.6.0 baseline JSON** so future runs have a regression target. The headline summary updates from `73.3% mean · 3 pass / 1 fail / 0 skip out of 4` to `66.8% mean · 3 pass / 2 fail / 0 skip out of 5` — the drop is structural (a new harder scenario added on top of an unchanged set), not a regression on existing scenarios.
 
 ### Migration from 0.5.x
 
