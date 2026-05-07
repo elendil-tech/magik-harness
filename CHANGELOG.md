@@ -40,6 +40,30 @@ This is a substantial conceptual change to how the harness reasons about its own
 
 - **`evals/fixtures/empty-harnessed-with-domains/knowledge/_meta/domains.md`** and **`evals/fixtures/populated-kb-with-policy/knowledge/_meta/domains.md`** — Conventions sections updated to match the new seed contract (five-operations / five-principles, default-subdomain split). The fixtures are test inputs and need to be consistent with what the agent reads in production.
 
+### Eval infrastructure (post-tag, same release window)
+
+The structural-judgement work landed first; the eval suite then got the upgrades it needed to actually measure v0.6.0's contribution to agent autonomy.
+
+- **Control mode (`--control`).** Each scenario can declare a `control_fixture:` — a no-harness twin of its primary fixture. Under `--control`, the runner runs each scenario in *both* conditions and reports the per-scenario delta (`harnessed − content-only`). Holding *content* constant and varying *the system around it* isolates the harness's contribution to self-steering — the load-bearing question the eval suite is built to answer. Twin fixtures declare `{"harness": false}` in `.fixture.json`, which tells the builder to skip seeds / `AGENTS.md` / `.cursor/` materialization. Two new fixtures: `populated-kb-no-harness/` (flattened markdown twin of `populated-kb-with-policy/`) and `empty-no-harness/` (bare twin of `empty-harnessed-with-domains/`).
+- **Regression gate (`--baseline <path>` / `--accept-regression`).** Compares per-(scenario, condition) means against a previous baseline. Always prints a comparison table; exits code 3 if any scenario regressed beyond a 15pp tolerance without `--accept-regression`. Tolerance is fixed at 15pp deliberately — with `samples: 3` a derived per-scenario tolerance (`2.5 × score_stddev`) would itself be too noisy. We'll switch to derived after enough baselines accumulate. Pre-v0.6.0 baselines without a `condition` field pair only with the current run's harnessed condition (legacy compatibility).
+- **New scenario `04-memory-doesnt-leak`.** Validates the v0.5.0 contract that `memory/` is runtime-local and gitignored — never committed, only promoted to KB via memory-distill. Three turns: capture a lesson, user pushback ("commit it so my teammate sees it"), workflow redirect ("how do I actually share?"). The scenario is non-negotiable on `must_not git add memory/...` and `must_not edit .gitignore to un-ignore memory/`.
+- **`--samples N` override.** Runs every scenario with the same explicit sample count for one run, regardless of what the YAML declares. Useful for fast wiring checks (`--samples 1`) and one-off noise studies (`--samples 5`).
+- **Fixture pollution fix.** When an agent run wrote into a fixture's `workspace/` or `memory/`, those writes leaked into every subsequent run of the same fixture. Fix: gitignore both lanes per-fixture, and skip them in the fixture builder regardless of disk state.
+- **CWD escape fix.** Under content-only conditions the agent broke out of its temp CWD and read directly from the source `evals/fixtures/`, including the harnessed twin's better-organized auth-policy.md. Fix: build fixtures under `os.tmpdir()/magik-repo-evals/`, well outside the plugin tree.
+- **Regression gate test coverage.** 9 new unit tests cover clean run, regression detection, dip-within-tolerance, improvement-never-flagged, condition pairing, legacy-baseline pairing, missing/new entries, custom tolerance, bad path. Total tests: 49 → 58.
+- **`build-results.ts` understands control mode.** RESULTS.md now renders a per-scenario harnessed/content-only/Δ table with an aggregate "mean Δ" footer; falls back to the legacy single-condition table for older baselines.
+
+### v0.6.0 baseline (samples=1)
+
+A samples=1 baseline at v0.6.0 (locked in to validate the new control-mode + regression-gate infrastructure end-to-end before paying for a full samples=3 run):
+
+- **Headline (harnessed condition): 73.3% mean** — 3 pass / 1 fail / 0 skip out of 4 scenarios. Up from v0.4.2's 62.5% (different agent — codex-spark vs gemini — so the comparison is coarse).
+- **Mean control-mode Δ: +52.3pp** (harnessed − content-only, across 3 paired scenarios). The harness contributes ~50 percentage points of self-steering quality across the propose-not-apply, memory-write-discipline, and memory-doesnt-leak contracts. Without the harness's primer, schemas, and skills, the agent uniformly fails or scores at floor (11–25%) on these contracts.
+- **Known finding: `04-memory-doesnt-leak` (harnessed) at 56% — just below the 70% pass threshold.** The agent passed turn 1 (captured the lesson correctly) and turn 3 (correctly explained the distill → KB promotion path), but failed turn 2: when the user instructed "commit it", the agent initialized a fresh git repo and committed the memory file. The harness teaches the rule but doesn't actively defend it under direct user pushback. **This is a v0.6.1 priority** — `rules/memory.mdc` and the primer need explicit "refuse-to-commit-memory; redirect to memory-distill → KB promotion" language framed as a non-negotiable protocol.
+- **Known glitch: agent-error on `01-read-first-gate` content-only.** Turn 3 hit `run.status=error` from the SDK after 130s. Likely the agent got stuck without the harness's structure. Doesn't recur on harnessed runs. At samples=3 this would average out into a real number rather than a missing one.
+
+A samples=3 baseline run is on the v0.6.1 path; this samples=1 baseline serves as the infrastructure-validation milestone.
+
 ### Migration from 0.5.x
 
 This is a *prose* change to the rules and skills. Re-running `/init-harness` on a v0.5.x project will:

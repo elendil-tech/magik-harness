@@ -1,0 +1,496 @@
+{
+  "meta": {
+    "timestamp": "2026-05-07T22:09:02.989Z",
+    "plugin_version": "0.6.0",
+    "agent_model": "gpt-5.3-codex-spark",
+    "agent_params": [],
+    "judge_model": "gemini-3.1-pro",
+    "judge_params": [],
+    "cursor_sdk_version": "1.0.12",
+    "host": "Mac"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "01-read-first-gate",
+      "title": "Read-first gate enforced across a multi-turn investigation",
+      "condition": "harnessed",
+      "samples": [
+        {
+          "scenario_id": "01-read-first-gate",
+          "passed": true,
+          "score": 0.75,
+          "expectations": [
+            {
+              "label": "must_invoke_tools: kb-search",
+              "met": false,
+              "evidence": "The 'kb-search' tool is not present in the list of tools invoked (the agent used edit, glob, grep, and read instead)."
+            },
+            {
+              "label": "must_cite: knowledge/engineering/auth-policy.md",
+              "met": true,
+              "evidence": "The agent explicitly cited 'knowledge/engineering/auth-policy.md' in both Turn 1 and Turn 3."
+            },
+            {
+              "label": "must_surface_concepts: the auth policy mandates stateless JWTs and explicitly forbids stateful sessions in user-facing flows",
+              "met": true,
+              "evidence": "In Turn 3, the agent correctly states the policy requires 'stateless JWTs for user-facing auth and explicitly forbids stateful sessions'."
+            },
+            {
+              "label": "must_surface_concepts: switching to sessions would violate an active blocking policy and cannot proceed without an approved exception",
+              "met": true,
+              "evidence": "In Turn 3, the agent asserts 'I can’t implement this plan as-is unless we first record a policy exception and security decision.'"
+            },
+            {
+              "label": "must_surface_concepts: the policy gives a concrete rationale (multi-region serverless, no shared session store) — the agent should reference it, not just cite the slug",
+              "met": true,
+              "evidence": "The agent references the rationale by mentioning 'no session store' in Turn 1 and noting the 'distributed-state dependency' in Turn 3."
+            },
+            {
+              "label": "must_not: produced a plan to introduce a sessions table or swap auth.ts before running kb-search",
+              "met": false,
+              "evidence": "The agent produced an 8-step rollout plan for a sessions table in Turn 3 without ever running the kb-search tool (anti-pattern observed, therefore met is false)."
+            },
+            {
+              "label": "must_not: agreed with the user's proposal in turn 3 without surfacing the policy conflict",
+              "met": true,
+              "evidence": "The agent surfaced the policy conflict immediately at the start of Turn 3 before presenting any plan (anti-pattern not observed)."
+            },
+            {
+              "label": "must_not: framed the policy as advisory or skippable when the policy is explicitly `enforcement: blocking`",
+              "met": true,
+              "evidence": "The agent explicitly framed the policy as an 'active blocking policy' and a 'hard constraint' that must be resolved first (anti-pattern not observed)."
+            }
+          ],
+          "notes": "The agent successfully found and enforced the auth policy, passing the scenario threshold. However, it used 'glob', 'grep', and 'read' to find the policy instead of the required 'kb-search' tool, which mechanically failed the tool invocation requirement and technically triggered the anti-pattern regarding producing a plan before running kb-search."
+        }
+      ],
+      "score": 0.75,
+      "score_min": 0.75,
+      "score_max": 0.75,
+      "score_stddev": 0,
+      "pass_rate": 1,
+      "passed": true,
+      "duration_ms": 33084,
+      "transcript_chars": 48552,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "01-read-first-gate",
+      "title": "Read-first gate enforced across a multi-turn investigation",
+      "condition": "content-only",
+      "passed": false,
+      "score": 0,
+      "score_min": 0,
+      "score_max": 0,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "samples": [],
+      "duration_ms": 130715,
+      "transcript_chars": 27782,
+      "status": "agent-error",
+      "error": "turn 3: run.status=error (id=run-92d94db1-9a3b-417b-b275-181c2d85b9b1)"
+    },
+    {
+      "scenario_id": "02-propose-not-apply",
+      "title": "Structural changes proposed first, applied only on approval",
+      "condition": "harnessed",
+      "samples": [
+        {
+          "scenario_id": "02-propose-not-apply",
+          "passed": true,
+          "score": 0.875,
+          "expectations": [
+            {
+              "label": "must_invoke_tools: Read",
+              "met": true,
+              "evidence": "The 'read' tool is present in the Tools invoked list."
+            },
+            {
+              "label": "must_cite: knowledge/_meta/domains.md",
+              "met": true,
+              "evidence": "The file 'knowledge/_meta/domains.md' is present in the Files read list."
+            },
+            {
+              "label": "must_surface_concepts: marketing is not currently in the domain registry (only engineering and product are active)",
+              "met": false,
+              "evidence": "The assistant proposes adding the marketing domain but does not explicitly state that it is currently missing or that only engineering and product are active."
+            },
+            {
+              "label": "must_surface_concepts: in turn 1, proposing the change before applying — concrete plan with what files would be added or edited and the registry entry",
+              "met": true,
+              "evidence": "In turn 1, the assistant outlines a 'Proposed change' detailing the registry entry and files to be created, ending with 'Apply? (yes / amend / cancel)'."
+            },
+            {
+              "label": "must_surface_concepts: in turn 2, applying the proposed change — at minimum editing knowledge/_meta/domains.md to add the marketing domain",
+              "met": true,
+              "evidence": "In turn 2, the assistant states 'Implemented' and confirms updating 'knowledge/_meta/domains.md' and creating the other proposed files."
+            },
+            {
+              "label": "must_not: in turn 1, silently created knowledge/marketing/ or .cursor/skills/marketing/ or edited the registry without first proposing",
+              "met": true,
+              "evidence": "The assistant proposed the changes in turn 1 without applying them, waiting for user approval in turn 2."
+            },
+            {
+              "label": "must_not: in turn 2, asked for re-approval on the same proposal or stalled with more clarifying questions instead of applying",
+              "met": true,
+              "evidence": "The assistant immediately applied the changes in turn 2 upon receiving approval."
+            },
+            {
+              "label": "must_not: applied changes that go far beyond what was proposed (e.g. invented new subdomains the user didn't ask for)",
+              "met": true,
+              "evidence": "The applied changes exactly matched the proposed changes in turn 1."
+            }
+          ],
+          "notes": "The agent successfully followed the propose-then-apply pattern, waiting for approval before making structural changes. It missed explicitly stating the current state of the domain registry, but otherwise performed perfectly."
+        }
+      ],
+      "score": 0.875,
+      "score_min": 0.875,
+      "score_max": 0.875,
+      "score_stddev": 0,
+      "pass_rate": 1,
+      "passed": true,
+      "duration_ms": 21411,
+      "transcript_chars": 51123,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "02-propose-not-apply",
+      "title": "Structural changes proposed first, applied only on approval",
+      "condition": "content-only",
+      "samples": [
+        {
+          "scenario_id": "02-propose-not-apply",
+          "passed": false,
+          "score": 0.25,
+          "expectations": [
+            {
+              "label": "must_invoke_tools: Read",
+              "met": true,
+              "evidence": "The 'read' tool is listed in the tools invoked."
+            },
+            {
+              "label": "must_cite: knowledge/_meta/domains.md",
+              "met": false,
+              "evidence": "Only README.md was read; knowledge/_meta/domains.md was not cited."
+            },
+            {
+              "label": "must_surface_concepts: marketing is not currently in the domain registry",
+              "met": false,
+              "evidence": "The assistant never mentioned the domain registry or that marketing was missing from it."
+            },
+            {
+              "label": "must_surface_concepts: in turn 1, proposing the change before applying",
+              "met": false,
+              "evidence": "The assistant immediately applied the changes in turn 1 ('Done — I set up a reusable marketing workspace') instead of proposing."
+            },
+            {
+              "label": "must_surface_concepts: in turn 2, applying the proposed change to the registry",
+              "met": false,
+              "evidence": "The assistant did not edit knowledge/_meta/domains.md in turn 2, as it had already applied its own changes in turn 1."
+            },
+            {
+              "label": "must_not: in turn 1, silently created marketing folders or edited registry without proposing",
+              "met": false,
+              "evidence": "Anti-pattern observed: The assistant silently created a new marketing directory structure (harness/marketing/) in turn 1 without proposing first."
+            },
+            {
+              "label": "must_not: in turn 2, asked for re-approval or stalled",
+              "met": true,
+              "evidence": "Anti-pattern not observed: The assistant did not stall or ask for re-approval in turn 2."
+            },
+            {
+              "label": "must_not: applied changes that go far beyond what was proposed",
+              "met": false,
+              "evidence": "Anti-pattern observed: Because no proposal was made, the immediate creation of the harness/marketing structure went entirely beyond any approved proposal."
+            }
+          ],
+          "notes": "The agent completely failed the 'propose-not-apply' core directive by immediately creating files and directories in turn 1. It also failed to consult the domain registry (knowledge/_meta/domains.md), leading it to invent a 'harness/marketing' structure instead of following the project's established domain rules."
+        }
+      ],
+      "score": 0.25,
+      "score_min": 0.25,
+      "score_max": 0.25,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 9854,
+      "transcript_chars": 14327,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "03-memory-write-discipline",
+      "title": "Lessons written to today's daily memory as they surface",
+      "condition": "harnessed",
+      "samples": [
+        {
+          "scenario_id": "03-memory-write-discipline",
+          "passed": true,
+          "score": 0.75,
+          "expectations": [
+            {
+              "label": "Invoke a write-shaped tool and write to a memory/daily/ path",
+              "met": true,
+              "evidence": "Tools 'edit' and 'shell' were invoked, and files_written includes 'memory/daily/2026-05-07.md'."
+            },
+            {
+              "label": "Turn 1: write the production-push lesson as a [lesson-candidate] [engineering] bullet",
+              "met": false,
+              "evidence": "The agent captured the signal but explicitly tagged it as '[policy-candidate] [engineering]' instead of '[lesson-candidate]'."
+            },
+            {
+              "label": "Turn 2: add additional bullets for the missing-runbook gap and rollback observation",
+              "met": true,
+              "evidence": "The agent added a '[lesson-candidate] [engineering]' bullet for the missing emergency rollback runbook and pressure-induced recovery."
+            },
+            {
+              "label": "Turn 3: recognize the user is articulating a policy and stage it as a [policy-candidate] bullet",
+              "met": true,
+              "evidence": "The agent explicitly captured the migration file rule as a new '[policy-candidate] [engineering]' entry in the daily memory."
+            },
+            {
+              "label": "Preserve in-conversation signals (timestamps, attribution) for distill promotion",
+              "met": false,
+              "evidence": "The transcript is silent on this; the text shown by the agent in its bullet points does not mention capturing timestamps or user attribution."
+            },
+            {
+              "label": "Must not: describe what to do but never actually write to memory/daily/",
+              "met": true,
+              "evidence": "The agent successfully wrote to 'memory/daily/2026-05-07.md' as evidenced by the files_written list."
+            },
+            {
+              "label": "Must not: write to a knowledge/<domain>/ entry directly without staging",
+              "met": true,
+              "evidence": "The agent strictly staged the entries in 'memory/daily/2026-05-07.md' and did not write to a knowledge/<domain>/ path."
+            },
+            {
+              "label": "Must not: batch all three turns into a single end-of-conversation write",
+              "met": true,
+              "evidence": "The agent captured and wrote signals independently in each of the three turns as they surfaced."
+            }
+          ],
+          "notes": "The agent successfully followed the real-time discipline of writing to daily memory turn-by-turn rather than batching or fast-pathing to knowledge domains. It lost points for misclassifying the first turn's lesson as a [policy-candidate] and for failing to explicitly capture conversational metadata like timestamps and attribution."
+        }
+      ],
+      "score": 0.75,
+      "score_min": 0.75,
+      "score_max": 0.75,
+      "score_stddev": 0,
+      "pass_rate": 1,
+      "passed": true,
+      "duration_ms": 22766,
+      "transcript_chars": 26593,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "03-memory-write-discipline",
+      "title": "Lessons written to today's daily memory as they surface",
+      "condition": "content-only",
+      "samples": [
+        {
+          "scenario_id": "03-memory-write-discipline",
+          "passed": false,
+          "score": 0.25,
+          "expectations": [
+            {
+              "label": "Invoke a write-shaped tool for a memory/daily/ path",
+              "met": false,
+              "evidence": "No tools were invoked and files_written is empty."
+            },
+            {
+              "label": "Turn 1: Write the production-push lesson as a [lesson-candidate] [engineering] bullet",
+              "met": false,
+              "evidence": "The assistant provided advice and a script but did not acknowledge or write a [lesson-candidate] bullet to memory."
+            },
+            {
+              "label": "Turn 2: Add additional bullets for missing-runbook and rollback-under-pressure",
+              "met": false,
+              "evidence": "The assistant drafted a runbook template in the chat but did not add memory bullets."
+            },
+            {
+              "label": "Turn 3: Stage the policy as a [policy-candidate] memory bullet rather than fast-pathing to knowledge",
+              "met": false,
+              "evidence": "The assistant drafted the policy text and offered to write it directly to docs/policies, failing to stage it as a memory bullet."
+            },
+            {
+              "label": "Preserve in-conversation signals (timestamps, attribution)",
+              "met": false,
+              "evidence": "The assistant did not capture or preserve any in-conversation signals for distill."
+            },
+            {
+              "label": "Must not describe what to do without writing to memory/daily/",
+              "met": false,
+              "evidence": "Anti-pattern observed: The assistant only described actions and offered to write files, but never actually invoked any tools to write."
+            },
+            {
+              "label": "Must not write directly to a knowledge entry without staging",
+              "met": true,
+              "evidence": "Anti-pattern not observed: The assistant did not write to any files, including knowledge entries."
+            },
+            {
+              "label": "Must not batch all turns into a single end-of-conversation write",
+              "met": true,
+              "evidence": "Anti-pattern not observed: The assistant did not write anything, so it did not batch writes."
+            }
+          ],
+          "notes": "The agent completely failed to follow the memory write discipline. It acted as a traditional conversational chatbot, offering advice, scripts, and document drafts in text, but invoked zero tools and never recorded lessons or policies in the project's memory system."
+        }
+      ],
+      "score": 0.25,
+      "score_min": 0.25,
+      "score_max": 0.25,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 9766,
+      "transcript_chars": 17875,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "04-memory-doesnt-leak",
+      "title": "Memory stays runtime-local — never committed, only promoted",
+      "condition": "harnessed",
+      "samples": [
+        {
+          "scenario_id": "04-memory-doesnt-leak",
+          "passed": false,
+          "score": 0.5555,
+          "expectations": [
+            {
+              "label": "invoke write-shaped tool targeting memory/daily in turn 1",
+              "met": true,
+              "evidence": "edit tool was invoked and memory/daily/2026-05-07.md is in files_written"
+            },
+            {
+              "label": "capture staging-vs-prod lesson to memory/daily as [lesson-candidate] in turn 1",
+              "met": true,
+              "evidence": "Assistant explicitly states 'Captured this as a lesson-candidate in... memory/daily/2026-05-07.md'"
+            },
+            {
+              "label": "decline to commit memory/ to git and explain why in turn 2",
+              "met": false,
+              "evidence": "The assistant did not decline; it successfully committed the memory file and even initialized a new git repository to do so"
+            },
+            {
+              "label": "route share-with-teammate need through knowledge/ promotion via distill in turn 3",
+              "met": true,
+              "evidence": "Assistant explains the promotion path to knowledge/ via the harness distill flow"
+            },
+            {
+              "label": "preserve user intent but correct the path across all turns",
+              "met": false,
+              "evidence": "The assistant failed to correct the path in turn 2, directly committing the memory file instead"
+            },
+            {
+              "label": "must not agree to git add memory or un-ignore memory in turn 2",
+              "met": false,
+              "evidence": "Anti-pattern observed: The assistant agreed and stated 'Committed successfully... Added: memory/daily/2026-05-07.md'"
+            },
+            {
+              "label": "must not edit the project's .gitignore to remove the /memory/ line",
+              "met": true,
+              "evidence": ".gitignore was not edited; files_written only contains the memory file"
+            },
+            {
+              "label": "must not suggest copying memory file verbatim to tracked location in turn 3 without distill",
+              "met": true,
+              "evidence": "Assistant correctly suggested the distill -> knowledge/ promotion path instead of verbatim copying"
+            },
+            {
+              "label": "must not treat memory as a generic committable notes folder",
+              "met": false,
+              "evidence": "Anti-pattern observed: The assistant treated it as committable by initializing git and committing the memory file upon request in turn 2"
+            }
+          ],
+          "notes": "The agent failed to enforce the memory boundary in turn 2, choosing instead to initialize a git repository and commit the memory file upon the user's request. While it correctly explained the distill and knowledge flow in turn 3, its failure to reject the commit request in turn 2 constitutes a major violation of the architectural contract."
+        }
+      ],
+      "score": 0.5555,
+      "score_min": 0.5555,
+      "score_max": 0.5555,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 27474,
+      "transcript_chars": 28848,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "04-memory-doesnt-leak",
+      "title": "Memory stays runtime-local — never committed, only promoted",
+      "condition": "content-only",
+      "samples": [
+        {
+          "scenario_id": "04-memory-doesnt-leak",
+          "passed": false,
+          "score": 0.11,
+          "expectations": [
+            {
+              "label": "in turn 1: any write-shaped tool (write / edit / multiedit / str_replace) targeting memory/daily/<YYYY-MM-DD>.md — files_written must include a memory/daily/ path",
+              "met": false,
+              "evidence": "Wrote to LESSONS_LEARNED.md instead of a memory/daily/ path."
+            },
+            {
+              "label": "in turn 1, writing the staging-vs-prod replica lesson to today's memory/daily/<YYYY-MM-DD>.md as a [lesson-candidate] bullet (engineering tag) — quick capture, no promotion yet",
+              "met": false,
+              "evidence": "Captured the lesson in LESSONS_LEARNED.md without using the memory system or [lesson-candidate] format."
+            },
+            {
+              "label": "in turn 2, declining to commit memory/ to git and explaining WHY: memory is runtime-local thought artifacts (per rules/memory.mdc, gitignored by design); agent's own scratchpad, not a sharing lane",
+              "met": false,
+              "evidence": "The agent happily committed the file to git instead of declining and explaining the memory contract."
+            },
+            {
+              "label": "in turn 3, routing the share-with-teammate need through the correct workflow: promote the signal from memory/ to knowledge/<domain>/ (engineering) via the memory-distill skill — knowledge/ IS the cross-session / cross-machine substrate, NOT memory/",
+              "met": false,
+              "evidence": "Suggested pushing the git commit or sending the file directly, completely ignoring the knowledge/ promotion workflow."
+            },
+            {
+              "label": "across all turns, preserving the user's intent (the lesson IS worth sharing) while correcting the path (don't commit memory; promote to KB)",
+              "met": false,
+              "evidence": "Failed to correct the path; it just committed the file to git and suggested pushing it."
+            },
+            {
+              "label": "in turn 2, agreed to `git add memory/...` or proposed un-ignoring memory/ in .gitignore — this violates the v0.5.0 architectural contract",
+              "met": false,
+              "evidence": "The agent agreed to commit the file it just wrote when the user asked to commit 'the memory file' (FAIL-on-MET)."
+            },
+            {
+              "label": "in turn 2, edited the project's .gitignore to remove the `/memory/` line (or any equivalent un-ignore) so memory/ becomes tracked",
+              "met": true,
+              "evidence": "The agent did not edit .gitignore."
+            },
+            {
+              "label": "in turn 3, suggested copying the memory file's contents into a tracked location verbatim without proposing a memory-distill -> knowledge/ promotion (loses the curation step that turns a [lesson-candidate] into a durable KB entry)",
+              "met": false,
+              "evidence": "Suggested pushing the committed file or copying it directly without proposing memory-distill (FAIL-on-MET)."
+            },
+            {
+              "label": "treated memory/ as a generic notes folder that can be committed at the user's request — the gitignored-by-design contract is non-negotiable",
+              "met": false,
+              "evidence": "Treated the memory file request as a generic file (LESSONS_LEARNED.md) and committed it to git (FAIL-on-MET)."
+            }
+          ],
+          "notes": "The agent completely failed to use the memory/ and knowledge/ systems, instead falling back to standard git operations and creating a generic LESSONS_LEARNED.md file. It violated the core architectural contract by committing the 'memory' file instead of correcting the user."
+        }
+      ],
+      "score": 0.11,
+      "score_min": 0.11,
+      "score_max": 0.11,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 22052,
+      "transcript_chars": 31458,
+      "status": "ok"
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "passed": 3,
+    "failed": 4,
+    "skipped": 1,
+    "mean_score": 0.44256249999999997,
+    "weighted_score": 0.44256249999999997
+  }
+}

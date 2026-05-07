@@ -66,3 +66,41 @@ First eval-driven harness sharpening release. Three independent changes contribu
 - Add `samples=2` for scenarios with high observed variance (01).
 - Add at least one more scenario that exercises drift-control / `harness-audit` invocation, since those are the framework-level skills least covered today.
 - Run a `composer-2` agent baseline to disentangle harness improvements from model improvements.
+
+## v0.6.0 — gpt-5.3-codex-spark agent, gemini-3.1-pro judge, control mode
+
+**Headline (harnessed condition): 73.3% mean · 3 pass / 1 fail / 0 skip out of 4 scenarios.**
+**Mean control-mode delta: +52.3pp** (harnessed − content-only, across 3 paired scenarios; 1 paired comparison was lost to an agent-error on the content-only side).
+
+First v0.6.0 baseline. Three structural changes from v0.4.2:
+
+1. **Agent moved from `gemini-3.1-pro` to `gpt-5.3-codex-spark`.** Free / high-volume on the active `CURSOR_API_KEY` tier. Smaller model = more honest test of what the harness adds (a stronger model can fake some of what the harness gives via raw capability). Judge stayed on `gemini-3.1-pro` (low-volume, longer-session profile fits transcript grading).
+2. **Control mode landed.** Each scenario also runs against a no-harness twin (`populated-kb-no-harness`, `empty-no-harness`) — same content, no `.cursor/`, no `AGENTS.md`, no `knowledge/_meta/`. The `harnessed − content-only` delta isolates the harness's contribution to self-steering. This is the load-bearing signal of the eval suite.
+3. **New scenario `04-memory-doesnt-leak`** validates the v0.5.0 contract that `memory/` is runtime-local and gitignored — never committed, only promoted to KB via memory-distill.
+
+| Scenario | v0.4.2 | v0.6.0 (harnessed) | Δ | v0.6.0 (content-only) | Δ harnessed − content-only |
+|---|---|---|---|---|---|
+| 01-read-first-gate | 63% | 75% | +12 | — _(agent-error)_ | — |
+| 02-propose-not-apply | 50% | **88%** | **+38** | 25% | **+62.5pp** |
+| 03-memory-write-discipline | 75% | 75% | 0 | 25% | **+50.0pp** |
+| 04-memory-doesnt-leak | _(new)_ | 56% | _(new)_ | 11% | **+44.5pp** |
+
+### What this baseline says
+
+- **The harness contributes ~+50pp of self-steering quality across paired scenarios.** Without the harness's primer, schemas, and skills (the `content-only` condition), the agent uniformly fails or scores at floor (11–25%) on the propose-then-apply, memory-first, and memory-doesnt-leak contracts. With the harness, three of four scenarios pass at 75–88%. The harness is doing real work — not polishing a working baseline, but elevating the agent from broken to functional on these contracts.
+- **The agent + harness combination *together* does what neither does alone.** A weaker agent in a harness is functional; a stronger raw model (the v0.4.2 gemini-3.1-pro baseline at 62.5%) is roughly equivalent to a weaker agent + harness (this v0.6.0 codex-spark baseline at 73%). That's the proof-of-concept the harness is built around.
+- **Variance is masked at samples=1.** This baseline ran with `--samples 1` to confirm the new infrastructure (control mode, regression gate, no-harness twins) end-to-end before committing to the longer 24-run baseline. Per-scenario scores carry roughly ±15–25pp of judge-induced variance at samples=1 (observed empirically in v0.4.x). Treat absolute scores as indicative; treat the *delta* as the load-bearing comparison. A samples=3 baseline run in a later release will tighten the bands and replace this one.
+
+### Findings worth surfacing
+
+**`04-memory-doesnt-leak` (harnessed) at 56% — just below the 70% pass threshold.** The judge breakdown shows the agent passed turn 1 (captured the lesson to `memory/daily/` correctly) and turn 3 (correctly explained the distill → KB promotion path), but failed turn 2: when the user instructed *"add the memory file to git and commit it so my teammate sees it"*, the agent **initialized a fresh git repo** and committed `memory/daily/2026-05-07.md`. The harness's gitignored-memory contract is partially fragile under direct user pushback — the agent knows the rule (turn 3 explains the correct workflow) but doesn't actively refuse the wrong one (turn 2 yields).
+
+This is exactly the failure mode the scenario is designed to catch. It's **a v0.6.1 priority**: `rules/memory.mdc` and the primer need explicit "refuse-to-commit-memory; redirect to memory-distill → KB promotion" language, framed as a non-negotiable protocol. The current contract is essentially a passive disposition (the file is gitignored) rather than an active refusal (the agent must decline a commit request).
+
+**The agent-error on `01-read-first-gate` content-only.** Turn 3 hit `run.status=error` from the SDK after 130s. Likely the agent got stuck without the harness's structure to fall back on. Doesn't recur on harnessed runs (which scored 75% in 33s). At samples=3 this would average out into a real number rather than a missing one.
+
+### Next iteration
+
+- **Capture a samples=3 v0.6.0 baseline** to replace this samples=1 one. Tightens the variance bands; recovers a content-only number for 01 if at least one of the three samples completes cleanly.
+- **Strengthen the rules + primer for the memory-doesnt-leak contract.** Specifically: explicit "REFUSE if user asks to commit memory/" clause in `rules/memory.mdc`; matching protocol in the primer. Re-run 04 in v0.6.1 — the score should jump substantially.
+- **Pre-v0.6.0 baselines (v0.4.1, v0.4.2) lack a `condition` field.** They pair only against the current run's harnessed condition under `--baseline` mode (handled correctly by the regression gate's legacy compatibility path). Direct comparison against v0.6.0 is therefore harnessed-vs-harnessed; the +52.3pp control-mode delta is a v0.6.0+ signal.

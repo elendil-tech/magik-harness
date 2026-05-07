@@ -46,8 +46,23 @@ interface Sample {
 interface ScenarioResult {
   scenario_id: string;
   title: string;
+  /**
+   * Which fixture the agent ran against. Optional for backwards
+   * compatibility with pre-v0.6.0 baselines (treat undefined as
+   * "harnessed").
+   */
+  condition?: "harnessed" | "content-only";
   status: string;
   score: number;
+  /**
+   * Multi-sample variance fields. Optional for backwards compatibility:
+   * pre-v0.6.0 reports lacked these; treat absent values as "no
+   * variance signal" (single-sample run).
+   */
+  score_min?: number;
+  score_max?: number;
+  score_stddev?: number;
+  pass_rate?: number;
   passed: boolean;
   duration_ms: number;
   transcript_chars: number;
@@ -124,6 +139,46 @@ function statusBadge(s: ScenarioResult): string {
   return s.passed ? "✅ pass" : "❌ fail";
 }
 
+function fmtPpDelta(n: number): string {
+  const v = (n * 100).toFixed(1);
+  return n >= 0 ? `+${v}pp` : `${v}pp`;
+}
+
+function normalizedCondition(s: ScenarioResult): "harnessed" | "content-only" {
+  return s.condition ?? "harnessed";
+}
+
+/**
+ * Group scenario results by `scenario_id`. When `--control` was used
+ * each scenario produces two entries (harnessed + content-only); when
+ * not, one entry. The grouped list keeps both entries together so the
+ * rendered tables can show the per-condition delta inline.
+ */
+function groupByScenario(
+  scenarios: ScenarioResult[],
+): Map<string, ScenarioResult[]> {
+  const map = new Map<string, ScenarioResult[]>();
+  for (const s of scenarios) {
+    const list = map.get(s.scenario_id) ?? [];
+    list.push(s);
+    map.set(s.scenario_id, list);
+  }
+  for (const [id, list] of map) {
+    list.sort((a, b) => {
+      const order = (c: "harnessed" | "content-only"): number =>
+        c === "harnessed" ? 0 : 1;
+      return order(normalizedCondition(a)) - order(normalizedCondition(b));
+    });
+    map.set(id, list);
+  }
+  return map;
+}
+
+/** True if any scenario carries an explicit `condition` field — i.e. the run was --control. */
+function hasControlData(scenarios: ScenarioResult[]): boolean {
+  return scenarios.some((s) => s.condition !== undefined);
+}
+
 function escapeMd(s: string): string {
   return s.replace(/\|/g, "\\|").replace(/\n/g, " ");
 }
@@ -150,8 +205,35 @@ function scenarioYamlLink(scenarioId: string): string {
 
 function renderHeadline(b: Baseline): string {
   const { meta, summary, scenarios } = b.report;
-  const ok = summary.passed === summary.total;
-  const headlineEmoji = ok ? "🟢" : summary.passed > 0 ? "🟡" : "🔴";
+  const isControl = hasControlData(scenarios);
+
+  // In control-mode runs the harnessed condition's pass/fail is the
+  // signal that matches "did the harness work?". The content-only
+  // condition is *expected* to fail in many scenarios — that's what
+  // makes the delta meaningful — so summing pass/fail across both
+  // conditions gives a misleading headline. Compute a harnessed-only
+  // headline summary for control runs; fall back to the report's
+  // built-in summary for legacy single-condition runs.
+  const harnessedScenarios = isControl
+    ? scenarios.filter((s) => normalizedCondition(s) === "harnessed")
+    : scenarios;
+  const headlinePassed = isControl
+    ? harnessedScenarios.filter((s) => s.status === "ok" && s.passed).length
+    : summary.passed;
+  const headlineFailed = isControl
+    ? harnessedScenarios.filter((s) => s.status === "ok" && !s.passed).length
+    : summary.failed;
+  const headlineSkipped = isControl
+    ? harnessedScenarios.filter((s) => s.status !== "ok").length
+    : summary.skipped;
+  const headlineTotal = isControl ? harnessedScenarios.length : summary.total;
+  const headlineMean = isControl
+    ? harnessedScenarios.reduce((a, s) => a + (s.status === "ok" ? s.score : 0), 0) /
+      Math.max(harnessedScenarios.length, 1)
+    : summary.mean_score;
+
+  const ok = headlinePassed === headlineTotal && headlineSkipped === 0;
+  const headlineEmoji = ok ? "🟢" : headlinePassed > 0 ? "🟡" : "🔴";
 
   const lines: string[] = [];
   lines.push(`# Eval results`);
@@ -160,11 +242,20 @@ function renderHeadline(b: Baseline): string {
     `> Auto-generated from \`evals/baselines/${b.filename}\`. Re-run \`pnpm exec tsx scripts/build-results.ts\` after each new baseline. See [evals/README.md](./README.md) for the methodology.`,
   );
   lines.push("");
-  lines.push(`## ${headlineEmoji} ${fmtPct(summary.mean_score)} mean · ${fmtPct(summary.weighted_score)} weighted`);
+  const conditionTag = isControl ? " (harnessed condition)" : "";
+  lines.push(
+    `## ${headlineEmoji} ${fmtPct(headlineMean)} mean${conditionTag}`,
+  );
   lines.push("");
   lines.push(
-    `**${summary.passed}** passed · **${summary.failed}** failed · **${summary.skipped}** skipped (out of ${summary.total} scenarios)`,
+    `**${headlinePassed}** passed · **${headlineFailed}** failed · **${headlineSkipped}** skipped (out of ${headlineTotal} scenarios)`,
   );
+  if (isControl) {
+    lines.push("");
+    lines.push(
+      `_Control mode: each scenario also ran in a content-only condition (no harness wiring); see the per-scenario delta below for the harness's contribution to self-steering._`,
+    );
+  }
   lines.push("");
   lines.push(`## Configuration`);
   lines.push("");
@@ -178,59 +269,157 @@ function renderHeadline(b: Baseline): string {
   lines.push(`| Host | \`${meta.host}\` |`);
   lines.push("");
 
+  const grouped = groupByScenario(scenarios);
+
   lines.push(`## Per-scenario results`);
   lines.push("");
-  lines.push(
-    `| Scenario | Status | Score | Turns | Headline finding |`,
-  );
-  lines.push(`|---|---|---|---|---|`);
-  for (const s of scenarios) {
-    const status = statusBadge(s);
-    const score = s.status === "ok" ? fmtPct(s.score) : "—";
-    const sample = s.samples[0];
-    const turns = sample
-      ? sample.expectations.length
-      : 0;
-    const headline = s.error
-      ? `_${escapeMd(s.error)}_`
-      : sample
-        ? escapeMd(sample.notes.split(". ")[0]!.slice(0, 160))
-        : "—";
-    const link = scenarioYamlLink(s.scenario_id);
+  if (isControl) {
+    // Control-mode runs measure the harness's contribution to self-
+    // steering by holding *content* constant and varying the *system*
+    // around it. The delta between conditions is the load-bearing
+    // signal — a positive delta means the harness raised the agent's
+    // score above what raw markdown alone would deliver.
     lines.push(
-      `| [${s.scenario_id}](${link}) — ${escapeMd(s.title)} | ${status} | ${score} | ${turns} | ${headline} |`,
+      `| Scenario | Harnessed | Content-only | Δ (harnessed − content-only) | Headline finding (harnessed sample) |`,
     );
+    lines.push(`|---|---|---|---|---|`);
+    for (const [scenarioId, group] of grouped) {
+      const harnessed = group.find(
+        (g) => normalizedCondition(g) === "harnessed",
+      );
+      const content = group.find(
+        (g) => normalizedCondition(g) === "content-only",
+      );
+      const link = scenarioYamlLink(scenarioId);
+      const title = harnessed?.title ?? content?.title ?? scenarioId;
+      const fmtCell = (s: ScenarioResult | undefined): string => {
+        if (!s) return "—";
+        if (s.status !== "ok") return `❗ ${s.status}`;
+        const pct = fmtPct(s.score);
+        const variance =
+          s.samples.length > 1 && s.score_min !== undefined && s.score_max !== undefined
+            ? ` <sub>(${fmtPct(s.score_min)}–${fmtPct(s.score_max)})</sub>`
+            : "";
+        const verdict = s.passed ? "✅" : "❌";
+        return `${verdict} ${pct}${variance}`;
+      };
+      const delta =
+        harnessed && content && harnessed.status === "ok" && content.status === "ok"
+          ? fmtPpDelta(harnessed.score - content.score)
+          : "—";
+      const sample = harnessed?.samples[0] ?? content?.samples[0];
+      const headline = (harnessed ?? content)?.error
+        ? `_${escapeMd((harnessed ?? content)!.error!)}_`
+        : sample
+          ? escapeMd(sample.notes.split(". ")[0]!.slice(0, 160))
+          : "—";
+      lines.push(
+        `| [${scenarioId}](${link}) — ${escapeMd(title)} | ${fmtCell(harnessed)} | ${fmtCell(content)} | ${delta} | ${headline} |`,
+      );
+    }
+  } else {
+    lines.push(
+      `| Scenario | Status | Score | Turns | Headline finding |`,
+    );
+    lines.push(`|---|---|---|---|---|`);
+    for (const s of scenarios) {
+      const status = statusBadge(s);
+      const score = s.status === "ok" ? fmtPct(s.score) : "—";
+      const variance =
+        s.status === "ok" &&
+        s.samples.length > 1 &&
+        s.score_min !== undefined &&
+        s.score_max !== undefined
+          ? ` <sub>(${fmtPct(s.score_min)}–${fmtPct(s.score_max)})</sub>`
+          : "";
+      const sample = s.samples[0];
+      const turns = sample ? sample.expectations.length : 0;
+      const headline = s.error
+        ? `_${escapeMd(s.error)}_`
+        : sample
+          ? escapeMd(sample.notes.split(". ")[0]!.slice(0, 160))
+          : "—";
+      const link = scenarioYamlLink(s.scenario_id);
+      lines.push(
+        `| [${s.scenario_id}](${link}) — ${escapeMd(s.title)} | ${status} | ${score}${variance} | ${turns} | ${headline} |`,
+      );
+    }
   }
   lines.push("");
+
+  // Aggregate control-mode delta — one number for "did the harness
+  // help?" across the suite.
+  if (isControl) {
+    const paired: number[] = [];
+    for (const [, group] of grouped) {
+      const h = group.find((g) => normalizedCondition(g) === "harnessed");
+      const c = group.find((g) => normalizedCondition(g) === "content-only");
+      if (h && c && h.status === "ok" && c.status === "ok") {
+        paired.push(h.score - c.score);
+      }
+    }
+    if (paired.length > 0) {
+      const meanDelta =
+        paired.reduce((a, n) => a + n, 0) / paired.length;
+      lines.push(
+        `**Control-mode aggregate:** ${paired.length} scenario(s) paired · mean Δ ${fmtPpDelta(meanDelta)} (harnessed − content-only).`,
+      );
+      lines.push("");
+    }
+  }
 
   // Per-scenario expectation breakdown (collapsible). Useful for
   // anyone who wants to see exactly what was checked, not just the
   // top-line score.
   lines.push(`## Expectation breakdown`);
   lines.push("");
-  for (const s of scenarios) {
-    lines.push(`<details>`);
-    lines.push(
-      `<summary><strong>${s.scenario_id}</strong> — ${escapeMd(s.title)} · ${statusBadge(s)} ${s.status === "ok" ? `· ${fmtPct(s.score)}` : ""}</summary>`,
-    );
-    lines.push("");
-    if (s.error) {
-      lines.push(`Error: \`${s.error}\``);
+  for (const [scenarioId, group] of grouped) {
+    for (const s of group) {
+      const condTag =
+        s.condition !== undefined ? ` [${s.condition}]` : "";
+      lines.push(`<details>`);
+      lines.push(
+        `<summary><strong>${scenarioId}${condTag}</strong> — ${escapeMd(s.title)} · ${statusBadge(s)} ${s.status === "ok" ? `· ${fmtPct(s.score)}` : ""}</summary>`,
+      );
       lines.push("");
-    }
-    const sample = s.samples[0];
-    if (sample) {
-      lines.push(`**Notes:** ${sample.notes}`);
-      lines.push("");
-      for (const e of sample.expectations) {
-        const icon = e.met ? "✓" : "✗";
-        lines.push(`- ${icon} **${escapeMd(e.label)}**`);
-        lines.push(`  ${escapeMd(e.evidence)}`);
+      if (s.error) {
+        lines.push(`Error: \`${s.error}\``);
+        lines.push("");
       }
+      // Surface the variance band for multi-sample runs.
+      if (
+        s.status === "ok" &&
+        s.samples.length > 1 &&
+        s.score_min !== undefined &&
+        s.score_max !== undefined
+      ) {
+        const stddevPp =
+          s.score_stddev !== undefined
+            ? `, σ=${(s.score_stddev * 100).toFixed(1)}pp`
+            : "";
+        const passRate =
+          s.pass_rate !== undefined
+            ? `, ${Math.round(s.pass_rate * s.samples.length)}/${s.samples.length} samples passed`
+            : "";
+        lines.push(
+          `**Variance:** ${s.samples.length} samples, range ${fmtPct(s.score_min)}–${fmtPct(s.score_max)}${stddevPp}${passRate}.`,
+        );
+        lines.push("");
+      }
+      const sample = s.samples[0];
+      if (sample) {
+        lines.push(`**Notes:** ${sample.notes}`);
+        lines.push("");
+        for (const e of sample.expectations) {
+          const icon = e.met ? "✓" : "✗";
+          lines.push(`- ${icon} **${escapeMd(e.label)}**`);
+          lines.push(`  ${escapeMd(e.evidence)}`);
+        }
+      }
+      lines.push("");
+      lines.push(`</details>`);
+      lines.push("");
     }
-    lines.push("");
-    lines.push(`</details>`);
-    lines.push("");
   }
 
   return lines.join("\n");
