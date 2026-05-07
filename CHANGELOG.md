@@ -1,5 +1,60 @@
 # magik-repo
 
+## 0.6.0 — 2026-05-07
+
+Tracks `harness@0.6.0`. **Folder management becomes contextual judgement, not numeric thresholds.** The "earn the folder" rule (`≥ 3 durable artifacts`) is replaced by **five organizing principles** the agent reasons through and articulates in writing: coherence, boundary, granularity, persistence, discoverability. The agent organizes like a human would — applying principles, not counting tags. Numeric signals (recurrence counts, accumulated tagged entries, age windows) become *prompts* for the principles, never verdicts on their own.
+
+Alongside this, the structural-change vocabulary is made first-class: **five operations** — Add, Rename, Merge, Split, Deprecate — apply uniformly to domains, KB folders, domain-skill folders, and earned memory lanes. The `domain-registry` skill owns all five; `scaffolding-author` covers single-skill and subagent authoring and defers structural cases to `domain-registry`.
+
+Two clarifications also land:
+
+- **Spinal binding is partial by design.** KB entries and *domain* skills sync **strictly** to the domain registry — every `knowledge/<x>/` and `.cursor/skills/<x>/` (domain skill) folder must correspond to an active slug. Service skills (`.cursor/skills/services/<service>/`) and task skills follow their own taxonomies; they do not sync to the spine. The reason is shape: services are inherently cross-domain; tasks are workflow-bound. Forcing them into a domain folder distorts them.
+- **Cross-domain content goes through three patterns, in order.** Pattern A — primary-owner entry with `applies_to:` + `links:` (default). Pattern B — project tag `tags: [<project>]` for transient cross-cutting concerns. Pattern C — cross-cutting meta-domain like `compliance/` or `accessibility/` — only when (a) no single domain is the natural owner, (b) the concern persists indefinitely, and (c) the content passes all five principles independently. C is rare on purpose; allowing it loosely bends the spine.
+
+This is a substantial conceptual change to how the harness reasons about its own structure. It is not a behavioral change for `/init-harness` (which still runs marker-bounded upgrades on an existing project), and unit tests still pass — the change is in the *prose* the agent reads at runtime, not in the artifact mechanics.
+
+### Changed
+
+- **`rules/scaffolding.mdc` — full rewrite.** Replaces the old "Add a task skill / domain skill / service skill / domain when …" sections (which were thin numeric tables) with: two pre-questions (knowledge problem vs scaffolding problem; skill vs subagent), the five organizing principles with explicit definitions, the five operations (Add / Rename / Merge / Split / Deprecate) with triggers and proposal-shape descriptions, a skill-kind table that names the spinal-binding split, and a propose-then-apply contract (kept verbatim from v0.5 — it works). Anti-patterns section adds an explicit ban on "treating numeric signals as verdicts" and "proposing a structural change without answering all five principles".
+- **`rules/domains.mdc` — full rewrite.** Codifies the strict KB-syncs-to-registry rule and the partial spinal binding (KB strict, domain skills strict, services/tasks no). Restates the five operations on the registry. Adds explicit cross-domain content section (Pattern A / B / C, with the three preconditions for C). Default for splits is *subdomain* (children stay nested); sibling-promotion only when the child has clearly outgrown the parent's frame.
+- **`rules/skills-organization.mdc` — restated.** Type table now includes a "Sync to domain registry?" column making the partial spine explicit. Service and task skills are explained as having their own taxonomies (per-service / per-workflow), which is *why* they don't sync. New `tasks/` reserved folder is documented for genuinely cross-domain task skills.
+- **`rules/knowledge-base.mdc` — adds cross-domain patterns + reframes recurrence.** A new "Cross-domain content — three patterns, in order" section. Frontmatter list adds `applies_to:` and `enforcement:`. The fieldnote → policy promotion path is reframed: substantial recurrence is a *prompt*, not a verdict; the five principles decide; a recurring symptom may need a `concept` or `decision` upstream rather than a hardened policy.
+- **`rules/drift-control.mdc` — drift signals split into "verdicts" vs "prompts".** Verdict-class signals (registry mismatch, policy violations, contradictions, quarantines) stay as drift. Prompt-class signals (lesson recurrence, accumulated tagged entries, stale references) become surfaces for the agent to run the five principles — never verdicts on their own. The "earn the folder" advisory is renamed "earn the lane" and explicitly demoted to a prompt.
+- **`rules/memory.mdc` — memory-lane promotion is a judgement, not a threshold.** "Earn-the-folder trigger" section becomes "Memory-lane promotion (judgement, not threshold)" — the five principles decide; accumulated tagged entries are evidence, not verdicts. The fieldnote-promotion path in §"Memory vs. fieldnotes" is also rephrased.
+- **`rules/subagents.mdc` — domain-agent prerequisites become principles.** The old `≥ 1 domain skill, ≥ 3 task skills, ≥ 1 service skill` checklist becomes the five principles applied to the agent's *role boundary*; the same artifacts (orchestration skill, task skills, services, recurring delegation) appear as evidence-prompts rather than thresholds.
+- **`skills/domain-registry/SKILL.md` — full rewrite.** This skill now owns all five operations and produces principle-grounded proposals. The proposal template requires explicit answers to all five principles. Cross-domain pattern selection (A / B / C) is part of the procedure when adding domains.
+- **`skills/scaffolding-author/SKILL.md` — scope split with `domain-registry`.** This skill owns single-skill creation and subagent authoring. Anything *above the level of one skill* (folder reorgs, splits, merges, new domains) defers to `domain-registry`. Domain-agent prerequisites become principles.
+- **`skills/memory-distill/SKILL.md` — earn-the-folder math removed; recurrence reframed.** §2 "Score and cluster" reframes recurrence as evidence-prompts. §5 renamed "Detect candidate memory lanes (judgement, not threshold)" — surfaces prompts; defers to `domain-registry` for the five-principle review and the application step. The structural-proposal example reflects the new flow. The provenance / trust table softens the recurrence threshold language.
+- **`skills/drift-scan/SKILL.md`** — D10, D16, D20 explicitly call out that the signal is a *prompt*, not a verdict; the five principles decide.
+- **`skills/harness-audit/SKILL.md` — proposal triggers reframed.** §5/6/7 reframe scaffolding-health, fieldnote, and structural-change triggers as principle-prompts. The "Recommend structural changes" table swaps numeric "trigger" entries for qualitative "prompts to evaluate".
+- **`skills/knowledge-base/SKILL.md`** — the fieldnote-update line reframes recurrence-to-policy as a judgement step, citing the five principles.
+
+### Seed sources
+
+- **`seed-sources/AGENTS.primer.md`** — adds an "Organize like a human (the five principles)" section so a fresh agent that only ever loads the primer gets the model right. Includes the spinal-binding rule and the cross-domain pattern ordering. Numeric signals are explicitly named as prompts, not verdicts.
+- **`seed-sources/knowledge/_meta/domains.md`** — Conventions section drops the `≥ 3 durable artifacts` rule and replaces with the five-operations / five-principles framing. Default for splits is now stated as subdomain; sibling-promotion is the exception. Change-log format example updated to cite the *principle* that motivated each operation.
+- **`seed-sources/knowledge/_meta/subdomain-catalogue.md`** — header reframes the "earned" rule; "Earn it when…" column renamed to "Cues that prompt evaluation". Compression note for `brand` reframed.
+- **`seed-sources/knowledge/_meta/schemas/fieldnote.md`** — `Promotion path` and `Trust and quarantine` sections reframe `recurrence ≥ 3` as a prompt for the five principles; trust derivation language softened to "substantial recurrence" rather than a numeric threshold.
+
+### Eval fixtures
+
+- **`evals/fixtures/empty-harnessed-with-domains/knowledge/_meta/domains.md`** and **`evals/fixtures/populated-kb-with-policy/knowledge/_meta/domains.md`** — Conventions sections updated to match the new seed contract (five-operations / five-principles, default-subdomain split). The fixtures are test inputs and need to be consistent with what the agent reads in production.
+
+### Migration from 0.5.x
+
+This is a *prose* change to the rules and skills. Re-running `/init-harness` on a v0.5.x project will:
+
+1. Upgrade the `v=0.5.0` primer block in `AGENTS.md` in place to `v=0.6.0`. The new "Organize like a human" section lands in the harness-marker block; user-authored content outside the markers is preserved verbatim.
+2. The gitignore block is unchanged from v0.5.0; the version stamp on the marker bumps to `v=0.6.0` (no content drama).
+3. The `seeds/` payload is regenerated from `seed-sources/`. New / changed seed files (e.g. `knowledge/_meta/domains.md`, `subdomain-catalogue.md`, `schemas/fieldnote.md`) are written only on first install of those files; pre-existing user copies are not overwritten. If you want the new prose, manually merge the seed updates into your project's existing copy — the seeds directory is the canonical source.
+4. No data shape change. No KB entry needs to be touched; no memory entry needs to be migrated; no skill folder needs to move. The change is in how the agent *reasons* about future structural changes.
+
+### Why this lands now
+
+The `≥ 3 durable artifacts` rule was always a heuristic dressed as a threshold. Its real job was solving one narrow problem — premature structure — but it could not express *rename / merge / split / deprecate*, and it equated "we tagged 3 things [marketing]" with "we have a marketing domain", which is wrong if those tags were superficial. The five principles preserve the premature-structure guard (the principles are a higher bar in practice than counting to 3) and extend the reasoning to the full vocabulary of structural change. The result is a harness that organizes the way a senior contributor would — by reading the contents, not the count.
+
+---
+
 ## 0.5.0 — 2026-05-07
 
 Tracks `harness@0.5.0`. **`memory/` becomes git-ignored.** The harness now treats memory the same way it treats `workspace/`: agent-runtime output, runtime-personal, never synced across machines or contributors. The split across the five components becomes: **tracked = the durable substrate we agree on, build, and ship; ignored = agent-runtime output**. `workspace/` is craft artifacts (drafts, PDFs, media); `memory/` is thought artifacts (daily notes, commitments, distillations). The promotion path `memory/daily/` → `memory-distill` → `knowledge/<domain>/` becomes the *only* way for a memory signal to cross runtimes — which is what it was already designed to be.

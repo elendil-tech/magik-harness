@@ -1,6 +1,8 @@
 # Subdomain catalogue
 
-A reference menu of subdomains for each top-level domain. **Not active state** — these are templates the `domain-registry` skill offers when proposing splits. A subdomain only appears in the live registry once it has earned it (≥ 3 durable artifacts under it).
+A reference menu of subdomains for each top-level domain. **Not active state** — these are templates the `domain-registry` skill offers when proposing splits.
+
+A subdomain only appears in the live registry after `domain-registry` has run the five principles in `rules/scaffolding.mdc` (coherence, boundary, granularity, persistence, discoverability) on the proposed split, and the user has approved. The "earn it when…" column below lists *qualitative cues* that prompt the evaluation — they are not auto-thresholds.
 
 For each top-level domain we document:
 
@@ -16,9 +18,9 @@ The recommended set is organized by **surface** (where work lives) rather than b
 
 ### Recommended set
 
-| Subdomain | What lives here | Earn it when… |
+| Subdomain | What lives here | Cues that prompt evaluation |
 | --- | --- | --- |
-| `architecture` | Cross-cutting system design, ADRs (`decision`s), patterns, integration boundaries, tech-choice rationales. | You have ≥ 3 ADRs, or two engineers disagree on "how should we…" recurringly. |
+| `architecture` | Cross-cutting system design, ADRs (`decision`s), patterns, integration boundaries, tech-choice rationales. | Multiple ADRs accumulating, or two engineers disagree on "how should we…" recurringly. The cue is qualitative; the principles decide. |
 | `backend` | Server code, APIs, business logic, background jobs, queues. | The application has any server-side execution. (Almost always true for SaaS.) |
 | `frontend` | Client code, UI patterns, state management, SSR/streaming, design-system implementation. | The product has a UI of its own (vs. CLI / API only). |
 | `data` | Schema, migrations, ETL, warehousing, analytics pipelines, data contracts. | Schemas need versioning + migrations, or analytics is non-trivial. |
@@ -102,7 +104,7 @@ Compression: a small project starts with `strategy` + `features` and adds others
 | `design-system` | Tokens and component spec (overlaps with frontend implementation). |
 | `guidelines` | Usage rules across surfaces (web, social, print, video). |
 
-Compression: start as a flat `brand/` until the four sub-clusters have ≥ 3 entries each.
+Compression: start as a flat `brand/`; split into subdomains when the sub-clusters develop coherent boundaries you can articulate in a sentence each (the five principles in `rules/scaffolding.mdc`).
 
 ---
 

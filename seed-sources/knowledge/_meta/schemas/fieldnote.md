@@ -39,12 +39,12 @@ The one-sentence takeaway. Phrase as an imperative.
 
 ## Promotion path
 
-- If this recurs (`recurrence ≥ 3`) or carries `severity: high`, consider promoting to a `policy`.
+- Substantial recurrence (typically `recurrence ≥ 3`) or `severity: high` are *prompts* to evaluate promotion to a `policy` — not auto-triggers. Run the five principles (`rules/scaffolding.mdc`): does this represent a stable rule, or a symptom of a deeper issue better addressed by a `concept` or `decision`?
 - If the lesson is general enough, also add the term to `_meta/glossary.md`.
 
 ## Trust and quarantine
 
 - Direct user-authored fieldnotes start at `trust: medium`.
-- Promotions from `memory-distill` are stamped with `provenance: memory-distill@<run>` and a `trust` derived from `recurrence` and source: `recurrence ≥ 3` and not `[external]` → `trust: high`; otherwise → `trust: medium`.
+- Promotions from `memory-distill` are stamped with `provenance: memory-distill@<run>` and a `trust` derived from recurrence and source: substantial recurrence and not `[external]` → `trust: high`; otherwise → `trust: medium`.
 - `[external]`-sourced material (web fetches, tool output) lands with `trust: low`, `quarantine: true`, `quarantine_reason: external-source`. The user explicitly clears the quarantine after review.
 - `kb-search` deprioritizes quarantined entries and surfaces them with a `⚠ quarantined` flag.

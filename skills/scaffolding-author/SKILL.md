@@ -1,17 +1,24 @@
 ---
 name: scaffolding-author
-description: Author new skills (service / domain / task) and decide when to spawn a subagent. Picks the right type, placement, and template. Use when creating any new skill or weighing a subagent.
+description: Author new skills (service / domain / task) and decide when to spawn a subagent. Picks the right type, placement, and template. Use when creating any new skill or weighing a subagent. Defers structural changes (folder reorgs, splits, merges, new domains) to domain-registry.
 ---
 
 # Scaffolding author
 
 Authors new agent scaffolding. Encodes the type/placement rules from `.cursor/rules/skills-organization.mdc` and the decision protocol from `.cursor/rules/scaffolding.mdc`.
 
+**Scope split with `domain-registry`:**
+
+- This skill owns single-skill creation and subagent authoring.
+- `domain-registry` owns *structural* changes — anything that adds, renames, merges, splits, or deprecates a domain folder or a domain-skill folder. The five operations and five principles live there.
+
+When the right answer is a structural change (e.g., "this skill is really a new domain", "these three skills should merge"), defer to `domain-registry` and proceed inside its proposal.
+
 ## When to invoke
 
 - User asks to create a new skill, command, or subagent.
 - A `fieldnote` recurs and a deterministic procedure could prevent it.
-- A repeated procedure has been observed ≥ 2 times.
+- A procedure has been observed twice (or you predict it confidently); the five principles say a skill is warranted.
 - An external service is being introduced and has non-trivial connection / verification.
 
 ## Procedure
@@ -26,18 +33,19 @@ If the gap is "we don't know what we want", it is a **knowledge** problem — de
 - **Domain agent** (default subagent shape) — a specialist worker for a single project domain, inheriting that domain's skills, services, and KB. See `.cursor/rules/subagents.mdc`.
 - **Non-domain subagent** — a cross-domain role (release-manager, researcher) with a measurable success signal. Rare.
 
-A domain earns an agent when:
-- ≥ 1 domain skill, ≥ 3 task skills, ≥ 1 service skill in active use, and recurring delegated work.
+A domain earns an agent when its proposal can answer the five principles (`rules/scaffolding.mdc`) — coherent role, articulable boundary, granularity parity with other domain agents, persistent need, clear discoverability. Concrete evidence that *prompts* the evaluation: a `_domain/SKILL.md` orchestrating multiple task skills, services in active use, recurring delegated work. None of these are auto-triggers — the principles decide.
 
 If you can't name a success signal, write a skill.
 
 ### 3. Decide: skill type
 
-| Indicator | Type |
-| --- | --- |
-| It is about *using an external service*. | `service` |
-| It is *high-level guidance for a project domain*. | `domain` |
-| It is a *specific task* with stable inputs/outputs. | `task` |
+| Indicator | Type | Sync to registry? |
+| --- | --- | --- |
+| It is about *using an external service*. | `service` | No |
+| It is *high-level guidance for a project domain*. | `domain` | **Yes — strict** |
+| It is a *specific task* with stable inputs/outputs. | `task` | No |
+
+Service and task skills follow their own taxonomies; only domain skills mirror the registry.
 
 ### 4. Pick placement
 
@@ -45,9 +53,9 @@ If you can't name a success signal, write a skill.
 | --- | --- |
 | `service` | `.cursor/skills/services/<service>/SKILL.md` |
 | `domain` | `.cursor/skills/<domain>/_domain/SKILL.md` |
-| `task`   | `.cursor/skills/<domain>/<task>/SKILL.md` |
+| `task`   | `.cursor/skills/<domain>/<task>/SKILL.md` if domain-bound; `.cursor/skills/tasks/<task>/SKILL.md` otherwise. |
 
-Confirm the domain exists in the registry. If not, defer to `domain-registry` first.
+For a `domain` skill, confirm the slug exists in the registry. If not, defer to `domain-registry` first — domain skills sync to the spine; you cannot create one without an active registry slug.
 
 ### 5. Pick a template
 
@@ -105,9 +113,9 @@ Run `drift-scan --shallow` to confirm no new drift.
 
 ### Domain agent (default)
 
-When a domain meets the threshold:
+When the five principles say a domain agent is warranted (see step 2 above):
 
-1. Confirm with user — subagent creation is a structural change.
+1. Confirm with user — subagent creation is a structural change. Submit it as a propose-then-apply pair (`rules/scaffolding.mdc`), with answers to the five principles in the proposal body.
 2. Copy `.cursor/skills/_templates/domain-agent.md` to `.cursor/agents/<domain>.md`.
 3. Fill the template:
    - Inherit context: `knowledge/<domain>/`, `knowledge/_meta/` (read), `knowledge/_index.md` (read).

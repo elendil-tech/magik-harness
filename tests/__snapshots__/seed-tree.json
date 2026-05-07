@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "fileCount": 22,
   "entries": [
     {
@@ -36,7 +36,7 @@
     },
     {
       "path": "AGENTS.primer.md",
-      "sha256": "4e399d5c7d6a07c0546e8dab5c7ecc95ba1df111eeba494322954c0112818c99"
+      "sha256": "12f171c0cbc099df885d2feb19b35c0d649cbc86722b508bf06efa682b6343ee"
     },
     {
       "path": "codebase/README.md",
@@ -52,7 +52,7 @@
     },
     {
       "path": "knowledge/_meta/domains.md",
-      "sha256": "d407816979289d4e4bf7cd825d32b0616220e430487aeecdab112658c4f95609"
+      "sha256": "d14bed881ca264cb72a2261668c732082d12a2a5d3c7b58b9719fcbd2bc1cb43"
     },
     {
       "path": "knowledge/_meta/glossary.md",
@@ -68,7 +68,7 @@
     },
     {
       "path": "knowledge/_meta/schemas/fieldnote.md",
-      "sha256": "0774c330cd3284d45ace0a8aa686ae788c9fc698ce86f8d527f987bebfd8318e"
+      "sha256": "10013dd77e60b39e1e81ef108feac9c8d91e68bf15b2394d1908a675de231514"
     },
     {
       "path": "knowledge/_meta/schemas/policy.md",
@@ -80,7 +80,7 @@
     },
     {
       "path": "knowledge/_meta/subdomain-catalogue.md",
-      "sha256": "52eeafb101eafab12708a706fc337c0d3ab4ed610435682e0b263a1e315ed843"
+      "sha256": "b6952272cb3e6d76a177cf33380e22491f7b691a8e3e8bfd6607f6450532e4e0"
     },
     {
       "path": "workspace/.gitkeep",

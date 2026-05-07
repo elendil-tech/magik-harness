@@ -59,17 +59,17 @@ freshness = 0.5 ^ ((today − max(updated, last_referenced)) / 14)
 | D7 | no active `decision` contradicted by a more recent active `decision` in same domain (look for keyword pairs) | high (advisory) |
 | D8 | no `policy` violated by another `policy` (rule conflict) | high |
 | D9 | every `service` skill referenced in a domain skill is present in `services/` | medium |
-| D10 | every `fieldnote` with `recurrence >= 3` has either a linked `policy` or an open promotion proposal | medium |
+| D10 | every `fieldnote` with substantial recurrence has either a linked `policy`, an open promotion proposal, or an explicit decision not to promote (recurrence is a *prompt* for the five principles, not an auto-trigger) | medium |
 | D11 | every active KB entry has `freshness ≥ 0.06` (advisory; 14-day half-life replaces the binary 180-day rule) | low |
 | D12 | for each `decision` mentioning a tech choice, codebase reflects it (deep mode only) | high |
 | D13 | every active `policy` mentioning code is satisfied by the codebase (deep mode only, advisory) | medium |
 | D14 | no KB entry has `quarantine: true` — quarantined entries must be reviewed and cleared | high |
 | D15 | no KB entry with `trust: low` and `provenance != direct` is older than 14 days without a `last_referenced` bump (review gate) | medium |
-| D16 | every memory `[lesson-candidate]` recurring ≥ 3 days has a fieldnote written or open promotion proposal | medium |
+| D16 | every memory `[lesson-candidate]` recurring across multiple days has a fieldnote written, an open promotion proposal, or an explicit decision not to promote (this is a *prompt* signal — the five principles in `rules/scaffolding.mdc` decide) | medium |
 | D17 | every memory `[decision-candidate]` older than 14 days has a `decision` entry or open promotion proposal | medium |
 | D18 | no memory entry contradicts an active `policy` or `decision` | high |
 | D19 | no commitment is past `due` with no resolution or extension | medium |
-| D20 | any domain with ≥ 3 daily entries tagged with it over the last 14 days but no `memory/<domain>/` folder gets an "earn the folder" advisory | low |
+| D20 | any domain with accumulated tagged daily entries but no `memory/<domain>/` lane gets an "earn the lane" advisory — surfaced as a *prompt* for `domain-registry` to evaluate against the five principles, never as a verdict | low |
 | D21 | no daily note is older than 30 days and undistilled | low |
 
 ### 3. Build the report

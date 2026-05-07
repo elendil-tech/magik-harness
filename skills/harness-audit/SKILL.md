@@ -117,7 +117,7 @@ For each domain:
 - Commitment backlog: count of active commitments past their `due` date.
 - Oldest unprocessed daily note: flag if > 14 days since last distill run.
 - `[external]` entries awaiting review (these become `quarantine: true` on promotion).
-- Earn-the-folder candidates: domains with ≥ 3 daily entries tagged with them over the last 14 days but no `memory/<domain>/` folder yet.
+- Earn-the-lane candidates: domains with accumulated tagged daily entries but no `memory/<domain>/` lane yet — surface as *prompts* for `domain-registry` to evaluate against the five principles (`rules/scaffolding.mdc`), never as auto-promotion triggers.
 
 ### 4b. Analyze KB trust + freshness
 
@@ -127,28 +127,29 @@ For each domain:
 
 ### 5. Analyze scaffolding health
 
-- Skills not referenced from any domain index in > 90 days.
-- Service skills whose service is not used in any other entry.
-- Skill count per domain — flag domains with > 10 skills as candidates for splitting; flag domains with 0 skills + > 5 KB entries as candidates for adding a domain skill.
+- Skills not referenced from any domain index in > 90 days — *prompt* to evaluate whether the workflow is still needed (the count of days is evidence, not a verdict).
+- Service skills whose service is not used in any other entry — *prompt* for review.
+- Skill count per domain — *prompt* to evaluate splitting (heavy domains) or adding a `_domain/SKILL.md` (domains with KB depth but no orchestration).
 
 ### 6. Analyze fieldnote signals
 
-- Fieldnotes with `recurrence ≥ 3` — propose promotion to `policy`.
-- Fieldnotes with the same `tags` cluster — propose a `concept` to consolidate.
+- Fieldnotes with substantial recurrence — *prompt* to evaluate promotion to `policy` (the five principles decide; recurrence is evidence, not an auto-trigger).
+- Fieldnotes with the same `tags` cluster — *prompt* to evaluate consolidation into a `concept`.
 
-### 7. Recommend structural changes
+### 7. Recommend structural changes (judgement, not threshold)
 
-Produce 0–N **proposals**:
+Produce 0–N **proposals**. Every proposal goes through `domain-registry` (or `scaffolding-author` for single-skill cases) and answers the five principles in `rules/scaffolding.mdc`. The "trigger" column lists *prompts* — qualitative or quantitative signals that warrant evaluating the operation. The principles decide; numbers don't.
 
-| Proposal type | Trigger |
+| Proposal type | Prompts to evaluate |
 | --- | --- |
-| Add subdomain | A domain has > 8 active entries and a clear sub-cluster (consult `knowledge/_meta/subdomain-catalogue.md` for a matching slug). |
-| Merge domains | Two domains have heavy cross-links and overlapping concepts. |
-| Deprecate domain | No writes in > 6 months, no referenced entries. |
-| Promote fieldnote | `recurrence ≥ 3` or `severity: high`. |
-| Add domain skill | Domain has > 3 task skills but no `_domain/SKILL.md`. |
-| **Add domain agent** | Domain has ≥ 1 domain skill, ≥ 3 task skills, and ≥ 1 service skill — i.e., enough specialized surface to warrant a dedicated worker. See `.cursor/rules/subagents.mdc`. |
-| Promote memory subfolder | A domain has ≥ 3 daily entries tagged with it over the last 14 days — earn `memory/<domain>/`. |
+| Add subdomain | A domain has accumulated entries that fall into clear sub-clusters; consult `knowledge/_meta/subdomain-catalogue.md` for matching slugs. |
+| Merge domains | Two domains have heavy cross-links and entries plausibly belonging to either — boundary blur. |
+| Split (sibling-promotion) | A subdomain has clearly outgrown its parent's frame — the boundary statement reads broader than the parent's, not nested in it. |
+| Deprecate domain | No writes for an extended stretch, no referenced entries — the *Persistence* principle is in question. |
+| Promote fieldnote → policy | Substantial recurrence, or `severity: high`, or stable enough wording that it would constrain future work. |
+| Add domain skill | Cross-cutting tooling decisions in a domain that aren't owned by any single task skill. |
+| **Add domain agent** | Domain has procedural surface (orchestration `_domain/SKILL.md`, multiple task skills, services in active use) AND recurring delegated work AND the five principles say yes for the agent's role. See `.cursor/rules/subagents.mdc`. |
+| Promote memory lane | Tagged entries are creating noise in the flat `memory/daily/` lane and separation would genuinely improve coherence/boundary/granularity/persistence/discoverability. Spinal precondition: slug must be active in registry. |
 
 ### 8. Output
 

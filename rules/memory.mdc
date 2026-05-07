@@ -27,7 +27,7 @@ memory/                          ← created on first write; gitignored as a who
 └── distillations/<YYYY-MM-DD>.md ← created by /distill on first run
 ```
 
-Domain-organized subfolders earn their place by the same "≥ 3 durable artifacts" rule that governs `knowledge/<domain>/`. Until earned, daily notes stay flat and entries are domain-tagged inline.
+Domain-organized subfolders are not added by a count — they're added by **judgement** against the five principles in `rules/scaffolding.mdc` (coherence, boundary, granularity, persistence, discoverability), with the registry's strict spinal binding as a hard precondition (the slug must be active in `knowledge/_meta/domains.md`). Until a memory lane is earned, daily notes stay flat and entries are domain-tagged inline. Accumulating tagged signals may *prompt* the agent to evaluate; they do not auto-promote.
 
 ## Memory vs. fieldnotes
 
@@ -43,7 +43,7 @@ So:
 - **Memory** is raw, time-anchored, written reflexively during work. Most memory is ephemeral and never gets promoted.
 - **Fieldnotes** are the curated subset that earned promotion: a real lesson with a one-sentence imperative takeaway, supersedeable, durable, with a stable id.
 
-Write to memory first; let `memory-distill` propose fieldnote promotions when a `[lesson-candidate]` accumulates `recurrence ≥ 3` or surfaces a non-obvious gotcha. Direct fieldnote writes are still allowed when the user explicitly states a lesson — but most fieldnotes will originate from memory.
+Write to memory first; let `memory-distill` propose fieldnote promotions. Substantial recurrence of a `[lesson-candidate]`, or a single non-obvious / high-severity gotcha, *prompts* a promotion proposal — the proposal still goes through judgement (does this represent a stable rule, or a symptom of a deeper issue?), and the user approves. Direct fieldnote writes are still allowed when the user explicitly states a lesson — but most fieldnotes will originate from memory.
 
 A fieldnote without a memory phase is fine (user states a lesson directly). A memory entry without a fieldnote is fine (most observations get archived without promotion). They coexist because they answer different questions: memory says *"what happened during this work?"*, fieldnote says *"what should we remember to do (or not do) next time?"*
 
@@ -89,20 +89,24 @@ Memory → knowledge promotion is **proposal-only**. The agent never auto-applie
 The `memory-distill` skill is the one path:
 
 1. Scans `memory/daily/*.md`, scores by tag distribution + recency (14-day half-life) + domain.
-2. Identifies clusters: lesson-candidates with `recurrence ≥ 3`, decision-candidates older than N days still active, repeated observations on the same surface.
+2. Identifies clusters: recurring lesson-candidates, decision-candidates older than N days still active, repeated observations on the same surface. Counts and recurrences are *evidence*, not verdicts — they prompt the agent to evaluate via the five principles before proposing promotion.
 3. Produces a numbered proposal list — same format as `harness-audit`.
 4. User approves; distill hands off to `knowledge-base` to write the KB entry.
-5. The KB entry is stamped with `provenance: memory-distill@<YYYY-MM-DD>` and a `trust` derived from `recurrence` and source (`[external]` always lands as `trust: low` + `quarantine: true`).
+5. The KB entry is stamped with `provenance: memory-distill@<YYYY-MM-DD>` and a `trust` derived from recurrence and source (`[external]` always lands as `trust: low` + `quarantine: true`).
 6. Distillations are logged to `memory/distillations/<YYYY-MM-DD>.md` (audit trail).
 
 After promotion, the daily note that contained the candidate stays in place as the chronological record. The promoted KB entry is the durable home.
 
-## Earn-the-folder trigger
+## Memory-lane promotion (judgement, not threshold)
 
-When a domain has ≥ 3 daily entries tagged with it over the last 14 days, `memory-distill` (and `harness-audit`) propose promoting it to its own `memory/<domain>/daily/` subdirectory. After approval:
+A domain may earn its own `memory/<domain>/daily/` lane when keeping its signals separate genuinely improves coherence, boundary, granularity, persistence, and discoverability — judged against the five principles in `rules/scaffolding.mdc`. Accumulated tagged signals are a *prompt* for that judgement; `memory-distill` and `harness-audit` surface the prompt but do not decide.
+
+The hard precondition is the spinal binding: the slug must be active in `knowledge/_meta/domains.md`. Defer to `domain-registry` if it isn't.
+
+After approval:
 
 - Future signals tagged with that domain land in `memory/<domain>/daily/<today>.md`.
-- The flat `memory/daily/<today>.md` continues to receive cross-domain and unearned-domain signals.
+- The flat `memory/daily/<today>.md` continues to receive cross-domain and unearned-lane signals.
 - Existing flat entries are *not* migrated — they stay in the flat lane until they age out or get promoted. (`memory/` is gitignored, so re-shuffling files for structural tidiness costs more than it returns.)
 - An `_index.md` is created at `memory/<domain>/_index.md` describing the lane.
 

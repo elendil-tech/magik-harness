@@ -1,53 +1,71 @@
 ---
-description: Decision protocol for when to add a new skill, subagent, or domain — keeps the harness adaptive without bloat.
+description: Decision protocol for when to add, rename, merge, split, or deprecate a skill, subagent, or domain — keeps the harness adaptive without bloat.
 alwaysApply: false
 ---
 
 # Self-scaffolding
 
-The harness must evolve with the project. Use this checklist when deciding whether to scaffold something new.
+The harness must evolve with the project. Use this rule to decide *when* to change scaffolding (add / rename / merge / split / deprecate) and *what kind* (skill, subagent, domain).
 
-## Add a **task skill** when
+## Two questions before adding anything
 
-- The same procedure has been performed ≥ 2 times (or you predict it will be).
-- Its inputs / outputs are stable enough to encode.
-- It would benefit from determinism (a script, a checklist, a fixed order of tool calls).
-- A `fieldnote` keeps recurring on the same issue.
+1. **Knowledge problem or scaffolding problem?** If the team doesn't yet agree on what's true, the answer is a KB entry (`concept`, `decision`), not a procedure. Don't write a skill on top of unsettled ground truth.
+2. **Skill or subagent?** A skill is a procedure the main agent follows. A subagent is a worker who *owns* a domain or role. If you can't name a measurable success signal for a candidate subagent, write a skill instead.
 
-## Add a **domain skill** when
+## The five principles (organizational judgement)
 
-- A domain has ≥ 3 task skills already; the domain skill orchestrates them.
-- The domain has cross-cutting tooling decisions worth stating once.
+Every structural change — add, rename, merge, split, or deprecate, applied to a domain folder, a `knowledge/<domain>/` lane, a `.cursor/skills/<domain>/` lane, or a memory subfolder — is judged against five principles. The proposal must answer all five in writing; the user reviews the answers, not just the verb.
 
-## Add a **service skill** when
+1. **Coherence.** Do the items belong together because they share *concepts*, or only because they share a *tag*? Three things tagged `[marketing]` that don't share a concept ≠ a marketing domain.
+2. **Boundary.** Can the unit be defined in one sentence — *what it includes and what it explicitly excludes*? If you can't write the exclusion clause, the boundary isn't ready.
+3. **Granularity.** Does this match the granularity of sibling units at the same level? Don't split `marketing/` into `instagram-marketing/` and `tiktok-marketing/` while `engineering/` stays one folder.
+4. **Persistence.** Will this organizational unit still make sense in 6 months? Project-shaped concerns ("Q4 launch") are *tags*, not folders.
+5. **Discoverability.** Does the placement and naming make a fresh contributor faster? Or are we just satisfying a tidiness urge?
 
-- A service is used in more than one task or domain.
-- It has non-obvious auth / connection / verification steps.
-- It has CLI/API/MCP surface area.
+The principles replace numeric thresholds (e.g., the old "≥ 3 durable artifacts"). Counts may *prompt* the agent to run the principles — they are never the verdict on their own. Drift-scan surfaces signals; the principles decide.
 
-## Add a **subagent** when
+## The five operations
 
-The default unit of subagent is a **project domain** — a marketing agent, a sales agent, an engineering agent, etc. (See `.cursor/rules/subagents.mdc`.)
+| Operation | When (qualitative; principles decide) | What the proposal asserts |
+| --- | --- | --- |
+| **Add** | A new body of work emerges; existing units can't host it cleanly. | All five principles say yes for the new unit. |
+| **Rename / re-scope** | A unit's actual contents have drifted from its slug or purpose statement. | New name passes the principles; old contents fit the new boundary. |
+| **Merge** | Two units' boundaries blur; entries could plausibly live in either. | The combined boundary is articulable in one sentence; granularity parity holds. |
+| **Split** | A unit's contents fall into two or more coherent halves with distinguishable boundaries. **Default: subdomain** (children stay nested under the parent). Sibling-promotion (child becomes a peer to the parent) only when the child has clearly outgrown the parent's frame. | Each half passes the principles independently. For sibling-promotion, the proposal includes a boundary statement showing the child's frame is broader than — not contained in — the parent's. |
+| **Deprecate** | Work has wound down; entries are historical, not active. | `status: deprecated` in the registry; folders stay; `_index.md` carries a deprecation banner; successor (if any) is named. |
 
-Add a **domain agent** when the domain has all of:
+`domain-registry` is the skill that owns these operations and produces the proposal. `scaffolding-author` is the skill that owns single-skill creation; for any structural change above the level of one skill (a new domain, a folder split, a merge), defer to `domain-registry`.
 
-- ≥ 1 domain skill at `.cursor/skills/<domain>/_domain/`.
-- ≥ 3 task skills under `.cursor/skills/<domain>/`.
-- ≥ 1 service skill in active use.
-- Recurring tasks the user explicitly delegates to that domain.
+## Skill kind
 
-Add a **non-domain subagent** (rare; e.g., a release manager, a researcher spanning multiple domains) only when:
+Three skill types, three placements. Only **domain skills** sync to the domain registry; the other two have their own taxonomies.
+
+| Type | Concern | Placement | Sync to registry? |
+| --- | --- | --- | --- |
+| **Service** | Using an external service (Stripe, Notion, Vercel). | `.cursor/skills/services/<service>/` | **No.** Services are inherently cross-domain. |
+| **Domain** | High-level guidance for a project domain. | `.cursor/skills/<domain>/_domain/` | **Yes — strict.** The `<domain>` slug must be active in `knowledge/_meta/domains.md`. |
+| **Task** | Deterministic procedure for a specific workflow. | `.cursor/skills/<domain>/<task>/` when domain-bound; `.cursor/skills/tasks/<task>/` otherwise. | **No.** Task skills follow workflows, not domains. |
+
+Add a service skill when a service has non-trivial connection / verification surface AND is used in more than one place. Add a domain skill when cross-cutting tooling decisions emerge in a domain that aren't owned by any single task skill. Add a task skill after observing a procedure twice (or predicting it confidently) — the principles still apply, but cardinality of two is a soft prompt, not a verdict.
+
+See `.cursor/rules/skills-organization.mdc` for placement details.
+
+## Subagent
+
+The default unit of subagent is a **project domain** — a marketing agent, a sales agent, an engineering agent. (See `.cursor/rules/subagents.mdc`.)
+
+Add a domain agent when:
+
+- The domain has procedural surface to need one — at least one domain skill, multiple task skills, and a service the agent depends on.
+- Recurring tasks are explicitly delegated by the user to that domain's frame.
+- The five principles say yes for the agent's *role boundary*: coherent scope, articulable boundary, persistent need.
+
+Add a non-domain subagent (release-manager, researcher) only when:
 
 - The role spans domains *coherently* with a measurable success signal.
 - A skill or main-agent prompt is provably insufficient.
 
 If you can't name a success signal, write a skill, not a subagent.
-
-## Add a **new domain** when
-
-- ≥ 3 durable artifacts (KB entries, skills, specs) have accumulated under an unscoped or parent domain.
-- The boundary is clear and not covered by an existing domain.
-- The user has confirmed (use `domain-registry` skill).
 
 ## Don't add a thing when
 
@@ -58,7 +76,7 @@ If you can't name a success signal, write a skill, not a subagent.
 
 ## Default: propose, don't decide
 
-Adding a domain, subagent, or removing anything = **proposal** to the user. New skills from templates and `fieldnote` writes are routine.
+Add / rename / merge / split / deprecate of a domain, subagent, skill folder, or rule file = **proposal** to the user. New skills authored from a template and `fieldnote` writes are routine.
 
 ## Propose-then-apply contract
 
@@ -69,6 +87,7 @@ The proposal flow is two turns, not one. Past-tense narration of unexecuted work
 ```
 ## Proposed change
 - <list every concrete file / folder / registry edit, in order>
+- <answer the five principles for the new / changed unit>
 - <call out side effects: re-runs, hook reseeding, downstream domain links>
 
 Apply? (yes / amend / cancel)
@@ -97,3 +116,5 @@ Anything that adds / removes / renames a domain, subagent, skill folder, or rule
 - Re-proposing on turn N+1 when the user already said yes on turn N. Apply, don't stall.
 - Inventing scaffolding the user didn't ask for ("while I was at it I also added X"). Propose every item explicitly; surprises are out-of-scope.
 - Single-turn "I propose X. I've done X." flows. The two-turn shape is the contract; one turn breaks the user's approval gate.
+- Treating a numeric signal ("≥ 3 entries", "recurrence ≥ 3", "no writes in 6 months") as a verdict. These are *prompts* for the principles; the principles decide. Mechanical thresholds replaced human judgement in the v0.5 rules — they no longer do.
+- Proposing a structural change without answering all five principles. A proposal that lists files but doesn't articulate the boundary is incomplete; the user can't approve what isn't argued.

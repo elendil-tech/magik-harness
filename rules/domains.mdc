@@ -5,46 +5,78 @@ alwaysApply: false
 
 # Domains
 
-The **domain registry** at `knowledge/_meta/domains.md` is the single source of truth for which project domains and subdomains exist. Folders mirror it; the registry does not mirror folders.
-
-It is the spine that the rest of the harness mirrors:
-
-- `knowledge/<domain>/` — KB entries for that domain.
-- `memory/<domain>/` — domain-organized memory, when earned (default is flat by date with inline domain tags).
-- `.cursor/skills/<domain>/` — skills for that domain.
-- `.cursor/agents/<domain>.md` — the (optional) domain agent.
-- `workspace/<domain>/` — operational artifacts (advisory only; workspace is gitignored and not required to mirror the registry).
+The **domain registry** at `knowledge/_meta/domains.md` is the single source of truth for which project domains and subdomains exist. It is the spine that the rest of the harness mirrors.
 
 A domain only exists if it appears in the registry with `status: active`.
+
+## What syncs to the spine
+
+The spinal binding is **partial by design** — some layers must mirror the registry exactly, others follow their own taxonomies because they are not domain-shaped.
+
+| Layer | Sync? | Rule |
+| --- | --- | --- |
+| `knowledge/<domain>/` | **Strict.** | Every KB entry's `domain:` frontmatter MUST be an active slug in the registry. Every `knowledge/<x>/` folder MUST correspond to one. |
+| `.cursor/skills/<domain>/` (domain skills) | **Strict.** | Every domain skill folder MUST correspond to an active registry slug. |
+| `memory/<domain>/` (when earned) | **Strict.** | A `memory/<x>/` lane only exists for an active registry slug. (`memory/` itself is gitignored — sync still applies wherever the lane materializes.) |
+| `.cursor/agents/<domain>.md` | **Strict.** | A domain agent only exists for an active registry slug. |
+| `workspace/<domain>/` | **Advisory.** | Workspace is gitignored; the agent may suggest mirroring the spine for human convenience but does not enforce it. |
+| `.cursor/skills/services/<service>/` | **No.** | Service skills are inherently cross-domain. They follow their own per-service taxonomy. |
+| `.cursor/skills/<task>/` (task skills, when not domain-bound) | **No.** | Task skills follow workflows, not domains. |
+
+The reason for the partial split: KB and *domain* skills are claims about the project's truth and procedures *for a domain* — they have to match the spine or one of them is lying. Service and task skills are about *external systems* and *workflows*; forcing them into a domain folder distorts them.
 
 ## Reading
 
 - Before touching a domain, open `knowledge/_meta/domains.md` and confirm the slug exists, is `active`, and matches the kebab-case ASCII form exactly.
 - If the user references a domain not in the registry, treat it as **unscoped**: surface that fact and propose adding it via the `domain-registry` skill — do not invent a folder ad hoc.
 
-## Earn the folder
+## The five operations on the registry
 
-- A domain "earns" its folder once it has accumulated **≥ 3 durable artifacts** (KB entries, skills, or specs). Below that, content lives flat under its parent domain or under `knowledge/research/`.
-- A subdomain "earns" splitting from its parent under the same rule.
-- The same rule applies to `memory/<domain>/`: until a domain has accumulated enough chronological memory to warrant its own subdirectory, daily notes stay flat under `memory/daily/` and entries are tagged inline (`[domain-slug]`). The `memory-distill` skill can propose promoting a domain to its own `memory/<domain>/` once the threshold is met.
+The registry's full vocabulary of structural change is the same five operations defined in `rules/scaffolding.mdc`:
 
-## Adding a domain
+- **Add** a domain (or subdomain).
+- **Rename / re-scope** an existing slug.
+- **Merge** two domains into one.
+- **Split** a domain. **Default: subdomain** (children stay nested under the parent in `subdomains:`). **Sibling-promotion** (a child becomes a peer-level domain) only when the child has clearly outgrown the parent's frame — a sentence-long boundary statement showing the child is broader than, not contained in, the parent.
+- **Deprecate** a domain (set `status: deprecated`, leave folders in place, mark `_index.md` with a deprecation banner, link the successor if any).
 
-Use the `domain-registry` skill (plugin-distributed). Procedure:
+Every operation goes through `domain-registry` and answers the five principles (coherence, boundary, granularity, persistence, discoverability) in the proposal body. Counts (e.g., "≥ 3 tagged entries", "no writes in 6 months") may *prompt* the agent to evaluate — they do not decide.
 
-1. Run the skill with the proposal.
-2. The skill produces a diff against `knowledge/_meta/domains.md`.
-3. User approves; the skill applies, bumps the change log, and surfaces any drift the change would create.
-4. Drift-scan runs after the change to verify the registry, KB, memory, and skills layers are consistent.
+## Cross-domain content
+
+Most "cross-domain" content has a clear primary owner; only a few cases need their own meta-domain. Three patterns, applied in order:
+
+**Pattern A — Primary owner + `applies_to:` + `links:` (default).**
+Pick the domain that *owns* the content most. The entry lives there; other domains discover it via `applies_to:` queries and `links:`. Use this pattern unless A demonstrably fails.
+> *Example*: GDPR compliance lives in `legal/gdpr.md`. Engineering's data-handling decisions `links:` to it. Marketing's consent-flow spec `links:` to it. Single source of truth.
+
+**Pattern B — Project tag (`tags: [<project>]`).**
+For *transient* cross-cutting concerns. A "Q4 launch" is a project, not a domain. Entries stay in their domain folders and carry the tag. When the project ends, the tag is archived; entries stay where they are.
+
+**Pattern C — Cross-cutting meta-domain.**
+A new top-level domain (e.g., `compliance/`, `accessibility/`, `security/`) added to the registry, parallel to `engineering/`. **Only** propose C when **all three** hold:
+
+1. No single existing domain is the natural primary owner.
+2. The concern persists indefinitely (not a project).
+3. The content passes all five principles independently as a domain.
+
+C is rare on purpose. Allowing it loosely bends the spine; most projects need none.
+
+## Adding a domain (or subdomain)
+
+Use the `domain-registry` skill. The skill produces a proposal that:
+
+1. Names the operation (Add / Rename / Merge / Split / Deprecate).
+2. Answers all five principles for the new / changed unit.
+3. Lists every concrete edit (registry rows, folders to create, links to update).
+4. Names downstream drift the change would resolve or create.
+
+User approves; the skill applies; `drift-scan` runs to verify cross-layer consistency.
 
 ## Renaming / deprecating
 
-- Renaming a slug is a **breaking change** — propose, do not silently rewrite paths. After confirmation, update the registry, move folders (including any `knowledge/<old>/`, `memory/<old>/`, `.cursor/skills/<old>/`, `.cursor/agents/<old>.md`), and run `drift-scan`.
-- Deprecating: set `status: deprecated` in the registry, leave folders in place, mark `_index.md` with a deprecation banner, link the successor domain.
-
-## Propose, don't decide
-
-Structural changes (new domain, split, merge, rename, deprecate) are **proposals**. Ask the user to confirm. Only routine writes inside an existing domain are automatic.
+- **Rename** is a breaking change. Propose, do not silently rewrite paths. After confirmation, update the registry, move folders (`knowledge/<old>/`, any earned `memory/<old>/`, `.cursor/skills/<old>/`, `.cursor/agents/<old>.md`), and run `drift-scan`.
+- **Deprecate** sets `status: deprecated` in the registry, leaves folders in place, marks `_index.md` with a deprecation banner, links the successor.
 
 ## Workspace exception
 
@@ -52,7 +84,9 @@ Structural changes (new domain, split, merge, rename, deprecate) are **proposals
 
 ## Anti-patterns
 
-- Creating `knowledge/<x>/`, `memory/<x>/`, or `.cursor/skills/<x>/` for a domain not in the registry.
-- Adding a domain that has zero artifacts yet (let it earn the folder).
+- Creating `knowledge/<x>/`, an earned `memory/<x>/`, `.cursor/skills/<x>/` (for a domain skill), or `.cursor/agents/<x>.md` for a slug not in the registry.
+- Treating `≥ 3 tagged signals` as a verdict for adding a domain. The signals *prompt* the five-principle review; the principles decide.
+- Proposing Pattern C without showing all three preconditions hold. A loose meta-domain bends the spine.
 - Renaming a domain by editing the registry without migrating dependent paths.
 - Silent merges/splits without `drift-scan`.
+- Forcing service or task skills into a domain folder to "satisfy the spine." The spine binds KB and domain skills only; services and tasks have their own taxonomies.

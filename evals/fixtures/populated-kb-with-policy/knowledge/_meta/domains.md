@@ -10,8 +10,8 @@ This file is the **single source of truth** for which domains and subdomains exi
 - A domain or subdomain only exists if it is listed here.
 - Status: `active` | `deprecated` | `archived`.
 - Subdomains are nested under their parent under `subdomains:`.
-- A domain "earns" its folder once it has accumulated **≥ 3 durable artifacts** (KB entries, skills, or specs). Below that threshold it lives as a flat note inside its parent.
-- A subdomain "earns" splitting from its parent under the same rule.
+- Structural change is **judged**, not counted. Every Add / Rename / Merge / Split / Deprecate proposal answers the five principles in `rules/scaffolding.mdc`. The `domain-registry` skill owns the operations.
+- **Default for splits is subdomain** (children stay nested under the parent). Sibling-promotion only when the child has clearly outgrown the parent's frame.
 
 ## Registry
 

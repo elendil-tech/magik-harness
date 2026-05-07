@@ -45,7 +45,7 @@ Read `knowledge/_meta/domains.md`. Confirm the domain slug exists and is `status
    - `id`, `domain`, `status` (`draft` or `active`), `created`, `updated`.
    - `last_referenced`: today.
    - `provenance`: `direct` for hand-written entries; `memory-distill@<YYYY-MM-DD>` when called from `memory-distill` (the distill skill stamps this and passes it through).
-   - `trust`: `medium` for direct authoring; for promoted entries, follow the table in `memory-distill` (recurrence ≥ 3 + non-external → `high`; otherwise `medium`; `[external]` source → `low`).
+   - `trust`: `medium` for direct authoring; for promoted entries, follow the table in `memory-distill` (substantial recurrence + non-external → `high`; otherwise `medium`; `[external]` source → `low`).
    - `quarantine`: `true` only when promoting `[external]` content or when explicitly flagged unverified — set `quarantine_reason` in that case.
 3. Fill every section. Empty sections are a sign the entry isn't ready — leave it `draft` or remove the section.
 4. Cross-link related entries using relative paths. Mirror the link in their `links:` block.
@@ -62,7 +62,7 @@ For new `decision` and `policy` entries: scan for contradictions with existing e
 
 - **Active entry, small clarification** → edit in place; bump `updated`.
 - **Active entry, change of substance** → if it changes the recorded choice/rule, do **not** rewrite. Create a new entry that supersedes the old: set `supersedes: [<old-id>]` on the new one and `superseded_by: [<new-id>]`, `status: deprecated` on the old one.
-- **Fieldnote recurrence** → increment `recurrence` and update `updated`. If `recurrence ≥ 3` or `severity: high`, propose promotion to a `policy`.
+- **Fieldnote recurrence** → increment `recurrence` and update `updated`. Substantial recurrence or `severity: high` is a *prompt* to evaluate promotion to a `policy` — run the five principles in `rules/scaffolding.mdc` (does this represent a stable rule, or a symptom of a deeper issue better addressed by a `concept` or `decision`?). The principles decide; recurrence is evidence.
 - **Entry was used to inform a substantive task** → bump `last_referenced` to today. This is what keeps the freshness score meaningful — `last_referenced` should represent deliberate re-validation or citation, not casual reads.
 - **Clearing a quarantine** → only the user does this. Set `quarantine: false`, clear `quarantine_reason`, optionally bump `trust` from `low` to `medium`, and note the review in the entry body or a linked `fieldnote`.
 

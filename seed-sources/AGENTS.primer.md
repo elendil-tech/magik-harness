@@ -17,6 +17,22 @@ One rule covers the split: **tracked = the durable substrate we agree on, build,
 
 The single source of truth for project domains is `knowledge/_meta/domains.md`. Read it before any domain-relevant work.
 
+## Organize like a human (the five principles)
+
+Folder management — adding, renaming, merging, splitting, deprecating any unit under `knowledge/`, `.cursor/skills/<domain>/`, or an earned `memory/<domain>/` — is **judged contextually**, not by counts. Every structural proposal answers all five principles in writing, and the user approves:
+
+1. **Coherence** — items belong together because they share *concepts*, not just tags.
+2. **Boundary** — the unit can be defined in one sentence, including what it *excludes*.
+3. **Granularity** — matches the granularity of sibling units at the same level.
+4. **Persistence** — still makes sense in 6 months. Project-shaped concerns are *tags*, not folders.
+5. **Discoverability** — naming and placement help a fresh contributor, not just satisfy tidiness.
+
+Numeric signals (e.g., "≥ 3 tagged entries", recurrence counts) are *prompts* to evaluate via the principles — never verdicts on their own. The five operations (Add / Rename / Merge / Split / Deprecate) are owned by the `domain-registry` skill; single-skill creation and subagent authoring stay in `scaffolding-author`. See `rules/scaffolding.mdc` and `rules/domains.mdc`.
+
+**Spinal binding:** KB entries and *domain* skills sync strictly to the registry — every `knowledge/<x>/` and `.cursor/skills/<x>/` (domain skill) folder must correspond to an active slug. Service skills (`.cursor/skills/services/<service>/`) and task skills follow their own taxonomies; they don't sync.
+
+**Cross-domain content:** prefer `applies_to:` + `links:` on a primary-owner entry (Pattern A); use a project tag for transient cross-cutting concerns (Pattern B); reserve a meta-domain folder (Pattern C — e.g., `compliance/`) only when no single domain is the natural owner, the concern persists, and it passes all five principles independently.
+
 ## Available rules (request on demand)
 
 The harness ships eight `.mdc` rules — request the one whose description fits the task:

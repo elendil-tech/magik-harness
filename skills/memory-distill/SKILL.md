@@ -36,24 +36,24 @@ Walk `memory/daily/*.md` and parse every bullet that starts with a tag (`[observ
 
 Also parse `memory/commitments.md` — both Active and Resolved sections.
 
-### 2. Score and cluster
+### 2. Score and cluster (signals are prompts, not verdicts)
 
-Score each candidate against promotion thresholds:
+For each tagged candidate, surface the signals that *prompt* a promotion proposal. The prompts are evidence; the principles in `rules/scaffolding.mdc` decide.
 
-| Tag | Promotion target | Threshold |
+| Tag | Promotion target | Prompts (any of which warrants evaluation) |
 | --- | --- | --- |
-| `[lesson-candidate]` | `fieldnote` in `knowledge/<domain>/` | recurrence ≥ 3 across days, OR severity-implying language ("critical", "data loss", "prod"), OR present ≥ 7 days |
-| `[decision-candidate]` | `decision` in `knowledge/<domain>/` | older than 14 days with no contradicting later entry, OR explicit "decided:" prefix |
-| `[concept-candidate]` | `concept` in `knowledge/<domain>/` | referenced ≥ 2 times across daily notes, OR appears in two different domains |
-| `[observation]` | none directly; clustered into a `concept` proposal if recurring | recurrence ≥ 3 with shared noun |
+| `[lesson-candidate]` | `fieldnote` in `knowledge/<domain>/` | substantial recurrence across days; severity-implying language ("critical", "data loss", "prod"); present ≥ 7 days; user-articulated as a clear lesson |
+| `[decision-candidate]` | `decision` in `knowledge/<domain>/` | older than 14 days with no contradicting later entry; explicit "decided:" prefix; cross-references in multiple daily notes |
+| `[concept-candidate]` | `concept` in `knowledge/<domain>/` | referenced multiple times across daily notes; appears in two or more domains; the noun is being used in conflicting ways |
+| `[observation]` | none directly; clustered into a `concept` proposal if recurring | recurrence with shared noun; appears alongside a lesson- or decision-candidate |
 
-Apply weighted recency (14-day half-life):
+Apply weighted recency (14-day half-life) for scoring relative priority among prompts:
 
 ```
 score(entry) = base(tag, recurrence) × 0.5^(age_days / 14)
 ```
 
-This is the same recency model OpenClaw's dreaming uses. Recent entries weight more; old un-promoted candidates eventually fall below threshold and become pruning candidates instead of promotion candidates.
+Recent entries weight more; old un-promoted candidates eventually fall below useful priority and become pruning candidates instead of promotion candidates. The score orders the proposal list — it does not by itself decide promotion.
 
 ### 3. Cross-check the KB
 
@@ -67,9 +67,19 @@ For each promotion candidate, run `kb-search` to detect:
 
 For each candidate's `domain` tag, validate against `knowledge/_meta/domains.md`. If the domain doesn't exist, propose adding the domain (defer to `domain-registry`) before promoting any of its candidates.
 
-### 5. Detect "earned" memory subfolders
+### 5. Detect candidate memory lanes (judgement, not threshold)
 
-If a domain has accumulated ≥ 3 daily entries tagged with that domain over the last 14 days, propose promoting it to `memory/<domain>/daily/` per the "earn the folder" rule.
+When a domain has accumulated tagged entries that are creating noise in the flat `daily/` lane — entries the agent or user finds harder to navigate than they would be in their own lane — surface the candidate. The decision is a structural one and goes through `domain-registry` against the five principles (`rules/scaffolding.mdc`):
+
+- **Coherence** — Do the tagged entries share concepts, or are they incidental tag-shares?
+- **Boundary** — Can the lane be defined in one sentence (what it includes, what it excludes)?
+- **Granularity** — Does this match other earned memory lanes in the project?
+- **Persistence** — Will this domain still be active in 6 months?
+- **Discoverability** — Does separating the lane help, or just add a folder for tidiness?
+
+The hard precondition is the spinal binding: the slug must be active in `knowledge/_meta/domains.md`. Defer to `domain-registry` if it isn't.
+
+Counts of tagged entries are *prompts* for this judgement — never verdicts. Surface the prompt; let the principles decide.
 
 ### 6. Detect pruning targets
 
@@ -104,7 +114,7 @@ If a domain has accumulated ≥ 3 daily entries tagged with that domain over the
 
 ## Structural proposals
 
-5. 📁 Promote `engineering` to `memory/engineering/` (≥ 3 entries last 14 days; "earn the folder" threshold met).
+5. 📁 Evaluate earning a `memory/engineering/daily/` lane (8 engineering-tagged entries last 14 days are crowding the flat lane). Defer to `domain-registry` — proposal must answer the five principles. Engineering is active in the registry; spinal precondition is met.
 
 ## Pruning proposals
 
@@ -140,7 +150,7 @@ Derivation:
 
 | Source signal | trust | quarantine | quarantine_reason |
 | --- | --- | --- | --- |
-| `[lesson-candidate]` with `recurrence ≥ 3`, no `[external]` | `high` | `false` | — |
+| `[lesson-candidate]` with substantial recurrence, no `[external]` | `high` | `false` | — |
 | `[lesson-candidate]` / `[decision-candidate]` / `[concept-candidate]`, no `[external]`, single-source | `medium` | `false` | — |
 | Any candidate carrying `[external]` (web fetch, untrusted tool output) | `low` | `true` | `external-source` |
 | Candidate that contradicts an active `policy` (resolved in memory's favor) | `low` | `true` | `policy-conflict` |
@@ -148,16 +158,16 @@ Derivation:
 
 Quarantined entries appear in the KB but are deprioritized by `kb-search` and surfaced by `drift-scan` until the user clears them.
 
-#### Memory subfolder promotion (earn-the-folder, v0.3+)
+#### Memory subfolder promotion (judgement-driven; defer to `domain-registry`)
 
-When a domain has ≥ 3 daily entries tagged with it over the last 14 days, `memory-distill` proposes promoting it to its own `memory/<domain>/daily/` lane. After approval:
+When `memory-distill` surfaces an "earn the lane" prompt and the user approves a proposal — the proposal having gone through `domain-registry`'s five-principle review — the application step is mechanical:
 
-1. Validate the domain exists and is `active` in `knowledge/_meta/domains.md` (defer to `domain-registry` if not).
+1. Validate the domain exists and is `active` in `knowledge/_meta/domains.md` (the spinal precondition; deferred to `domain-registry` if not).
 2. Create `memory/<domain>/daily/` and a short `memory/<domain>/_index.md` describing the lane (cross-link the lane contract back to `rules/memory.mdc`, since `memory/` has no top-level index — the rules are the spec). No `.gitkeep` is needed: `memory/` is gitignored as a whole, so the directory's existence is purely runtime-local.
-3. From now on, signals tagged with that domain land in `memory/<domain>/daily/<today>.md`. The flat `memory/daily/<today>.md` continues to receive cross-domain and unearned-domain signals.
+3. From now on, signals tagged with that domain land in `memory/<domain>/daily/<today>.md`. The flat `memory/daily/<today>.md` continues to receive cross-domain and unearned-lane signals.
 4. Existing flat entries are **not** migrated — they stay in the flat lane until they age out or are promoted. `memory/` is gitignored, so re-shuffling files just to satisfy structure costs more than it returns.
 
-The threshold and procedure are deliberately conservative: the goal is to keep the flat lane lean, not to enforce per-domain bureaucracy.
+The procedure is deliberately conservative: the goal is to keep the flat lane lean when separation genuinely improves coherence/boundary/granularity/persistence/discoverability — not to enforce per-domain bureaucracy.
 
 ### 9. Log the run
 
@@ -188,13 +198,13 @@ This is the audit trail. Append-only. Never pruned.
 
 - [ ] All daily notes parsed
 - [ ] Commitments parsed (active + resolved)
-- [ ] Each candidate scored with 14-day half-life recency weighting
+- [ ] Each candidate scored with 14-day half-life recency weighting (signals are prompts, not verdicts)
 - [ ] `kb-search` run for each promotion candidate
 - [ ] Conflicts surfaced with `⚠`
 - [ ] `[external]` flags handled with stricter review and quarantine on promotion
 - [ ] `provenance` / `trust` / `quarantine` stamped on every promoted KB entry
 - [ ] `last_referenced` set to today on every promoted KB entry
-- [ ] Domain registry validated for each candidate
-- [ ] Earn-the-folder threshold checked for each tagged domain (≥ 3 entries / 14 days)
+- [ ] Domain registry validated for each candidate (spinal precondition)
+- [ ] Memory-lane prompts surfaced for `domain-registry` to evaluate against the five principles
 - [ ] Pruning proposed only after promotion/aging
 - [ ] Distillation logged to `memory/distillations/<YYYY-MM-DD>.md`

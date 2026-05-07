@@ -23,14 +23,22 @@ Each domain agent inherits:
 
 ## When a domain earns an agent
 
-Add a domain agent when the domain has all of:
+Adding a domain agent is one of the five operations defined in `rules/scaffolding.mdc` and is judged against the five principles. Concretely, the proposal answers:
 
-- ≥ 1 domain skill (`.cursor/skills/<domain>/_domain/SKILL.md`).
-- ≥ 3 task skills.
-- ≥ 1 service skill in active use.
-- Recurring tasks the user explicitly delegates to "the marketing side" / "the sales side" / etc.
+- **Coherence.** Does the agent's role have a single, well-defined purpose, or is it a grab-bag of tasks?
+- **Boundary.** Can you write — in one sentence — what the agent does and what it explicitly defers to the main agent?
+- **Granularity.** Is the agent's frame at the same level as other domain agents in this project (or is it a single-task skill in disguise)?
+- **Persistence.** Will this agent still make sense in 6 months, or is it shaped around a transient project?
+- **Discoverability.** Will the user know when to delegate to this agent versus the main one?
 
-Below this threshold, the main agent handles domain work directly — adding an agent prematurely just adds delegation overhead.
+Practical evidence the agent is warranted (these are *prompts* for the principles, not auto-triggers):
+
+- The domain has a `_domain/SKILL.md` that orchestrates multiple task skills.
+- The domain has its own task skills with stable inputs / outputs.
+- One or more services the agent depends on are in active use.
+- The user explicitly delegates recurring work to the domain's frame ("the marketing side", "the sales side").
+
+Without these, the main agent handles domain work directly — adding an agent prematurely just adds delegation overhead.
 
 ## Cross-domain work
 

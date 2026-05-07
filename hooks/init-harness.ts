@@ -1,6 +1,6 @@
 #!/usr/bin/env -S npx --yes tsx
 /**
- * /init-harness hook — v0.5.0
+ * /init-harness hook — v0.6.0
  *
  * Deterministic file ops that seed a project with the magik-repo harness:
  *   - AGENTS.md primer (marker-bounded prepend, in-place upgrade if stale)
@@ -12,14 +12,18 @@
  *     skip-if-exists; existing user hooks.json triggers a notice instead of
  *     a silent skip).
  *
+ * v0.6.0: organizational judgement, not numeric thresholds. The seed
+ * `AGENTS.primer.md`, `domains.md`, `subdomain-catalogue.md`, and
+ * `fieldnote.md` schema all reframe folder management around the five
+ * principles (coherence, boundary, granularity, persistence,
+ * discoverability) and the five operations (Add / Rename / Merge /
+ * Split / Deprecate). Re-runs on a v0.5.x project upgrade the seed-
+ * derived files in place via marker blocks; user-authored content
+ * outside the markers is preserved verbatim.
+ *
  * v0.5.0: `memory/` is no longer seeded. It is gitignored runtime-local
  * agent state (parallel to workspace/); the agent creates `memory/daily/`
- * etc. on first write. Re-runs on a v0.4.x project upgrade the gitignore
- * block in place, which adds the `memory/` ignore line. Pre-existing
- * tracked memory files in the user's repo are left in place — `git rm`-ing
- * them is the user's call (CHANGELOG documents the migration). The seeds/
- * tree no longer contains memory/_index.md, memory/commitments.md, or
- * memory/{daily,distillations}/.gitkeep.
+ * etc. on first write.
  *
  * v0.4.0 ships two project-side Cursor hooks:
  *   - sessionStart  → injects today's daily note + active commitments
@@ -45,7 +49,7 @@ import { fileURLToPath } from "node:url";
 
 // --- Constants ---------------------------------------------------------------
 
-const PLUGIN_VERSION = "0.5.0";
+const PLUGIN_VERSION = "0.6.0";
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(HOOK_DIR);
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");

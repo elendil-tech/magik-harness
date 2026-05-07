@@ -9,7 +9,7 @@ This file is the **single source of truth** for which domains and subdomains exi
 - `slug` is `kebab-case`, ASCII, no spaces. It is the folder name everywhere.
 - A domain or subdomain only exists if it is listed here.
 - Status: `active` | `deprecated` | `archived`.
-- A domain "earns" its folder once it has accumulated **≥ 3 durable artifacts** (KB entries, skills, or specs).
+- Structural change is **judged**, not counted. Every Add / Rename / Merge / Split / Deprecate proposal answers the five principles in `rules/scaffolding.mdc`. The `domain-registry` skill owns the operations.
 
 ## Registry
 

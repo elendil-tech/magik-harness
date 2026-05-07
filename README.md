@@ -102,7 +102,7 @@ The harness is, fundamentally, an AI-instruction artifact — so the only honest
 The harness:
 
 - Is **not** assumed to score 100%. Failing scenarios are concrete signals about which rule / skill language needs sharpening.
-- Is tested across model surfaces (the default baseline runs `gemini-3.1-pro` on both sides because it has no subscription gating; switch the agent / judge with `--agent-model` / `--judge-model`).
+- Is tested across model surfaces. The default agent is `gpt-5.3-codex-spark` (free / high-volume on the active tier) — running on a smaller, free model is a more honest test of what the harness contributes, since a stronger model can fake some of what the harness gives via raw capability. The judge is `gemini-3.1-pro` (low-volume / longer-session — fits transcript grading). Cross-family checks are one flag away: `--agent-model gemini-3.1-pro` swaps the agent.
 - Has its eval architecture, scenario format, and rubric philosophy documented in [evals/README.md](./evals/README.md).
 
 To add a scenario, see *Adding a scenario* in [evals/README.md](./evals/README.md). To regenerate the public results page after a new baseline, run:
@@ -113,7 +113,7 @@ pnpm eval:results
 
 ## Versioning
 
-`magik-repo@0.5.0` ships `harness@0.5.0` content. See [CHANGELOG.md](./CHANGELOG.md).
+`magik-repo@0.6.0` ships `harness@0.6.0` content. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## License
 

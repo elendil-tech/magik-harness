@@ -1,6 +1,6 @@
 {
   "name": "magik-repo",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "description": "Project Harness — Cursor plugin packaging.",
