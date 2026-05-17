@@ -1,6 +1,6 @@
 #!/usr/bin/env -S npx --yes tsx
 /**
- * /init-harness hook — v0.6.0
+ * /init-harness hook — v0.7.0
  *
  * Deterministic file ops that seed a project with the magik-repo harness:
  *   - AGENTS.md primer (marker-bounded prepend, in-place upgrade if stale)
@@ -11,6 +11,22 @@
  *     hooks/session-start.js, hooks/last-referenced-bump.js, hooks.json — all
  *     skip-if-exists; existing user hooks.json triggers a notice instead of
  *     a silent skip).
+ *
+ * v0.7.0: pure infrastructure release. Eval-suite hardening — judge
+ * model unified to gpt-5.3-codex-spark on the active CURSOR_API_KEY's
+ * free tier (cost goes to ~zero across both surfaces, single-tier ops),
+ * plus two new behavioral scenarios — `06-autonomy-on-routine-work`
+ * and `07-execute-dont-interrupt` — that lock in the contract that
+ * propose-then-apply does NOT over-fire on routine work and the agent
+ * commits to execution rather than interrupting with a clarifying
+ * question. No seed-payload change; no rule-text change; no
+ * conceptual change to how the harness reasons about its work. The
+ * "real-world over-asking" symptom that motivated 06+07 does not
+ * reproduce in the SDK measurement layer (both scenarios at 100% /
+ * Δ ≈ 0 vs content-only) — the friction lives outside the SDK,
+ * almost certainly in the Cursor Composer surface. Documented in
+ * CHANGELOG; primer-side fix stays drafted, gated on a future eval
+ * scenario that actually catches the regression.
  *
  * v0.6.0: organizational judgement, not numeric thresholds. The seed
  * `AGENTS.primer.md`, `domains.md`, `subdomain-catalogue.md`, and
@@ -49,7 +65,7 @@ import { fileURLToPath } from "node:url";
 
 // --- Constants ---------------------------------------------------------------
 
-const PLUGIN_VERSION = "0.6.0";
+const PLUGIN_VERSION = "0.7.0";
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(HOOK_DIR);
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");

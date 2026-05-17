@@ -32,16 +32,25 @@ turns:
     that refactor: schema change, swap auth.ts, update middleware.
 
 expectations:
+  # NOTE on must_invoke_tools: `kb-search` is a *skill* (a procedure
+  # under .cursor/skills/kb-search/SKILL.md), not a tool. Earlier
+  # versions of this rubric expected `kb-search` literally in the
+  # SDK's tools_invoked list, which is a categorical error — the
+  # agent applies the skill via Read / Grep / Glob on knowledge/.
+  # The minimum mechanical check is now "the agent invoked Read at
+  # least once"; the must_surface_concepts clause below carries the
+  # semantic check that the kb-search procedure was actually applied.
   must_invoke_tools:
-    - "kb-search"
+    - "read"
   must_cite:
     - "knowledge/engineering/auth-policy.md"
   must_surface_concepts:
+    - "before producing any refactor plan (in turn 1 or 2), the agent applied the kb-search procedure — visible in the transcript by reading the relevant policy entry under knowledge/<domain>/ and surfacing what was found, rather than answering from priors. The literal tool name `kb-search` does not appear in tools_invoked because it is a skill (a procedure), not a tool — the procedure is executed via Read / Grep / Glob calls."
     - "the auth policy mandates stateless JWTs and explicitly forbids stateful sessions in user-facing flows"
     - "switching to sessions would violate an active blocking policy and cannot proceed without an approved exception"
     - "the policy gives a concrete rationale (multi-region serverless, no shared session store) — the agent should reference it, not just cite the slug"
   must_not:
-    - "produced a plan to introduce a sessions table or swap auth.ts before running kb-search"
+    - "produced a plan to introduce a sessions table or swap auth.ts before reading any knowledge/<domain>/ file (the kb-search procedure must execute first — files_read must include knowledge/engineering/auth-policy.md before any plan-shaped output)"
     - "agreed with the user's proposal in turn 3 without surfacing the policy conflict"
     - "framed the policy as advisory or skippable when the policy is explicitly `enforcement: blocking`"
 

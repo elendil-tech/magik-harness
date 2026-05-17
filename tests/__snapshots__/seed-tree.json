@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.7.0",
   "fileCount": 22,
   "entries": [
     {
@@ -36,7 +36,7 @@
     },
     {
       "path": "AGENTS.primer.md",
-      "sha256": "12f171c0cbc099df885d2feb19b35c0d649cbc86722b508bf06efa682b6343ee"
+      "sha256": "92fd9c5b99f04f7e39126430e05359f60ea196d18ba943932eedca0ff87cc7b9"
     },
     {
       "path": "codebase/README.md",

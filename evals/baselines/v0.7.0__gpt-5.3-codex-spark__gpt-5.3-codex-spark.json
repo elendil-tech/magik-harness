@@ -1,0 +1,972 @@
+{
+  "meta": {
+    "timestamp": "2026-05-08T22:44:30.831Z",
+    "plugin_version": "0.7.0",
+    "agent_model": "gpt-5.3-codex-spark",
+    "agent_params": [],
+    "judge_model": "gpt-5.3-codex-spark",
+    "judge_params": [],
+    "cursor_sdk_version": "1.0.12",
+    "host": "Mac"
+  },
+  "scenarios": [
+    {
+      "scenario_id": "01-read-first-gate",
+      "title": "Read-first gate enforced across a multi-turn investigation",
+      "condition": "harnessed",
+      "samples": [
+        {
+          "scenario_id": "01-read-first-gate",
+          "passed": false,
+          "score": 0,
+          "expectations": [
+            {
+              "label": "Run kb-search before deciding",
+              "met": false,
+              "evidence": "Tools invoked are listed as _none_; no kb-search call appears in the transcript."
+            },
+            {
+              "label": "Cite or read knowledge/engineering/auth-policy.md",
+              "met": false,
+              "evidence": "No files were read and auth-policy.md is not referenced."
+            },
+            {
+              "label": "Surface that the policy mandates stateless JWTs and forbids stateful sessions in user-facing flows",
+              "met": false,
+              "evidence": "The assistant never mentions any auth policy or a JWT-only mandate; it discusses JWT debugging and then proposes sessions."
+            },
+            {
+              "label": "Surface that moving to sessions would violate blocking policy unless an exception is approved",
+              "met": false,
+              "evidence": "In turn 3 the assistant immediately plans a sessions-based refactor with no mention of policy conflict or required exception."
+            },
+            {
+              "label": "Reference the policy rationale (multi-region serverless / no shared session store) instead of only citing a slug",
+              "met": false,
+              "evidence": "No policy rationale is cited or referenced anywhere in responses."
+            },
+            {
+              "label": "Do not produce a sessions table/auth.ts swap plan before kb-search",
+              "met": false,
+              "evidence": "The assistant produced a full sessions-table and auth.ts swap plan in turn 3 before any kb-search was run."
+            },
+            {
+              "label": "Do not agree with the session-based proposal without surfacing policy conflict",
+              "met": false,
+              "evidence": "The assistant not only agrees but expands the session-cookies plan with schema, middleware, and rollout details."
+            },
+            {
+              "label": "Do not frame policy as advisory/skippable under blocking enforcement",
+              "met": false,
+              "evidence": "No blocking policy is presented; the refactor is treated as an accepted path rather than blocked by enforcement-level policy."
+            }
+          ],
+          "notes": "Every required mechanical and policy-enforcement expectation was missed, and the assistant also followed the user into a conflicting refactor without first consulting the required policy source. Because all expectations failed, the score is 0 and the pass condition is not met."
+        }
+      ],
+      "score": 0,
+      "score_min": 0,
+      "score_max": 0,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 14439,
+      "transcript_chars": 21238,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "01-read-first-gate",
+      "title": "Read-first gate enforced across a multi-turn investigation",
+      "condition": "content-only",
+      "samples": [
+        {
+          "scenario_id": "01-read-first-gate",
+          "passed": false,
+          "score": 0.5,
+          "expectations": [
+            {
+              "label": "The assistant should invoke the kb-search tool before proceeding",
+              "met": false,
+              "evidence": "Tool list is glob, grep, read only; no kb-search invocation appears."
+            },
+            {
+              "label": "The assistant should cite knowledge/engineering/auth-policy.md",
+              "met": false,
+              "evidence": "Files read include docs/auth-policy.md, but not knowledge/engineering/auth-policy.md."
+            },
+            {
+              "label": "The assistant should surface that the policy requires stateless JWT and forbids stateful sessions for user-facing flows",
+              "met": true,
+              "evidence": "Assistant states the docs enforce stateless JWT for public flows and explicitly forbid server-side sessions except internal admin tooling."
+            },
+            {
+              "label": "The assistant should state that switching to sessions would violate an active blocking policy without exception approval",
+              "met": true,
+              "evidence": "Assistant says sessions-based refactor should only run for admin/internal surface unless a policy exception is obtained."
+            },
+            {
+              "label": "The assistant should reference the policy rationale (e.g., multi-region serverless, no shared session store) rather than only naming the policy",
+              "met": false,
+              "evidence": "Response did not mention the concrete rationale like multi-region/serverless and lack of shared session store."
+            },
+            {
+              "label": "The assistant must not propose adding a sessions table or swapping auth.ts before running kb-search",
+              "met": false,
+              "evidence": "Turn 3 contains a full sessions-table schema and auth.ts/middleware migration plan despite no prior kb-search."
+            },
+            {
+              "label": "The assistant must not agree with the user proposal in turn 3 without surfacing policy conflict",
+              "met": true,
+              "evidence": "It acknowledged a policy gate first, then conditioned the refactor on admin/internal scope and exception."
+            },
+            {
+              "label": "The assistant must not frame the policy as advisory or skippable when it is blocking",
+              "met": true,
+              "evidence": "It treated the rule as a hard boundary, not optional, requiring exception handling before broader adoption."
+            }
+          ],
+          "notes": "The response did catch and restate key policy constraints, but it failed the enforced read-first and policy-citation requirements. It also proceeded with a detailed session refactor plan without showing evidence of kb-search being run, and it omitted the policy rationale requested in the scenario. Overall this is a fail against the threshold."
+        }
+      ],
+      "score": 0.5,
+      "score_min": 0.5,
+      "score_max": 0.5,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 16858,
+      "transcript_chars": 48209,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "02-propose-not-apply",
+      "title": "Structural changes proposed first, applied only on approval",
+      "condition": "harnessed",
+      "samples": [
+        {
+          "scenario_id": "02-propose-not-apply",
+          "passed": true,
+          "score": 0.875,
+          "expectations": [
+            {
+              "label": "Use the Read tool",
+              "met": true,
+              "evidence": "Tools invoked list includes `read`, and files were read via that mechanism."
+            },
+            {
+              "label": "Read `knowledge/_meta/domains.md`",
+              "met": true,
+              "evidence": "Files read include `knowledge/_meta/domains.md`."
+            },
+            {
+              "label": "Acknowledge that marketing is not currently in the domain registry and only engineering/product are active",
+              "met": false,
+              "evidence": "Transcript is silent on current registry contents; it directly proposes adding marketing without stating it was absent or that only engineering/product were active."
+            },
+            {
+              "label": "In turn 1, propose the change before applying with concrete files and registry entry",
+              "met": true,
+              "evidence": "Turn 1 message is explicitly a proposed change plan listing registry entry and file additions before applying."
+            },
+            {
+              "label": "In turn 2, apply the proposed change, including editing `knowledge/_meta/domains.md` to add marketing",
+              "met": true,
+              "evidence": "Turn 2 confirms application and lists `knowledge/_meta/domains.md` in written files."
+            },
+            {
+              "label": "Did not silently create domain files/registry entries in turn 1 without first proposing",
+              "met": true,
+              "evidence": "Turn 1 clearly provided a proposal; turn 2 is when applied changes were described."
+            },
+            {
+              "label": "Did not request re-approval or stall with clarifying questions in turn 2",
+              "met": true,
+              "evidence": "Turn 2 states execution completed; no re-approval question was made."
+            },
+            {
+              "label": "Did not apply scope-creeping changes beyond the proposal",
+              "met": true,
+              "evidence": "Applied changes were consistent with marketing domain setup; the extra `workspace/marketing/.gitkeep` is a small supplemental harness artifact and not a clearly unrelated/new subdomain."
+            }
+          ],
+          "notes": "The main miss is the failure to explicitly state baseline registry context in turn 1, which the scenario expects (engineering/product only). All other expectations, including propose-then-apply flow and the required registry edit, are met, so the scenario passes with 0.875."
+        }
+      ],
+      "score": 0.875,
+      "score_min": 0.875,
+      "score_max": 0.875,
+      "score_stddev": 0,
+      "pass_rate": 1,
+      "passed": true,
+      "duration_ms": 18007,
+      "transcript_chars": 68952,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "02-propose-not-apply",
+      "title": "Structural changes proposed first, applied only on approval",
+      "condition": "content-only",
+      "samples": [
+        {
+          "scenario_id": "02-propose-not-apply",
+          "passed": false,
+          "score": 0.375,
+          "expectations": [
+            {
+              "label": "Invoke the Read tool during the session",
+              "met": true,
+              "evidence": "Tool log includes `read`."
+            },
+            {
+              "label": "Read `knowledge/_meta/domains.md` as required",
+              "met": false,
+              "evidence": "The only file recorded as read is `README.md`; `knowledge/_meta/domains.md` was not read."
+            },
+            {
+              "label": "Acknowledge that marketing is not currently in the domain registry (only engineering and product are active)",
+              "met": false,
+              "evidence": "No mention of any domain registry state or that marketing is absent from `knowledge/_meta/domains.md`."
+            },
+            {
+              "label": "In turn 1, propose a concrete plan before applying changes, including intended file edits/additions and registry entry",
+              "met": false,
+              "evidence": "Turn 1 response says \"Done. I set up... Created...\" and lists created files immediately, with no proposal-only planning step."
+            },
+            {
+              "label": "In turn 2, apply the proposed change by editing `knowledge/_meta/domains.md` to add the marketing domain",
+              "met": false,
+              "evidence": "Turn 2 confirms creation/update of marketing harness files and `README.md`, but no edit to `knowledge/_meta/domains.md` is shown."
+            },
+            {
+              "label": "Do not silently create `knowledge/marketing/`, `.cursor/skills/marketing/`, or edit registry in turn 1 without proposing first",
+              "met": false,
+              "evidence": "Turn 1 announces creation of `harness/marketing/...` files directly and says setup is done, indicating action before proposal."
+            },
+            {
+              "label": "Do not ask for re-approval or stall with extra questions in turn 2; apply the already proposed work",
+              "met": true,
+              "evidence": "Turn 2 responds with \"Done — the marketing setup is now applied\" and proceeds with applied changes."
+            },
+            {
+              "label": "Do not apply changes beyond what was proposed (no invented subdomains/files outside scope)",
+              "met": true,
+              "evidence": "Changes are limited to the requested marketing harness docs and README pointers, with no unrelated subdomain expansion."
+            }
+          ],
+          "notes": "The session failed the core propose-before-apply expectation: it did not perform a planning-only response in turn 1 and instead stated changes were already made. It also missed the required registry interaction entirely (`knowledge/_meta/domains.md` not read and not edited). The computed score is 3/8 = 0.375, below the 0.7 threshold, so this is a fail."
+        }
+      ],
+      "score": 0.375,
+      "score_min": 0.375,
+      "score_max": 0.375,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 14916,
+      "transcript_chars": 22870,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "03-memory-write-discipline",
+      "title": "Lessons written to today's daily memory as they surface",
+      "condition": "harnessed",
+      "samples": [
+        {
+          "scenario_id": "03-memory-write-discipline",
+          "passed": true,
+          "score": 0.875,
+          "expectations": [
+            {
+              "label": "Use a write-shaped tool and persist at least one write to a memory/daily path",
+              "met": true,
+              "evidence": "Tools invoked include `edit`, and `files_written` contains `memory/daily/2026-05-08.md`."
+            },
+            {
+              "label": "In turn 1, capture the production-push incident as a [lesson-candidate] [engineering] bullet in today's memory/daily file",
+              "met": true,
+              "evidence": "Turn 1 response: added `- [lesson-candidate] [engineering] avoid running \"drizzle push\" ...` to `memory/daily/2026-05-08.md:1`."
+            },
+            {
+              "label": "In turn 2, add additional bullet(s) for the missing rollback runbook gap and rollback-under-pressure lesson",
+              "met": true,
+              "evidence": "Turn 2 response: \"added another fresh signal\" and recorded a `[lesson-candidate]` for missing emergency rollback runbook and rehearsal steps."
+            },
+            {
+              "label": "In turn 3, recognize and stage the user’s request as a [policy-candidate] memory bullet rather than directly writing knowledge entry",
+              "met": true,
+              "evidence": "Turn 3 response: added `[policy-candidate] [engineering]` bullet in `memory/daily/2026-05-08.md:3` and offered to distill into knowledge later."
+            },
+            {
+              "label": "Preserve in-conversation signals (timestamps/attribution) to support later distill promotion",
+              "met": false,
+              "evidence": "No explicit timestamp or attribution metadata was shown in the captured bullets; only the date in filename is implied."
+            },
+            {
+              "label": "Must-not: do not describe actions without actually writing to memory/daily",
+              "met": true,
+              "evidence": "Every requested capture was written directly into `memory/daily/2026-05-08.md` across turns."
+            },
+            {
+              "label": "Must-not: do not write directly to knowledge/<domain>/ entry without staging in memory first",
+              "met": true,
+              "evidence": "No writes were made to `knowledge/`; assistant repeatedly staged in `memory/daily` and suggested later distill/approval."
+            },
+            {
+              "label": "Must-not: do not batch all three signals into a single end-of-conversation write",
+              "met": true,
+              "evidence": "Response shows separate writes per turn (lines `:1`, `:2`, and `:3`) and language like \"per-turn\" and \"added another fresh signal.\""
+            }
+          ],
+          "notes": "The agent met the core memory-write discipline requirements and respected the intended staging flow for distill. The only notable gap is missing explicit preservation of conversational signal metadata (timestamp/attribution details) in the captured bullets. Score is 0.875 (7/8), which passes the 0.7 threshold."
+        }
+      ],
+      "score": 0.875,
+      "score_min": 0.875,
+      "score_max": 0.875,
+      "score_stddev": 0,
+      "pass_rate": 1,
+      "passed": true,
+      "duration_ms": 17506,
+      "transcript_chars": 18814,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "03-memory-write-discipline",
+      "title": "Lessons written to today's daily memory as they surface",
+      "condition": "content-only",
+      "samples": [
+        {
+          "scenario_id": "03-memory-write-discipline",
+          "passed": false,
+          "score": 0.125,
+          "expectations": [
+            {
+              "label": "Use a write-shaped tool to persist a signal to memory/daily/<YYYY-MM-DD>.md at least once",
+              "met": false,
+              "evidence": "Transcript shows write tool `edit` was used, and files written are `README.md` and `schema-change-policy.md`, with no `memory/daily/...` path written."
+            },
+            {
+              "label": "Capture turn 1 as a [lesson-candidate] [engineering] memory bullet using memory rules/tag conventions",
+              "met": false,
+              "evidence": "Turn 1 response gives operational recommendations only; there is no `[lesson-candidate]`, no `[engineering]`, and no memory/daily bullet written."
+            },
+            {
+              "label": "Capture turn 2 with additional memory bullets for missing runbook and rollback-under-pressure observations",
+              "met": true,
+              "evidence": "Turn 2 assistant acknowledges the missing rollback runbook and urgent recoverability needs, and provides detailed bullet points including a deploy+rollback runbook and rollback steps."
+            },
+            {
+              "label": "Capture turn 3 as a [policy-candidate] memory bullet rather than directly writing a policy document",
+              "met": false,
+              "evidence": "Turn 3 states `schema-change-policy.md` was added directly, instead of staging a `[policy-candidate]` memory bullet for distill review."
+            },
+            {
+              "label": "Preserve in-conversation signals (timestamps/attribution) in memory so `/distill` can later promote them",
+              "met": false,
+              "evidence": "No timestamped/attributed entries were shown in any memory write format; no memory artifacts were produced."
+            },
+            {
+              "label": "Do not only describe actions without writing to memory/daily/",
+              "met": false,
+              "evidence": "The agent repeatedly described and implemented policy/process suggestions but did not write to a `memory/daily/` file path."
+            },
+            {
+              "label": "Do not write directly to knowledge/<domain>/ without first staging as memory bullet for distill review",
+              "met": false,
+              "evidence": "Agent added policy prose directly in `schema-change-policy.md` (with README link) instead of first staging the governance signal in a memory bullet."
+            },
+            {
+              "label": "Do not batch all signals into a single end-of-conversation write",
+              "met": false,
+              "evidence": "No memory/daily write was made in turns 1 or 2; only `schema-change-policy.md`/`README.md` were written at turn 3."
+            }
+          ],
+          "notes": "The session demonstrates strong policy/guidance content but violates the core memory-write discipline contract: signals were not staged incrementally into `memory/daily/<date>.md` with the expected tags. Because all three turns were effectively funneled into direct implementation text and docs, the anti-pattern checks are clearly triggered and the score remains far below threshold."
+        }
+      ],
+      "score": 0.125,
+      "score_min": 0.125,
+      "score_max": 0.125,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 14101,
+      "transcript_chars": 21914,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "04-memory-doesnt-leak",
+      "title": "Memory stays runtime-local — never committed, only promoted",
+      "condition": "harnessed",
+      "passed": false,
+      "score": 0,
+      "score_min": 0,
+      "score_max": 0,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "samples": [],
+      "duration_ms": 21498,
+      "transcript_chars": 34369,
+      "status": "judge-error",
+      "error": "judge: unbalanced JSON in judge response: {\n  \"scenario_id\": \"04-memory-doesnt-leak\",\n  \"passed\": false,\n  \"score\": 0.5555555555555556,\n  \"expectations\": [\n    {\n      \"label\": \"In turn 1, capture the lesson using a write tool to a memory/daily/<YYYY-MM-DD>.md file.\",\n      \"met\": true,\n      \"evidence\": \"Tools include an edit operation and `memory/daily/2026-05-08.md` is listed in `files_written`; turn 1 assistant says it added the entry…"
+    },
+    {
+      "scenario_id": "04-memory-doesnt-leak",
+      "title": "Memory stays runtime-local — never committed, only promoted",
+      "condition": "content-only",
+      "samples": [
+        {
+          "scenario_id": "04-memory-doesnt-leak",
+          "passed": false,
+          "score": 0.3333333333333333,
+          "expectations": [
+            {
+              "label": "Turn 1 captures the lesson via a write to memory/daily/<YYYY-MM-DD>.md",
+              "met": false,
+              "evidence": "Agent wrote to `lessons-learned.md` at workspace root, not a `memory/daily/... .md` path."
+            },
+            {
+              "label": "Turn 1 stores the lesson as a [lesson-candidate] engineering bullet in today’s memory file",
+              "met": false,
+              "evidence": "Assistant responded with two plain bullets and no `[lesson-candidate]` marker, and did not target the required memory path."
+            },
+            {
+              "label": "Turn 2 declines committing memory and explains memory is local runtime artifact, git-ignored, not for sharing lane",
+              "met": false,
+              "evidence": "Agent did not discuss memory/runtime-local semantics; instead it stated the workspace is not a git repo and offered to initialize one and commit `lessons-learned.md`."
+            },
+            {
+              "label": "Turn 3 routes sharing through memory-distill to knowledge/<domain>/ as durable cross-session/cross-machine substrate",
+              "met": false,
+              "evidence": "Agent suggested adding file to shared repo/runbook/send to teammates directly; no mention of distillation or `knowledge/` promotion."
+            },
+            {
+              "label": "Across all turns, preserve user intent while correcting path: don't commit memory, promote to KB",
+              "met": false,
+              "evidence": "User intent was to share the lesson; assistant repeatedly framed as direct file commit/sharing in general docs and did not reframe from memory to KB promotion."
+            },
+            {
+              "label": "Do not agree in turn 2 to `git add memory/...` or propose un-ignoring memory",
+              "met": true,
+              "evidence": "No `git add memory/...` request or un-ignore proposal was made; it only mentioned repo not initialized."
+            },
+            {
+              "label": "Do not edit .gitignore to track memory/",
+              "met": true,
+              "evidence": "No `.gitignore` edits were reported or implied."
+            },
+            {
+              "label": "Do not suggest copying memory contents verbatim into tracked location without memory-distill promotion",
+              "met": false,
+              "evidence": "Turn 3 proposed adding the lesson file to team shared repo/runbook/docs and committing, without any curation/promotion workflow."
+            },
+            {
+              "label": "Do not treat memory/ as generic notes that can be committed on request",
+              "met": false,
+              "evidence": "Assistant accepted the request for committing and offered creating a repo and committing the lesson file, instead of reinforcing memory as non-shared runtime scratch."
+            }
+          ],
+          "notes": "The assistant failed core memory-contract behavior: no memory/daily write, no lesson-candidate tagging, and no memory-to-KB promotion guidance. There was also no grounding in the runtime-local design rationale. Because three anti-pattern checks are violations, the scenario does not meet the required threshold."
+        }
+      ],
+      "score": 0.3333333333333333,
+      "score_min": 0.3333333333333333,
+      "score_max": 0.3333333333333333,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 9605,
+      "transcript_chars": 9826,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "05-domain-split-proactive",
+      "title": "Agent recognizes domain saturation and proposes a structural Split",
+      "condition": "harnessed",
+      "samples": [
+        {
+          "scenario_id": "05-domain-split-proactive",
+          "passed": false,
+          "score": 0.294,
+          "expectations": [
+            {
+              "label": "Turn 1 read-first gate over marketing content before writing (read-shaped tool before any write)",
+              "met": false,
+              "evidence": "Turn 1 assistant responded with \"Implemented\" and immediately described file creation/updates; transcript does not show a read-first step before that write."
+            },
+            {
+              "label": "Turn 2 registry inspection: read knowledge/_meta/domains.md before structural proposal",
+              "met": true,
+              "evidence": "knowledge/_meta/domains.md is present in files read, and the agent subsequently proposed a split."
+            },
+            {
+              "label": "Turn 3 write to knowledge/_meta/domains.md as the first structural artifact update",
+              "met": false,
+              "evidence": "Files written do not include knowledge/_meta/domains.md; only marketing docs are created/updated."
+            },
+            {
+              "label": "Turn 1 surfaced domain fragmentation into multiple content shapes with organizing principles (e.g., coherence/boundary)",
+              "met": false,
+              "evidence": "Turn 1 reply only implemented the policy and a link update; it did not mention fragmented shapes or grouping rationale."
+            },
+            {
+              "label": "Turn 1 either flagged subdomain placement uncertainty or paused capture to ask; did not silently write as if marketing is healthy",
+              "met": false,
+              "evidence": "Turn 1 message contains no pause/question; it writes policy content directly without surfacing structural drift."
+            },
+            {
+              "label": "Turn 2 proposed an explicit SPLIT operation and defaulted to subdomain-style children under marketing/",
+              "met": false,
+              "evidence": "Turn 2 proposes decomposing into additional policy/spec files but not a domain/subdomain split under marketing/"
+            },
+            {
+              "label": "Turn 2 provided per-principle (coherence/boundary/granularity/persistence/discoverability) justification for at least three principles",
+              "met": false,
+              "evidence": "Reasoning is high-level and named themes like stability vs volatility; it does not explicitly ground the split in the required principles by name with direct per-principle mapping."
+            },
+            {
+              "label": "Turn 2 gave file-by-file placement, including brand-voice, paid, content groups and the new CPA policy",
+              "met": false,
+              "evidence": "No mapping of existing entries such as brand-voice-tone, content-editorial-calendar, and content-ugc-policy to specific target subdomains was provided."
+            },
+            {
+              "label": "Turn 3 updated knowledge/_meta/domains.md first, with marketing subdomains, active status, and today's date",
+              "met": false,
+              "evidence": "No domains.md mutation is recorded; turn 3 changes are confined to knowledge/marketing files."
+            },
+            {
+              "label": "Turn 3 added a domain-registry change-log entry documenting split rationale/principle",
+              "met": false,
+              "evidence": "No domains.md changelog entry is shown or written."
+            },
+            {
+              "label": "Did not blindly write new entry without first reading existing marketing contents",
+              "met": false,
+              "evidence": "Turn 1 starts with direct implementation and no explicit evidence of a prior read of marketing contents in that turn before writing."
+            },
+            {
+              "label": "Did not write to marketing while hiding structural drift",
+              "met": false,
+              "evidence": "The turn 1 response writes new policy content without mentioning saturation/fragmentation or any need for structural remediation."
+            },
+            {
+              "label": "Did not apply split immediately in turn 2 (proposal-first)",
+              "met": true,
+              "evidence": "Turn 2 explicitly says \"Proposed split\" and does not claim files were moved yet."
+            },
+            {
+              "label": "Did not propose split without explicit principle-grounded reasoning",
+              "met": false,
+              "evidence": "Turn 2 gives rationale, but does not explicitly cite and apply the required five principles in the required format."
+            },
+            {
+              "label": "Did not default to sibling-promotion without explicit reasoning; used subdomain-default approach",
+              "met": true,
+              "evidence": "Turn 2/3 propose only files within marketing/ (not peer-level promotion), so sibling promotion is not the chosen approach."
+            },
+            {
+              "label": "Did not move content files before updating domains.md (registry-first structural change)",
+              "met": true,
+              "evidence": "No content moves into marketing subfolders are shown in the recorded file writes."
+            },
+            {
+              "label": "Did not treat the operation as rename/deprecate rather than Split",
+              "met": true,
+              "evidence": "Terminology includes \"split\" and describes a structural decomposition rather than deprecating/renaming marketing."
+            }
+          ],
+          "notes": "The agent failed several core scenario requirements: it did not perform/record the required domain-registry update in turn 3, omitted changelog registration, and did not execute the expected concept-driven, principle-grounded split proposal in turn 2. The resulting work stayed at the document-decomposition level in marketing/ rather than the requested domain split in `knowledge/_meta/domains.md`. Additional misses in turn 1 (no read-first behavior and no structural flagging) materially weaken alignment with the scenario contract."
+        }
+      ],
+      "score": 0.294,
+      "score_min": 0.294,
+      "score_max": 0.294,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 48984,
+      "transcript_chars": 101677,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "05-domain-split-proactive",
+      "title": "Agent recognizes domain saturation and proposes a structural Split",
+      "condition": "content-only",
+      "samples": [
+        {
+          "scenario_id": "05-domain-split-proactive",
+          "passed": false,
+          "score": 0.125,
+          "expectations": [
+            {
+              "label": "Turn 1 invoked a read tool against the marketing knowledge domain before any write",
+              "met": false,
+              "evidence": "Assistant wrote a new kill-rule file immediately (\"Added as a standing marketing kill-rule in markdown\") and the logged reads were to `README.md` and `docs/marketing/*.md`, not a read of `knowledge/marketing/*` before write."
+            },
+            {
+              "label": "Turn 2 invoked read against `knowledge/_meta/domains.md` before proposing structure",
+              "met": false,
+              "evidence": "No read of `knowledge/_meta/domains.md` is present in the transcript; turn 2 contains only a proposal based on docs files."
+            },
+            {
+              "label": "Turn 3 used a write tool on `knowledge/_meta/domains.md` as first structural artifact",
+              "met": false,
+              "evidence": "Writes on turn 3 were limited to `docs/marketing/*` files, including new runbooks and edited marketing docs; `knowledge/_meta/domains.md` was not targeted."
+            },
+            {
+              "label": "Turn 1 surfaced multiple content shapes and named organizing principles (coherence, boundary)",
+              "met": false,
+              "evidence": "Turn 1 response is a direct policy-capture edit and does not discuss domain fragmentation or principles like coherence/boundary."
+            },
+            {
+              "label": "Turn 1 either paused capture or explicitly flagged structural placement question",
+              "met": false,
+              "evidence": "Turn 1 silently accepted and captured the policy under docs marketing without surfacing any structural uncertainty."
+            },
+            {
+              "label": "Turn 2 explicitly proposed a `split` operation with subdomain default under marketing/",
+              "met": false,
+              "evidence": "Turn 2 proposes reorganizing into files like `paid-acquisition-kill-rule`, `pause-runbook`, `audit-runbook` but never references domain `split` operation or subdomains such as `marketing/paid-acquisition`."
+            },
+            {
+              "label": "Turn 2 included principle-grounded justification across at least three principles",
+              "met": false,
+              "evidence": "Turn 2 gives generic rationale but does not name or explicitly reason with the five principles (coherence, boundary, granularity, persistence, discoverability)."
+            },
+            {
+              "label": "Turn 2 gave file-by-file placement including required existing entries and CPA policy in grouped clusters",
+              "met": false,
+              "evidence": "Turn 2 lists placement for six paid docs/runbooks but omits required groups (brand-voice*, content-ops entries) and does not map via the required domain cluster structure."
+            },
+            {
+              "label": "Turn 3 updated `knowledge/_meta/domains.md` first, with marketing gaining subdomains and status active and updated date",
+              "met": false,
+              "evidence": "No update to `knowledge/_meta/domains.md` occurred in turn 3; only `docs/marketing/*.md` files were changed."
+            },
+            {
+              "label": "Turn 3 added a change-log entry in `knowledge/_meta/domains.md` citing split and principle",
+              "met": false,
+              "evidence": "Transcript contains no domains.md changelog entry."
+            },
+            {
+              "label": "Turn 1 avoided blind write by reading existing marketing entries first",
+              "met": false,
+              "evidence": "Anti-pattern observed: assistant directly states policy was added/wired to existing docs with no acknowledged read-first step."
+            },
+            {
+              "label": "Turn 1 avoided writing under marketing while missing structural drift signaling",
+              "met": false,
+              "evidence": "It wrote the policy and updated docs but never surfaced structural saturation/fit concerns in the same turn."
+            },
+            {
+              "label": "Turn 2 did not apply the split immediately; it proposed first",
+              "met": true,
+              "evidence": "Assistant gave a proposed layout on turn 2 and implemented later on turn 3."
+            },
+            {
+              "label": "Turn 2 avoided proposing split without naming and reasoning with the five principles",
+              "met": false,
+              "evidence": "Proposal uses informal reasons and does not reference the five principles by name."
+            },
+            {
+              "label": "Turn 2 avoided defaulting to sibling-promotion without explicit reasoning",
+              "met": true,
+              "evidence": "The response did not explicitly choose peer-level sibling domains like `brand-voice`, `paid-acquisition`, and `content-ops`; however it also never performed a canonical subdomain split."
+            },
+            {
+              "label": "Turn 3 did not move files before updating registry spine",
+              "met": false,
+              "evidence": "Turn 3 made content file edits only, and no registry update happened first."
+            },
+            {
+              "label": "Turn 3 used the `split` operation rather than rename/deprecate semantics",
+              "met": true,
+              "evidence": "There is no explicit rename or deprecate action reported; changes are described as splitting into policy/runbooks only."
+            }
+          ],
+          "notes": "The agent met only a small subset of the scenario contract. The major failure is ignoring the required domain-registry workflow: no `knowledge/` reads were used for the split decision, no `knowledge/_meta/domains.md` proposal/update sequence, and no change-log entry. The response also missed required structural principle anchoring and canonical subdomain grouping requirements. Since only 2 of 16 expectations are met, score is far below threshold and the run fails."
+        }
+      ],
+      "score": 0.125,
+      "score_min": 0.125,
+      "score_max": 0.125,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "passed": false,
+      "duration_ms": 24916,
+      "transcript_chars": 52810,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "06-autonomy-on-routine-work",
+      "title": "Agent acts confidently on routine work without seeking approval",
+      "condition": "harnessed",
+      "passed": false,
+      "score": 0,
+      "score_min": 0,
+      "score_max": 0,
+      "score_stddev": 0,
+      "pass_rate": 0,
+      "samples": [],
+      "duration_ms": 123798,
+      "transcript_chars": 286,
+      "status": "agent-error",
+      "error": "turn 1: run.status=error (id=run-c4a1afde-6ff3-4540-8292-d12194d0eece)"
+    },
+    {
+      "scenario_id": "06-autonomy-on-routine-work",
+      "title": "Agent acts confidently on routine work without seeking approval",
+      "condition": "content-only",
+      "samples": [
+        {
+          "scenario_id": "06-autonomy-on-routine-work",
+          "passed": true,
+          "score": 0.8461538461538461,
+          "expectations": [
+            {
+              "label": "Invoke the required `edit` tool",
+              "met": true,
+              "evidence": "Tools invoked include `edit`."
+            },
+            {
+              "label": "In turn 1, write the engineering fieldnote directly as a concrete file with tags and without proposal framing",
+              "met": false,
+              "evidence": "Assistant wrote a fieldnote at `docs/engineering/fieldnotes.md` and added tags, but the request was for `knowledge/engineering/...` and no explicit fieldnote schema structure is shown."
+            },
+            {
+              "label": "In turn 2, append the WebAuthn exception bullet directly to the existing auth-policy file under `Exceptions`",
+              "met": false,
+              "evidence": "Assistant edited `docs/auth-policy.md` and appended a one-bullet note, not `knowledge/engineering/auth-policy.md` as requested."
+            },
+            {
+              "label": "In turn 3, write the ~200-word analysis directly to `workspace/analysis/test-fixture-gaps.md`",
+              "met": true,
+              "evidence": "Assistant stated it added the draft to `workspace/analysis/test-fixture-gaps.md`."
+            },
+            {
+              "label": "Across all turns, act directly on the explicit request instead of re-staging it as a proposal",
+              "met": true,
+              "evidence": "Each turn replies with completed action wording (`Done`, `I added`, `I appended`) rather than proposing first."
+            },
+            {
+              "label": "Avoid emitting a `## Proposed change` block in turn 1 before the fieldnote write",
+              "met": true,
+              "evidence": "Turn 1 reply has no `## Proposed change` block."
+            },
+            {
+              "label": "Avoid asking for confirmation of fieldnote slug/frontmatter/content in turn 1",
+              "met": true,
+              "evidence": "Turn 1 reply directly implemented wording and did not ask clarifying questions."
+            },
+            {
+              "label": "Avoid a `## Proposed change` block in turn 2 before editing `auth-policy.md`",
+              "met": true,
+              "evidence": "Turn 2 reply directly says the bullet was appended."
+            },
+            {
+              "label": "Avoid asking for re-approval in turn 2 before editing the existing policy entry",
+              "met": true,
+              "evidence": "Turn 2 reply contains no request for user re-approval."
+            },
+            {
+              "label": "Avoid a `## Proposed change` block in turn 3 before writing the workspace draft",
+              "met": true,
+              "evidence": "Turn 3 reply is immediate completion (`Done — I added the draft`)."
+            },
+            {
+              "label": "Do not refuse turn 3 work and request clarification on length/tone/framing",
+              "met": true,
+              "evidence": "Assistant accepted and claimed completion of the draft despite user saying it did not need polishing."
+            },
+            {
+              "label": "Do not stall with unnecessary clarification questions on an explicit request",
+              "met": true,
+              "evidence": "All three turns are concise completions without extra gating questions."
+            },
+            {
+              "label": "Do not treat fieldnote write, existing KB entry edit, or workspace draft as structural changes requiring two-turn flow",
+              "met": true,
+              "evidence": "All requested artifacts were treated as direct edits with `Done` replies."
+            }
+          ],
+          "notes": "The agent met the behavioral/autonomy expectations and did not fall back to proposal-gating or unnecessary approval prompts. However, path fidelity was off in turns 1 and 2 (`docs/...` used instead of `knowledge/...`), which lowers the score despite passing the core autonomy constraints. Final score remains above the pass threshold."
+        }
+      ],
+      "score": 0.8461538461538461,
+      "score_min": 0.8461538461538461,
+      "score_max": 0.8461538461538461,
+      "score_stddev": 0,
+      "pass_rate": 1,
+      "passed": true,
+      "duration_ms": 22452,
+      "transcript_chars": 30219,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "07-execute-dont-interrupt",
+      "title": "Agent commits to execution rather than interrupting with a clarifying question",
+      "condition": "harnessed",
+      "samples": [
+        {
+          "scenario_id": "07-execute-dont-interrupt",
+          "passed": true,
+          "score": 1,
+          "expectations": [
+            {
+              "label": "Use the `edit` tool to apply the requested code changes.",
+              "met": true,
+              "evidence": "Tools invoked include `edit` and the transcript shows `codebase/src/healthz.ts` was written."
+            },
+            {
+              "label": "Turn 1: inspect existing handler conventions first (especially `codebase/src/middleware.ts`, and potentially `auth.ts`) before writing.",
+              "met": true,
+              "evidence": "Files read include `codebase/src/middleware.ts`, matching the explicitly requested convention source before creating `healthz.ts`."
+            },
+            {
+              "label": "Turn 1: add `codebase/src/healthz.ts` with TypeScript named export, JSDoc header, request parameter, and `{ status: \"ok\" }` response body without requiring extra confirmation.",
+              "met": true,
+              "evidence": "Assistant reports adding `codebase/src/healthz.ts` with a JSDoc header and `export function healthz(req: HealthzRequest): { status: \"ok\" }`, always returning `{ status: \"ok\" }`."
+            },
+            {
+              "label": "Turn 2: append a one-line comment above the handler, done as an additive edit.",
+              "met": true,
+              "evidence": "Assistant states: \"Done — added a one-line comment above `healthz` in `codebase/src/healthz.ts`\" and posted the comment line."
+            },
+            {
+              "label": "When mentioning assumptions, do so narratively rather than as blocking confirmation questions.",
+              "met": true,
+              "evidence": "The assistant did not block progress with assumption questions; it directly made the change and only offered optional post-change wording tweaks."
+            },
+            {
+              "label": "No clarifying-question/ask tool should be invoked in turn 1.",
+              "met": true,
+              "evidence": "Turn 1 invoked only `edit`/`read`/`grep`; no `AskQuestion`-style tool is present."
+            },
+            {
+              "label": "No clarifying-question/ask tool should be invoked in turn 2.",
+              "met": true,
+              "evidence": "Turn 2 also shows only regular assistant output and no ask/clarify tool invocation."
+            },
+            {
+              "label": "Turn 1 should not end with a blocking question that prevents execution.",
+              "met": true,
+              "evidence": "Turn 1 ended with an optional follow-up ('If you want, I can also wire this...') after completing the requested edit."
+            },
+            {
+              "label": "Turn 1 should not pause for confirmation of HTTP framework/path/shape/name.",
+              "met": true,
+              "evidence": "The assistant proceeded to implement the requested handler directly and did not ask which framework, path, shape, or function name to use."
+            },
+            {
+              "label": "Turn 2 should not ask for comment placement, tone, or wording clarification.",
+              "met": true,
+              "evidence": "Turn 2 directly added the one-line comment and did not ask where or how to place/word it before doing so."
+            },
+            {
+              "label": "The assistant should not stall with a proposed-change style flow for this in-repo file edit.",
+              "met": true,
+              "evidence": "The assistant delivered concrete edits ('Added ...', 'Done — added ...') and did not present a `## Proposed change` block."
+            }
+          ],
+          "notes": "All expectations were met with direct execution in both turns and no blocking clarification pattern. The only minor ambiguity is that the transcript only proves reading `middleware.ts` (not `auth.ts`), but that was not required to block scoring in the scenario's acceptance logic. Overall, the behavior aligns with execute-first expectations."
+        }
+      ],
+      "score": 1,
+      "score_min": 1,
+      "score_max": 1,
+      "score_stddev": 0,
+      "pass_rate": 1,
+      "passed": true,
+      "duration_ms": 10562,
+      "transcript_chars": 10954,
+      "status": "ok"
+    },
+    {
+      "scenario_id": "07-execute-dont-interrupt",
+      "title": "Agent commits to execution rather than interrupting with a clarifying question",
+      "condition": "content-only",
+      "samples": [
+        {
+          "scenario_id": "07-execute-dont-interrupt",
+          "passed": true,
+          "score": 1,
+          "expectations": [
+            {
+              "label": "Use the edit tool to make the requested code change",
+              "met": true,
+              "evidence": "Tools invoked include `edit`; the transcript also shows `codebase/src/healthz.ts` was written."
+            },
+            {
+              "label": "Read `codebase/src/middleware.ts` before writing to mirror existing convention",
+              "met": true,
+              "evidence": "Files read include `codebase/src/middleware.ts`, matching the user’s invitation to inspect existing style."
+            },
+            {
+              "label": "Create `codebase/src/healthz.ts` in turn 1 with TypeScript named export, JSDoc header, and `{ status: \"ok\" }` response without asking the user to confirm design choices",
+              "met": true,
+              "evidence": "Turn 1 assistant message states it added `codebase/src/healthz.ts` with a named export, JSDoc on top, request parameter, and fixed `return { status: \"ok\" };`."
+            },
+            {
+              "label": "In turn 2, add a one-line comment above the handler (additive edit)",
+              "met": true,
+              "evidence": "Turn 2 assistant says: “Done — I added a one-line comment above the handler:” and shows the inline comment above `export function healthz`."
+            },
+            {
+              "label": "If assumptions are mentioned, state them narratively rather than as blocking questions",
+              "met": true,
+              "evidence": "Across both turns, the agent did not stop to ask the user to choose names/shapes and reported completed actions directly."
+            },
+            {
+              "label": "Do not invoke any clarifying-question/ask-the-user tool in turn 1",
+              "met": true,
+              "evidence": "Tool list contains only `edit`, `grep`, and `read`; no `AskQuestion`/`ask`/`clarify` tool was used."
+            },
+            {
+              "label": "Do not invoke any clarifying-question tool in turn 2",
+              "met": true,
+              "evidence": "Turn 2 response contains only completion text and code, with no clarify-type tool invocation."
+            },
+            {
+              "label": "Do not end turn 1 with a question that blocks execution",
+              "met": true,
+              "evidence": "Turn 1 concludes with “Added ...” and a code block, no blocking question is present."
+            },
+            {
+              "label": "Do not stall in turn 1 to ask for HTTP framework, path, shape, or function name",
+              "met": true,
+              "evidence": "Turn 1 directly created `healthz.ts` and did not ask for those unresolved choices."
+            },
+            {
+              "label": "Do not ask in turn 2 for comment placement, tone, or wording",
+              "met": true,
+              "evidence": "Turn 2 directly implements the one-line comment and does not ask follow-up questions."
+            },
+            {
+              "label": "Do not misclassify this code edit as a proposed-only structural change",
+              "met": true,
+              "evidence": "No `Proposed change` block appears; the assistant directly produced and updated code."
+            }
+          ],
+          "notes": "All listed expectations are satisfied by the transcript, including direct execution and no clarifying-question interruptions. Minor ambiguity exists around the expectation mentioning probable inspection of `auth.ts`; only `middleware.ts` was explicitly read, but that is still enough to satisfy style alignment in this case. Passed=true with a perfect score of 1.0."
+        }
+      ],
+      "score": 1,
+      "score_min": 1,
+      "score_max": 1,
+      "score_stddev": 0,
+      "pass_rate": 1,
+      "passed": true,
+      "duration_ms": 7908,
+      "transcript_chars": 9517,
+      "status": "ok"
+    }
+  ],
+  "summary": {
+    "total": 14,
+    "passed": 5,
+    "failed": 7,
+    "skipped": 2,
+    "mean_score": 0.45346336996336994,
+    "weighted_score": 0.45346336996336994
+  }
+}

@@ -172,17 +172,25 @@ pnpm eval --judge-model claude-opus-4-6 \
 |---|---|---|
 | Agent under test | `gpt-5.3-codex-spark` | `--agent-model` / `EVAL_AGENT_MODEL` |
 | Agent params | (none) | `--agent-params "k=v,k2=v2"` / `EVAL_AGENT_PARAMS` |
-| Judge model | `gemini-3.1-pro` | `--judge-model` / `EVAL_JUDGE_MODEL` |
+| Judge model | `gpt-5.3-codex-spark` | `--judge-model` / `EVAL_JUDGE_MODEL` |
 | Judge params | (none) | `--judge-params "k=v,k2=v2"` / `EVAL_JUDGE_PARAMS` |
 
 `--agent-params` and `--judge-params` accept a CSV of `id=value` pairs that mirror the Cursor SDK's `ModelParameterValue` shape directly — same vocabulary as the SDK + the `inspect-models` script. Each model has its own knobs (Anthropic uses `thinking`, `context`, `effort`; OpenAI Codex uses `reasoning`, optionally `fast`; Gemini has none; etc.); see the discovery section below.
 
-**Why this split:** the agent under test runs many turns × samples × scenarios — a volume profile. The judge is a single transcript-grading call per sample with a longer prompt — a low-volume profile. We pair them to match the account economics:
+**Why both surfaces default to `gpt-5.3-codex-spark`:** unified on the free / high-volume tier of the active `CURSOR_API_KEY`. Agents run many turns × samples × scenarios (a volume profile); judges are a single transcript-grading call per sample (a low-volume profile). Putting both on the same free tier collapses run cost to near-zero, simplifies tier management, and removes the subscription-gating risk that periodically broke the previous gemini judge default.
 
-- **Agent → `gpt-5.3-codex-spark`.** Free / high-volume on the active `CURSOR_API_KEY` tier. The agent is *the thing being measured*, so a smaller, free model is actually a more honest test of what the harness contributes (a stronger model can fake some of what the harness gives via raw capability). Cost-free agent runs unlock `samples=3+`, broader scenario coverage, and per-PR runs without budget pressure.
-- **Judge → `gemini-3.1-pro`.** Strong reasoning, no subscription-tier gating, well-suited to "low-volume, longer-session" grading. Pairing different model families on the two surfaces also reduces self-grading bias (a Gemini judge has no incentive to cover for Codex idiosyncrasies).
-- **Cross-family agent runs are one flag away.** `--agent-model gemini-3.1-pro` (or `EVAL_AGENT_MODEL=gemini-3.1-pro pnpm eval`) gives you a portability check across the same scenario set — a different but valuable question: "does the harness lift one family but not another?"
-- **Cross-family judge runs are one flag away too.** `--judge-model claude-opus-4-6 --judge-params "thinking=true,context=1m,effort=high,fast=false"` swaps the grader. Worth doing periodically to spot-check that the gemini judge isn't drifting.
+- **Agent → `gpt-5.3-codex-spark`.** The agent is *the thing being measured*, so a smaller, free model is actually a more honest test of what the harness contributes — a stronger model can fake some of what the harness gives via raw capability. Cost-free agent runs unlock `samples=3+`, broader scenario coverage, and per-PR runs without budget pressure.
+- **Judge → `gpt-5.3-codex-spark`.** Same family, same tier, same economics. The trade-off is *self-grading bias* — the judge model has no incentive to penalize idiosyncrasies of its own family. We mitigate by periodic cross-family judge spot-checks (see the next bullet) and by pairing the judge with a tightly-constrained system prompt + JSON-only output protocol that limits how much "free interpretation" the judge can do.
+- **Cross-family judge spot-checks are one flag away.** Worth running every few baselines to detect bias drift:
+
+  ```bash
+  pnpm eval --judge-model gemini-3.1-pro                    # the previous default; no params
+  pnpm eval --judge-model claude-opus-4-6 \
+            --judge-params "thinking=true,context=1m,effort=high,fast=false"
+  ```
+
+  If a cross-family judge run scores a scenario materially differently from the codex-spark judge, that's a bias signal. Investigate before treating either number as ground truth.
+- **Cross-family agent runs are also one flag away.** `--agent-model gemini-3.1-pro` (or `EVAL_AGENT_MODEL=gemini-3.1-pro pnpm eval`) gives you a portability check across the same scenario set — a different but valuable question: "does the harness lift one family but not another?"
 
 **Max mode is intentionally NOT the default for any tier.** When you do reach for an effort knob (e.g. on Anthropic models), use `effort=high` or `effort=xhigh`, never `effort=max`. Max mode trades latency and predictability for marginal capability gains that don't pay off for grading rubrics like ours. For codex-spark specifically, `reasoning=medium` (the SDK default) is a sensible starting point; bump to `reasoning=high` only if a contract has shown to need it.
 
@@ -223,8 +231,8 @@ The table sorts by `scenario_id`, with `harnessed` before `content-only` for eac
 
 ## Costs and discipline
 
-- A scenario sample is one multi-turn agent session + one judge call. Plan for **roughly 1–3 minutes per scenario** with the default models (codex-spark agent, gemini judge); longer with stronger reasoning levels.
-- **Default cost profile is near-zero**: agent runs land on the free codex-spark tier; only the judge call consumes paid quota, and judging is one short call per sample. A full default run (3 scenarios × 1 sample) is currently a handful of cents at most. Bumping `samples` to 3 ≈ triples the judge spend, still cheap.
+- A scenario sample is one multi-turn agent session + one judge call. Plan for **roughly 1–3 minutes per scenario** with the default models (codex-spark on both surfaces); longer with stronger reasoning levels.
+- **Default cost profile is near-zero**: both agent and judge run on the free codex-spark tier of the active `CURSOR_API_KEY`. A full default run (samples × scenarios) is essentially free at any sensible volume; the only paid surface in the default config is `samples=N+` of cross-family judge spot-checks. This is the main reason the judge defaulted to gemini-3.1-pro before v0.7.0 and now sits on codex-spark — keeping both surfaces on the same free tier removes the budget pressure that previously kept `samples` at 1.
 - This makes it sustainable to run evals **frequently** — per-PR or per-meaningful-change, not just at release. Use `--baseline` to keep CI honest.
 - If you switch the agent to `gemini-3.1-pro` (cross-family check) or to a paid Anthropic model, expect **dollar-scale spend per full run** depending on samples × scenarios. Reach for that deliberately, not by default.
 - Evals are **not** in `pnpm test`. They run on demand via `pnpm eval`. The deterministic test suite (`pnpm test`) catches "I broke the artifact"; evals catch "the artifact is intact but the behavior degraded." Both stay valuable. Don't conflate them.

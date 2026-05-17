@@ -2,8 +2,8 @@
  * evals/runner/judge.ts — LLM-as-judge running on the Cursor SDK only.
  *
  * Uses `Agent.prompt(...)` (Pattern 1: one-shot, auto-disposes) against
- * a model the user picks via `--judge-model` (default `gemini-3.1-pro`)
- * with optional `--judge-params` (default none).
+ * a model the user picks via `--judge-model` (default
+ * `gpt-5.3-codex-spark`) with optional `--judge-params` (default none).
  *
  * The judge runs in an mkdtemp'd tmpdir cwd with `settingSources: []`
  * so it can't accidentally read project files; the prompt also tells
@@ -18,14 +18,22 @@
  *   2. corresponding EVAL_JUDGE_* env var
  *   3. compiled-in default
  *
- * Defaults (chosen because they work with a stock CURSOR_API_KEY
- * without subscription gating, and because the judge handles long
- * multi-turn transcripts well in this configuration):
- *   model:  gemini-3.1-pro
- *   params: (none — gemini-3.1-pro has no tunable parameters)
+ * Defaults:
+ *   model:  gpt-5.3-codex-spark
+ *   params: (none — `reasoning` defaults to medium; bump per-run if
+ *           a transcript needs harder grading)
  *
- * To use a different judge configuration, e.g. claude-opus-4-6 with
- * extra reasoning:
+ * Why codex-spark on both surfaces (agent and judge): unified on the
+ * free / high-volume tier of the active CURSOR_API_KEY → near-zero
+ * cost per full run, single tier, no subscription gating. The
+ * trade-off is self-grading bias (same family marks its own work);
+ * mitigation is a periodic cross-family judge spot-check. See
+ * `evals/README.md` "Models" section for the full rationale.
+ *
+ * To run a cross-family judge spot-check, e.g. gemini-3.1-pro
+ * (the previous default) or claude-opus-4-6 with extra reasoning:
+ *
+ *   pnpm eval --judge-model gemini-3.1-pro
  *
  *   pnpm eval --judge-model claude-opus-4-6 \
  *             --judge-params "thinking=true,context=1m,effort=high,fast=false"
@@ -47,7 +55,7 @@ import {
 const RUNNER_DIR = dirname(fileURLToPath(import.meta.url));
 const SYSTEM_PROMPT_PATH = join(RUNNER_DIR, "prompts", "judge-system.md");
 
-const DEFAULT_JUDGE_MODEL = "gemini-3.1-pro";
+const DEFAULT_JUDGE_MODEL = "gpt-5.3-codex-spark";
 const DEFAULT_JUDGE_PARAMS: ModelParam[] = [];
 
 export interface JudgeOptions {

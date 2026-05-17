@@ -47,7 +47,11 @@
  *                         spark exposes `reasoning` (low|medium|high|
  *                         extra-high); gemini has no tunable params.
  *
- *   --judge-model <id>    Override judge model (default: gemini-3.1-pro).
+ *   --judge-model <id>    Override judge model (default:
+ *                         gpt-5.3-codex-spark — same family as the
+ *                         agent default; see evals/README.md "Models"
+ *                         for the rationale and the cross-family
+ *                         spot-check recipe).
  *   --judge-params <kv>   Comma-separated `k=v` SDK params for the judge,
  *                         e.g. "thinking=true,context=1m,effort=high".
  *                         Default: none. Discover the right ids per
@@ -71,6 +75,92 @@
 // MUST be the first import — loads .env and sets CURSOR_RIPGREP_PATH
 // before the Cursor SDK initializes. See evals/runner/bootstrap.ts.
 import "./bootstrap.ts";
+
+// SDK survival shield. The Cursor SDK's shell executor occasionally
+// emits unhandled 'error' events on child sockets — observed shapes
+// include `EPIPE` on `Socket._write` (parent closed pipe before
+// child finished) and `ENOTDIR` on `ChildProcess.spawn` (a path
+// resolution race in the SDK's PATH search). These bubble up as
+// uncaught exceptions OUTSIDE any promise chain we can catch in
+// runScenarioOnce, so without this shield they tear down the entire
+// node process mid-baseline.
+//
+// We catch the known-shape SDK errors here, log them so they remain
+// visible, and let the run continue. The corrupted Agent session
+// will then either throw on its next stream read (caught by
+// runScenarioOnce's try/catch and downgraded to status=agent-error)
+// or stall until the scenario's timeout_ms fires and the sample is
+// marked agent-error that way. Either path: one sample lost, the
+// rest of the baseline survives.
+//
+// Anything other than the known SDK shapes is RE-THROWN so we don't
+// mask real bugs in the runner itself.
+function isKnownSdkSocketError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const e = err as NodeJS.ErrnoException & {
+    syscall?: string;
+    path?: string;
+    spawnargs?: string[];
+  };
+  const code = e.code;
+  const stack = err.stack ?? "";
+  const syscall = e.syscall ?? "";
+  const spawnargs = Array.isArray(e.spawnargs) ? e.spawnargs.join(" ") : "";
+
+  // Known SDK shell-executor crash codes (observed in @cursor/sdk@1.0.12+).
+  // EPIPE / ECONNRESET: parent closed pipe before child finished writing.
+  // ENOTDIR / ENOENT: PATH lookup or shell-binary spawn race in the SDK's
+  //   sandboxed-shell setup (rare, but devastating mid-baseline).
+  const knownCodes = new Set(["EPIPE", "ENOTDIR", "ENOENT", "ECONNRESET"]);
+  if (!knownCodes.has(code ?? "")) return false;
+
+  // Match by stack frame (best signal — when present).
+  if (
+    stack.includes("@cursor/sdk") ||
+    stack.includes("Socket._write") ||
+    stack.includes("BaseShellCoreExecutor")
+  ) {
+    return true;
+  }
+
+  // Match by syscall + spawn shape. Node strips the SDK frame from the stack
+  // by the time `unhandledRejection` fires for ChildProcess._handle.onexit
+  // crashes, so we fall back to identifying SDK-shaped spawn invocations
+  // by the SDK's well-known sandbox markers in `spawnargs`.
+  if (syscall.startsWith("spawn") || syscall === "write") {
+    if (
+      spawnargs.includes("dump_zsh_state") ||
+      spawnargs.includes("__CURSOR_SANDBOX") ||
+      spawnargs.includes("CURSOR_RIPGREP")
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+process.on("uncaughtException", (err) => {
+  if (isKnownSdkSocketError(err)) {
+    const code = (err as NodeJS.ErrnoException).code ?? "?";
+    process.stderr.write(
+      `\n  ⚠ SDK_UNCAUGHT[${code}] swallowed: ${err.message} (sample will downgrade to agent-error)\n`,
+    );
+    return;
+  }
+  console.error("fatal uncaughtException:", err);
+  process.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  if (isKnownSdkSocketError(reason)) {
+    const code = (reason as NodeJS.ErrnoException).code ?? "?";
+    process.stderr.write(
+      `\n  ⚠ SDK_UNHANDLED[${code}] swallowed: ${(reason as Error).message} (sample will downgrade to agent-error)\n`,
+    );
+    return;
+  }
+  console.error("fatal unhandledRejection:", reason);
+  process.exit(1);
+});
 
 import { hostname } from "node:os";
 import { readFileSync, readdirSync } from "node:fs";
@@ -117,10 +207,14 @@ const SCENARIOS_DIR = join(EVALS_DIR, "scenarios");
 
 // codex-spark is unrestricted on the active CURSOR_API_KEY tier
 // (high-volume inferencing) which fits the agent-under-test profile:
-// many turns × samples × scenarios. The judge is a single transcript-
-// grading call per sample with longer-session shape, so it stays on
-// `gemini-3.1-pro` (low-volume sweet spot). Override either via flags
-// or the EVAL_AGENT_MODEL / EVAL_JUDGE_MODEL env vars.
+// many turns × samples × scenarios. The judge default lives in
+// `judge.ts` and is currently the same model — unifying both surfaces
+// on codex-spark gives near-zero per-run cost and a single tier, at
+// the cost of family-shared self-grading bias (mitigated by periodic
+// cross-family spot-checks via `--judge-model gemini-3.1-pro` or
+// similar). See evals/README.md "Models" for the trade-off matrix.
+// Override either model via flags or the EVAL_AGENT_MODEL /
+// EVAL_JUDGE_MODEL env vars.
 const DEFAULT_AGENT_MODEL = "gpt-5.3-codex-spark";
 
 interface CliArgs {
@@ -217,7 +311,9 @@ function printHelp(): void {
              [--judge-model <id>] [--judge-params "k=v,k2=v2"]
 
 Defaults: agent=gpt-5.3-codex-spark (no params; free / high-volume),
-          judge=gemini-3.1-pro (no params; low-volume / longer sessions).
+          judge=gpt-5.3-codex-spark (no params; same family — unified
+          for cost / tier simplicity. Cross-family spot-check:
+          --judge-model gemini-3.1-pro).
 
 --control runs each scenario in two conditions (harnessed vs. content-only)
   and reports the delta. Doubles cost and runtime; use when you want to

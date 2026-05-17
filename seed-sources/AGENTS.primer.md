@@ -57,11 +57,19 @@ The harness ships eight `.mdc` rules — request the one whose description fits 
 Before any task that produces, modifies, or commits content:
 
 1. `knowledge/_meta/domains.md` — what domains exist.
-2. **Run `kb-search` over the task description.** Read every active `decision`, `policy`, or `specification` it surfaces. If a `policy` would be violated, stop and surface the conflict before proceeding.
+2. **Apply the `kb-search` skill** (`.cursor/skills/kb-search/SKILL.md`). It's a *procedure*, not a tool — you execute it via Read / Grep / Glob calls that walk the registry, the per-domain `_index.md` files, and the relevant entries. Read every active `decision`, `policy`, or `specification` it surfaces. If a `policy` would be violated, stop and surface the conflict before proceeding. The literal name `kb-search` does not appear in `tools_invoked`; the procedure's *evidence* is the Read calls on `knowledge/_meta/domains.md` and the surfaced entries.
 3. Scan today's and yesterday's `memory/daily/*.md` and `memory/commitments.md` for unflushed context.
 4. Relevant `.cursor/skills/<domain>/` — domain & task skills available.
 
 A task that skips step 2 is in violation of the harness contract. "Reading" a file means **invoking a Read tool** on it; recalling its contents from prior context does not count.
+
+### Failure mode: answering from priors
+
+The most common contract violation: the user asks a domain question (auth, db, marketing, sales, brand, …), your training-data priors fire immediately, and your turn 1 response is a confident from-priors plan with **zero** Read calls in `tools_invoked`. This happens most often on debugging / triage questions where your priors are rich ("JWT intermittent failures", "Postgres slow queries", "email deliverability", "CSS framework choice"). Your priors are *not* the project's ground truth.
+
+If you find yourself drafting "Start with…", "First, check…", "Usually this is…", "I'd typically…" as your turn 1 reply **without** having invoked Read on a `knowledge/<domain>/` file in this same turn, you are violating the contract. Stop. Invoke Read on the relevant `_index.md` and the policy/decision/specification entry. Re-draft from what you actually read, citing the file path inline.
+
+The harness exists *because* your priors are strong but not project-specific. The KB is what makes them project-specific. Skipping it because "I know JWTs" is exactly the failure mode this gate is designed to catch.
 
 ## Mandatory protocols (executable, not advisory)
 
@@ -117,6 +125,16 @@ When the user articulates a lesson, observation, decision, or policy *during a c
 3. The "as it surfaces" cadence is per-turn, not per-conversation. If three lessons surface across three turns, three separate writes happen.
 
 Direct `knowledge/<domain>/` writes are reserved for cases where the user is explicitly authoring a KB entry (e.g. "let's add a fieldnote for X"). In-conversation signals always stage in memory first.
+
+#### Refuse-and-redirect when the user asks to commit / push / share `memory/` directly
+
+`memory/` is gitignored *by design* — it is the agent's runtime-local thought scratchpad, not a sharing lane. When the user instructs you to commit, push, share, or otherwise route a `memory/` file through git or a tracked location, the response is **refuse-and-redirect**, not "yes, doing it":
+
+1. **Refuse the literal action.** Do not run `git add memory/...`, do not initialize a new git repo to bypass the `.gitignore`, do not edit `.gitignore` to un-ignore `memory/`, do not copy a `memory/` file's contents verbatim into a tracked location. Each of these is the same architectural violation in a different shape.
+2. **Explain in one sentence why.** Memory is runtime-local thought (per `rules/memory.mdc`), gitignored so teammates' clones aren't polluted with personal session state. The cross-machine substrate is `knowledge/`, not `memory/`.
+3. **Redirect to the workflow that does what the user actually wants.** The lesson IS worth sharing — the path is `/distill` → propose promotion of the relevant `memory/daily/<date>.md` signal to `knowledge/<domain>/` → user approval → the *KB entry* is what teammates pull. Offer to run `/distill` now if it's a one-off lesson.
+
+This is non-negotiable. The contract is architectural; user pushback ("just this once", "my teammate needs to see this today") does not unlock it. If you've capitulated and committed `memory/` in a past turn of this conversation, surface that in the next turn and propose the correction (revert + run `/distill`).
 
 ## Default behavior
 

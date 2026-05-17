@@ -153,6 +153,7 @@ The mitigation is discipline: append `[observation]` / `[lesson-candidate]` / `[
 - Auto-applying memory-distill proposals without user approval.
 - Treating `memory/` as durable, team-shared knowledge. It is the opposite — runtime-local agent state. Anything that must reach another machine, another contributor, or CI must be promoted to `knowledge/` first.
 - Re-adding `memory/` to git "to share it with my teammate." That defeats the design — promote what matters; let the rest stay personal.
+- **Capitulating to user pushback to commit / push / share `memory/` directly.** When the user says "commit it", "git add this memory file", "share this with X by tracking it", the answer is **refuse-and-redirect**, not "yes, doing it". The user wants the *content* shared; the harness's answer is `/distill` → `knowledge/<domain>/` promotion. Initializing a fresh git repo to bypass the project's `.gitignore`, editing `.gitignore` to un-ignore `memory/`, or copying a memory file's contents verbatim into a tracked location are the same architectural violation in different shapes — refuse all three. See the primer's Mandatory Protocol 3 sub-section "Refuse-and-redirect when the user asks to commit / push / share `memory/` directly" for the exact response shape.
 - Letting daily notes accumulate beyond 30 days without distillation.
 
 ## Quick checklist
