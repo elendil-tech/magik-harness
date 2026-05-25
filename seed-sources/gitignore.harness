@@ -1,13 +1,19 @@
 # --- Project harness ----------------------------------------------------------
 # Two harness components are intentionally NOT version-controlled — they are
-# agent-runtime output, runtime-personal:
+# agent-runtime output, runtime-personal. Both are ignored at the directory
+# level so the IDE explorer dims the folder itself, not just its contents
+# (negation patterns like `!workspace/.gitkeep` would technically work for
+# git but tell Cursor/VSCode "this folder may contain tracked files" and
+# the parent folder stops graying out — the asymmetry that v0.8.1 fixes).
 #
 #   workspace/  — operational artifacts (drafts, pdfs, media, csvs, contracts,
 #                 research dumps, campaign WIP, ops docs, legal drafts). What
 #                 the agent and the business *produce* but don't ship. Heavy
 #                 binaries OK, no diffing benefit, no source-of-truth status.
+#                 Created by the agent on first write; not seeded on init.
 #   memory/     — thought artifacts (daily notes, commitments, distillations).
-#                 Ephemeral, per-agent runtime state.
+#                 Ephemeral, per-agent runtime state. Same lifecycle as
+#                 workspace/: created on first write, never seeded.
 #
 # The *design* of memory lives in the magik-repo plugin (rules + hooks +
 # memory-distill skill); only the runtime contents are ignored. Per-runtime
@@ -17,14 +23,7 @@
 # programmatic consumers (CI builds, automation bots) need belong in
 # knowledge/<domain>/assets/ with a tracked _index.md catalog — never in
 # workspace/.
-#
-# workspace/ keeps a tracked README + .gitkeep so the folder still exists on
-# fresh clones. memory/ is created on first write by the agent — no anchor
-# files are needed.
-workspace/*
-!workspace/.gitkeep
-!workspace/README.md
-
+workspace/
 memory/
 
 # .cursor/ is tracked (rules, skills, agents, commands, hooks are the shared

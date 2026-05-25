@@ -383,8 +383,8 @@ test("fixture builder — materializes .gitignore from gitignore.harness with ha
     );
     assert.match(
       body,
-      /^workspace\/\*$/m,
-      ".gitignore must include `workspace/*` so craft artifacts are runtime-local by default",
+      /^workspace\/$/m,
+      ".gitignore must include folder-level `workspace/` so craft artifacts are runtime-local by default and the IDE dims the folder cleanly (v0.8.1+)",
     );
   } finally {
     built.cleanup();

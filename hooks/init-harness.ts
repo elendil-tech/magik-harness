@@ -1,6 +1,6 @@
 #!/usr/bin/env -S npx --yes tsx
 /**
- * /init-harness hook — v0.8.0
+ * /init-harness hook — v0.8.1
  *
  * Deterministic file ops that seed a project with the magik-repo harness:
  *   - AGENTS.md primer (marker-bounded prepend, in-place upgrade if stale)
@@ -11,6 +11,19 @@
  *     hooks/session-start.js, hooks/last-referenced-bump.js, hooks.json — all
  *     skip-if-exists; existing user hooks.json triggers a notice instead of
  *     a silent skip).
+ *
+ * v0.8.1: UX point release. Flattens the workspace/ gitignore pattern from
+ * `workspace/*` + `.gitkeep` / `README.md` negations to a folder-level
+ * `workspace/` — matching memory/. The previous pattern technically ignored
+ * the contents correctly but Cursor/VSCode's explorer read the negations
+ * as "this folder might contain tracked files" and refused to dim the
+ * parent folder, breaking the symmetry the model expects (workspace/ and
+ * memory/ are conceptually parallel; both should gray out the same way).
+ * The anchor-file design (.gitkeep + README.md preserving the folder on
+ * fresh clones) is dropped — workspace/ is now created by the agent on
+ * first write, identical to memory/'s lifecycle. No rule prose change, no
+ * eval impact; the seed payload contents change is limited to
+ * gitignore.harness.
  *
  * v0.8.0: textual policy additions. Two strictly-additive baseline
  * refinements, no breaking change for existing projects (re-running
@@ -84,7 +97,7 @@ import { fileURLToPath } from "node:url";
 
 // --- Constants ---------------------------------------------------------------
 
-const PLUGIN_VERSION = "0.8.0";
+const PLUGIN_VERSION = "0.8.1";
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(HOOK_DIR);
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");

@@ -1,5 +1,5 @@
 {
-  "version": "0.8.0",
+  "version": "0.8.1",
   "fileCount": 22,
   "entries": [
     {
@@ -44,7 +44,7 @@
     },
     {
       "path": "gitignore.harness",
-      "sha256": "72937c4b388c16ff02a97dcdc65d8c96a4c44696222340c9d9cf391f4e045e64"
+      "sha256": "a2dcb020f0dc04b7d37f60e83c12912490a38a75ed05d467a985d917b86b4ff1"
     },
     {
       "path": "knowledge/_index.md",

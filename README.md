@@ -113,7 +113,7 @@ pnpm eval:results
 
 ## Versioning
 
-`magik-repo@0.8.0` ships `harness@0.8.0` content. See [CHANGELOG.md](./CHANGELOG.md).
+`magik-repo@0.8.1` ships `harness@0.8.1` content. See [CHANGELOG.md](./CHANGELOG.md).
 
 ## License
 

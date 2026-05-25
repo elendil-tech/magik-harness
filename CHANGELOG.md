@@ -1,5 +1,34 @@
 # magik-repo
 
+## 0.8.1 — 2026-05-25
+
+Tracks `harness@0.8.1`. **UX point release.** A single-pattern fix to `seed-sources/gitignore.harness` so the IDE explorer dims `workspace/` at the folder level — restoring the visual symmetry with `memory/` that v0.8.0's stock pattern accidentally broke. No rule prose change, no eval-scenario change, no seed-payload prose change beyond gitignore.harness.
+
+### Symptom
+
+After adopting v0.8.0 in a real project (FalconProxy), `memory/` grayed out cleanly in Cursor's explorer but `workspace/` did not — even though `git status --ignored` reported `!! workspace/` (git itself sees the folder as fully ignored). The asymmetry was visible after `git rm --cached -r memory/` brought memory/ down to zero tracked files: memory/ matched the IDE-expectation, workspace/ stayed bold despite all its contents being ignored.
+
+### Cause
+
+The v0.8.0 stock pattern for `workspace/` was `workspace/*` plus two negations (`!workspace/.gitkeep`, `!workspace/README.md`). The negations exist to preserve the folder on fresh clones via anchor files. Mechanically the pattern correctly ignores all contents — but Cursor/VSCode's explorer-graying heuristic reads the presence of negation rules as "this folder may contain tracked files" and decides not to dim the parent folder, even when the named anchor files don't exist in the project (as in FalconProxy's case). `memory/`'s rule has no negations (just `memory/`), so the IDE dims it cleanly.
+
+The user-facing model the harness articulates is that `workspace/` and `memory/` are conceptually parallel — both runtime-personal, both gitignored, both created by the agent on first write. The v0.8.0 baseline broke that parallel in the one place the user actually sees it (the explorer panel).
+
+### Changed
+
+- **`seed-sources/gitignore.harness` — workspace/ pattern flattened.** `workspace/*` plus the two negations is replaced with a single folder-level `workspace/` line, mirroring `memory/` exactly. The block's preamble comment is expanded to explain *why* a folder-level pattern is preferred over `workspace/*` with anchors (the negation-confuses-explorer issue), so the next person reading the seed source doesn't undo the fix thinking they're adding a useful safety net. The "workspace/ keeps a tracked README + .gitkeep" sentence is removed — that's no longer the design. Anchor files were never load-bearing: on a fresh clone the agent creates `workspace/<domain>/` directories on first write, identical to how it creates `memory/daily/<date>.md`.
+- **`hooks/init-harness.ts` `PLUGIN_VERSION` bumped to `"0.8.1"`.** Marker stamps on both blocks update to v=0.8.1; existing v0.5.0 / v0.6.0 / v0.7.0 / v0.8.0 blocks are detected as `stale` and replaced in place. The hook's docblock gains a v0.8.1 entry explaining the workspace-pattern flattening and its rationale.
+
+### Migration
+
+Re-run `/init-harness` on existing projects. The hook upgrades the marker-bounded `.gitignore` block in place from v=0.8.0 (or earlier) to v=0.8.1. Cursor needs a reload window (`Cmd+Shift+P → Developer: Reload Window`) before the explorer picks up the new graying. If a project had committed `workspace/.gitkeep` or `workspace/README.md` under the v0.8.0 anchor design, those files become tracked-but-redundant — leave them in HEAD if they have meaningful content, otherwise `git rm` them; either way the v0.8.1 pattern ignores everything else in `workspace/`.
+
+### Unchanged
+
+- **Rules.** `rules/harness.mdc` and `rules/knowledge-base.mdc` keep their v0.8.0 additions verbatim (the `knowledge/<domain>/assets/` pattern, the inline-MCP-secrets clause, the brand-assets anti-pattern bullet). v0.8.1 is purely a seed-payload UX fix.
+- **Eval surface.** No new scenario, no scenario change. The fix is invisible to the SDK measurement layer.
+- **AGENTS.primer.md prose.** Unchanged. The v0.8.1 fix loads contextually via the seeded `.gitignore` block and its comment, not via the primer.
+
 ## 0.8.0 — 2026-05-25
 
 Tracks `harness@0.8.0`. **Textual policy additions, strictly additive.** Two refinements to the harness baseline driven by real-world adoption friction: (1) secret-hygiene carve-outs under `.cursor/` make tracking-by-default *practical* in projects with MCP configs that could carry credentials; (2) the `knowledge/<domain>/assets/` companion-artifact pattern formalizes where durable binary artifacts that programmatic consumers need actually belong (NOT in `workspace/`, which is for craft and ephemera). No primer prose change, no rule semantic shift, no eval-scenario change. Existing projects pick this up by re-running `/init-harness` — the marker-bounded `.gitignore` block upgrades in place (v=0.5.0 / v=0.6.0 / v=0.7.0 → v=0.8.0), preserving everything outside the markers verbatim.
