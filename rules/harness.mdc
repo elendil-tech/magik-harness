@@ -39,6 +39,8 @@ Practically:
 - **Never** put operational artifacts inside `knowledge/`. Knowledge is *interpretation*; workspace is *artifacts*; memory is *agent state*.
 - **Never** put durable knowledge directly into `memory/`. Use the promotion path: `memory/daily/` → `memory-distill` → `knowledge/<domain>/`. Memory is per-runtime; knowledge is the only multi-runtime durable substrate.
 - **Never** silently re-add `workspace/**` or `memory/**` to git. Both are agent-runtime output and stay ignored.
+- **Never** put durable binary assets that programmatic consumers (CI builds, automation bots) need into `workspace/`. Such assets are source-of-truth substrate; they belong in `knowledge/<domain>/assets/` with a tracked `_index.md` catalog. See `rules/knowledge-base.mdc` for the companion-artifact pattern.
+- **Never** put inline secrets in `.cursor/mcp.json`. The file is git-tracked; secrets it references must come from environment variables (e.g., `${env:DOPPLER_TOKEN}`). Per-developer or per-machine overrides go in `.cursor/mcp.local.json`, which is gitignored. The same convention applies to any `.local.*`, `.private.*`, or `secrets*`-named file under `.cursor/` — all three patterns are gitignored as escape hatches for files that incidentally need to live there but carry credentials.
 
 ## Domain spine
 

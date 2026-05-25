@@ -2,14 +2,21 @@
 # Two harness components are intentionally NOT version-controlled — they are
 # agent-runtime output, runtime-personal:
 #
-#   workspace/  — craft artifacts (drafts, pdfs, media, csvs, contracts).
+#   workspace/  — operational artifacts (drafts, pdfs, media, csvs, contracts,
+#                 research dumps, campaign WIP, ops docs, legal drafts). What
+#                 the agent and the business *produce* but don't ship. Heavy
+#                 binaries OK, no diffing benefit, no source-of-truth status.
 #   memory/     — thought artifacts (daily notes, commitments, distillations).
+#                 Ephemeral, per-agent runtime state.
 #
 # The *design* of memory lives in the magik-repo plugin (rules + hooks +
 # memory-distill skill); only the runtime contents are ignored. Per-runtime
 # means: not shared across teammates, not synced across machines, not present
 # in CI. Anything that needs to cross runtimes belongs in knowledge/<domain>/
-# via the memory-distill promotion path.
+# via the memory-distill promotion path. Durable binary assets that
+# programmatic consumers (CI builds, automation bots) need belong in
+# knowledge/<domain>/assets/ with a tracked _index.md catalog — never in
+# workspace/.
 #
 # workspace/ keeps a tracked README + .gitkeep so the folder still exists on
 # fresh clones. memory/ is created on first write by the agent — no anchor
@@ -20,9 +27,22 @@ workspace/*
 
 memory/
 
-# Cursor telemetry / session ephemera (if any tooling drops files here).
+# .cursor/ is tracked (rules, skills, agents, commands, hooks are the shared
+# agent surface that teammates and cloud agents alike depend on). The
+# exceptions below ignore three classes of files that may land under .cursor/
+# but must not be committed:
+#   - telemetry / session ephemera that tooling drops
+#   - personal MCP overrides — mcp.json must reference secrets via env vars,
+#     never inline; per-developer / per-machine overrides go in mcp.local.json
+#   - any file marked .local.*, .private.*, or matching secrets* — escape
+#     hatches for files that incidentally need to live under .cursor/ but
+#     carry credentials or per-developer state.
 .cursor/telemetry/
 .cursor/.cache/
+.cursor/mcp.local.json
+.cursor/**/*.local.*
+.cursor/**/*.private.*
+.cursor/**/secrets*
 
 # --- OS / editors -------------------------------------------------------------
 .DS_Store

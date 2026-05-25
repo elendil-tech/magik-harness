@@ -1,6 +1,6 @@
 #!/usr/bin/env -S npx --yes tsx
 /**
- * /init-harness hook — v0.7.0
+ * /init-harness hook — v0.8.0
  *
  * Deterministic file ops that seed a project with the magik-repo harness:
  *   - AGENTS.md primer (marker-bounded prepend, in-place upgrade if stale)
@@ -11,6 +11,25 @@
  *     hooks/session-start.js, hooks/last-referenced-bump.js, hooks.json — all
  *     skip-if-exists; existing user hooks.json triggers a notice instead of
  *     a silent skip).
+ *
+ * v0.8.0: textual policy additions. Two strictly-additive baseline
+ * refinements, no breaking change for existing projects (re-running
+ * /init-harness on a v0.5.0 to v0.7.0 project upgrades both marker blocks in
+ * place). First, the .gitignore harness section now ships explicit
+ * secret-hygiene carve-outs under .cursor/ — mcp.local.json plus three glob
+ * patterns covering any .local.*, .private.*, or secrets*-named file under
+ * .cursor/. This lets .cursor/ be meaningfully tracked-by-default (for
+ * shared skills, agents, rules, and cloud agents) while keeping personal
+ * MCP overrides and any incidentally-credentialed file out of git. The
+ * matching policy clause lives in rules/harness.mdc ("Never put inline
+ * secrets in .cursor/mcp.json..."). Second, rules/knowledge-base.mdc gains
+ * a "Domain assets" section documenting the companion-artifact pattern at
+ * knowledge/<domain>/assets/ with a tracked _index.md catalog — formalizes
+ * where durable binary artifacts that programmatic consumers (CI builds,
+ * automation bots) need actually belong (NOT in workspace/, which is for
+ * craft and ephemera). Both additions stay out of the primer; they are
+ * contextually loaded via the rule files. No seed-payload prose change
+ * beyond gitignore.harness.
  *
  * v0.7.0: pure infrastructure release. Eval-suite hardening — judge
  * model unified to gpt-5.3-codex-spark on the active CURSOR_API_KEY's
@@ -65,7 +84,7 @@ import { fileURLToPath } from "node:url";
 
 // --- Constants ---------------------------------------------------------------
 
-const PLUGIN_VERSION = "0.7.0";
+const PLUGIN_VERSION = "0.8.0";
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(HOOK_DIR);
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");

@@ -21,6 +21,33 @@ Every KB entry's `domain:` frontmatter MUST be an active slug in `knowledge/_met
 
 If you need to write content for a domain that isn't in the registry, the answer is to propose adding the domain (via `domain-registry`) — *not* to create `knowledge/<x>/` ad hoc.
 
+## Domain assets (binary companion artifacts)
+
+The five schemas are markdown — prose with frontmatter. Some domains also produce **durable binary artifacts** that programmatic consumers (CI builds, automation bots, AI workflows) need: logos, fonts, app icons, brand SVG/PNG/TTF files; rendered diagrams that complement a `decision`; canonical sample datasets; signed assets shipped in a build. These artifacts are *not* KB entries — they are companions to the prose entries that define them.
+
+Place such assets under `knowledge/<domain>/assets/`:
+
+```
+knowledge/brand/
+├── _index.md
+├── identity.md          ← schema: concept
+├── visual-system.md     ← schema: specification
+└── assets/
+    ├── _index.md        ← tracked catalog (what is in here, with semantic notes)
+    ├── logo-primary.svg
+    ├── logo-primary@2x.png
+    └── fonts/<…>.ttf
+```
+
+Conventions:
+
+- **`assets/_index.md` is the catalog.** It lists every asset with its semantic meaning, intended consumers (e.g., "Android launcher icon", "webapp marketing hero", "Twitter avatar"), and links to the prose entry that governs it (e.g., the `visual-system` specification). KB tooling (`kb-search`, `drift-scan`) walks this `_index.md` like any other knowledge entry; the binaries themselves are inert payloads next to it.
+- **Programmatic consumers reference `knowledge/<domain>/assets/` directly.** CI workflows `cp -R knowledge/brand/assets …` into the build output. Social-media bots open `knowledge/brand/assets/png/lockup-light.png` by exact path. The repo path is the canonical contract.
+- **Operational iteration (drafts, alternate concepts, WIP exports) stays in `workspace/<domain>/`.** Promoting an asset from `workspace/<domain>/` to `knowledge/<domain>/assets/` is a deliberate "this ships now" act — equivalent to merging code to main. Gated by review.
+- **Heavy media that should not live in git** (long videos, large photo libraries, raw design source files >50 MB) belong in external storage (object store, dedicated DAM) and are pulled at build time via a hydration step. Not in `knowledge/<domain>/assets/`. The companion-artifact pattern is for small, stable, ships-with-the-product binaries.
+
+The split is consumption-driven: durable + cross-machine + automation-consumed → `knowledge/<domain>/assets/`; everything else (iteration, drafts, large raws, human-only browse) → `workspace/<domain>/`.
+
 ## Read (mandatory before producing domain-relevant work)
 
 1. **Run the `kb-search` skill** with the task description as the query. Reading `_index.md` directly is not sufficient — it works for narrow cases and misses cross-domain hits and policy conflicts. `kb-search` is the contract.
