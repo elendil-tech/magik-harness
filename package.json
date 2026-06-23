@@ -1,28 +1,21 @@
 {
   "name": "magik-repo",
-  "version": "0.8.1",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Project Harness — Cursor plugin packaging.",
+  "description": "The light harness — Cursor plugin packaging.",
   "scripts": {
     "build": "tsx scripts/build.ts",
     "install-local": "tsx scripts/build.ts && tsx scripts/install-local.ts",
     "uninstall-local": "tsx scripts/uninstall-local.ts",
     "clean": "rm -rf seeds dist *.tsbuildinfo",
     "pretest": "tsx scripts/build.ts",
-    "test": "tsx scripts/run-tests.ts",
-    "preeval": "tsx scripts/build.ts",
-    "eval": "tsx evals/runner/cli.ts",
-    "eval:results": "tsx scripts/build-results.ts"
+    "test": "tsx scripts/run-tests.ts"
   },
   "devDependencies": {
-    "@cursor/sdk": "^1.0.12",
-    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.10.0",
-    "js-yaml": "^4.1.1",
     "tsx": "^4.20.0",
-    "typescript": "^5.9.0",
-    "zod": "^4.4.3"
+    "typescript": "^5.9.0"
   },
   "packageManager": "pnpm@9.15.0+sha512.76e2379760a4328ec4415815bcd6628dee727af3779aaa4c914e3944156c4299921a89f976381ee107d41f12cfa4b66681ca9c718f0668fa0831ed4c6d8ba56c"
 }

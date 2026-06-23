@@ -1,9 +1,11 @@
 /**
- * tests/session-start-hook.test.ts — coverage for the session-start hook.
+ * tests/session-start-hook.test.ts — coverage for the v1.0 session-start hook.
  *
- * The hook is seeded into a project's `.cursor/hooks/session-start.js`, so we
- * test it by spawning `node seeds/.cursor/hooks/session-start.js` directly,
- * with `CURSOR_PROJECT_DIR` set to a tmp project we construct per-test.
+ * The hook is seeded into a project's `.cursor/hooks/session-start.js`. It
+ * reads `.cursor/harness.json`, resolves the external vault + memory mount,
+ * and injects today's memory daily note (if present) plus a read-first
+ * reminder. We test it by spawning the seed hook with `CURSOR_PROJECT_DIR`
+ * pointed at a tmp project, and a separate tmp vault.
  *
  * Cursor docs: https://cursor.com/docs/agent/hooks#sessionstart
  */
@@ -28,6 +30,26 @@ const HOOK = join(PLUGIN_ROOT, "seeds", ".cursor", "hooks", "session-start.js");
 
 function makeTmpProject(): string {
   return mkdtempSync(join(tmpdir(), "magik-repo-session-test-"));
+}
+function makeTmpVault(): string {
+  return mkdtempSync(join(tmpdir(), "magik-repo-session-vault-"));
+}
+
+function writeManifest(
+  root: string,
+  manifest: Record<string, unknown>,
+): void {
+  mkdirSync(join(root, ".cursor"), { recursive: true });
+  writeFileSync(join(root, ".cursor", "harness.json"), JSON.stringify(manifest, null, 2));
+}
+
+function pathManifest(vault: string): Record<string, unknown> {
+  return {
+    schema: "magik-repo/harness@1",
+    vault,
+    knowledge: { mount: "knowledge", accessVia: "path" },
+    memory: { mount: "memory", accessVia: "path" },
+  };
 }
 
 function runHook(projectRoot: string): {
@@ -62,140 +84,108 @@ function ensureBuilt(): void {
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
-test("session-start — empty memory/ emits {} (no context to inject)", () => {
+test("session-start — no manifest: fail-open, reminder only, valid JSON", () => {
   ensureBuilt();
   const root = makeTmpProject();
   try {
     const { stdout, stderr, status } = runHook(root);
     assert.equal(status, 0, `exit status: ${status}; stderr: ${stderr}`);
-    assert.equal(stderr, "", "stderr should be empty");
-    assert.equal(
-      stdout.trim(),
-      "{}",
-      `expected empty object, got: ${stdout}`,
-    );
+    const parsed = JSON.parse(stdout) as { additional_context?: string };
+    assert.ok(typeof parsed.additional_context === "string", "should still emit the reminder");
+    assert.match(parsed.additional_context!, /kb-search/, "reminder must point at kb-search");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test("session-start — today's daily note is injected as additional_context", () => {
+test("session-start — manifest + today's daily note is injected as additional_context", () => {
   ensureBuilt();
   const root = makeTmpProject();
+  const vault = makeTmpVault();
   try {
-    mkdirSync(join(root, "memory", "daily"), { recursive: true });
+    writeManifest(root, pathManifest(vault));
+    mkdirSync(join(vault, "memory", "daily"), { recursive: true });
     const dailyBody =
-      "- [observation] [engineering] middleware rewrite breaks on `/` paths\n" +
-      "- [lesson-candidate] [engineering] never `drizzle push` against prod\n";
-    writeFileSync(join(root, "memory", "daily", `${TODAY}.md`), dailyBody);
+      "- [observation] middleware rewrite breaks on `/` paths\n" +
+      "- [lesson] never `drizzle push` against prod\n";
+    writeFileSync(join(vault, "memory", "daily", `${TODAY}.md`), dailyBody);
 
     const { stdout, status } = runHook(root);
     assert.equal(status, 0);
 
     const parsed = JSON.parse(stdout) as { additional_context: string };
-    assert.ok(
-      typeof parsed.additional_context === "string",
-      "additional_context must be a string",
-    );
+    assert.ok(typeof parsed.additional_context === "string");
     assert.match(parsed.additional_context, /running notes/);
     assert.ok(
-      parsed.additional_context.includes(
-        "middleware rewrite breaks on `/` paths",
-      ),
+      parsed.additional_context.includes("middleware rewrite breaks on `/` paths"),
       "today's daily-note bullet must be present in the injection",
     );
-    assert.ok(
-      parsed.additional_context.includes("`drizzle push`"),
-      "second bullet must be present",
-    );
-    assert.match(
-      parsed.additional_context,
-      /kb-search/,
-      "read-first reminder must point at kb-search",
-    );
+    assert.ok(parsed.additional_context.includes("`drizzle push`"), "second bullet must be present");
+    assert.match(parsed.additional_context, /kb-search/, "read-first reminder must be present");
   } finally {
     rmSync(root, { recursive: true, force: true });
+    rmSync(vault, { recursive: true, force: true });
   }
 });
 
-test("session-start — only the Active commitments section is extracted; Resolved is dropped", () => {
+test("session-start — manifest but no daily note: reminder only", () => {
   ensureBuilt();
   const root = makeTmpProject();
+  const vault = makeTmpVault();
   try {
-    mkdirSync(join(root, "memory"), { recursive: true });
-    const commitmentsBody =
-      "# Commitments\n\n" +
-      "## Active\n\n" +
-      "- [ ] 2026-05-15 · engineering · review auth refactor PR · scope: src/auth\n\n" +
-      "## Resolved (last 14 days)\n\n" +
-      "- [x] 2026-04-30 · marketing · launch copy (resolved — should NOT appear)\n";
-    writeFileSync(join(root, "memory", "commitments.md"), commitmentsBody);
+    writeManifest(root, pathManifest(vault));
+    mkdirSync(join(vault, "memory"), { recursive: true });
 
     const { stdout, status } = runHook(root);
     assert.equal(status, 0);
-
     const parsed = JSON.parse(stdout) as { additional_context: string };
-    assert.ok(
-      parsed.additional_context.includes(
-        "review auth refactor PR",
-      ),
-      "active commitment must be present",
-    );
-    assert.ok(
-      !parsed.additional_context.includes("should NOT appear"),
-      "resolved commitments must NOT be injected",
-    );
-    assert.ok(
-      !parsed.additional_context.includes("## Resolved"),
-      "Resolved header must NOT be injected",
-    );
+    assert.match(parsed.additional_context, /kb-search/);
+    assert.ok(!parsed.additional_context.includes("running notes"), "no daily note to inject");
   } finally {
     rmSync(root, { recursive: true, force: true });
+    rmSync(vault, { recursive: true, force: true });
   }
 });
 
-test("session-start — daily + commitments combined; output is valid JSON", () => {
+test("session-start — accessVia=mcp: no filesystem read, reminder only", () => {
   ensureBuilt();
   const root = makeTmpProject();
+  const vault = makeTmpVault();
   try {
-    mkdirSync(join(root, "memory", "daily"), { recursive: true });
-    writeFileSync(
-      join(root, "memory", "daily", `${TODAY}.md`),
-      "- [observation] [engineering] precious signal\n",
-    );
-    writeFileSync(
-      join(root, "memory", "commitments.md"),
-      "# Commitments\n\n## Active\n\n- [ ] 2026-05-15 · engineering · ship the thing\n",
-    );
+    // Even with a daily note present on disk, an mcp manifest must not read it.
+    mkdirSync(join(vault, "memory", "daily"), { recursive: true });
+    writeFileSync(join(vault, "memory", "daily", `${TODAY}.md`), "- secret local note\n");
+    writeManifest(root, {
+      schema: "magik-repo/harness@1",
+      vault,
+      knowledge: { mount: "kb", accessVia: "mcp" },
+      memory: { mount: "mem", accessVia: "mcp" },
+    });
 
     const { stdout, status } = runHook(root);
     assert.equal(status, 0);
-
-    let parsed: { additional_context?: string };
-    assert.doesNotThrow(() => {
-      parsed = JSON.parse(stdout) as { additional_context: string };
-    }, "stdout must be valid JSON");
-    parsed = JSON.parse(stdout) as { additional_context: string };
-    assert.ok(parsed.additional_context!.includes("precious signal"));
-    assert.ok(parsed.additional_context!.includes("ship the thing"));
+    const parsed = JSON.parse(stdout) as { additional_context: string };
+    assert.match(parsed.additional_context, /kb-search/);
+    assert.ok(
+      !parsed.additional_context.includes("secret local note"),
+      "mcp access must not read the local filesystem",
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
+    rmSync(vault, { recursive: true, force: true });
   }
 });
 
-test("session-start — empty Active section + no daily note still emits {}", () => {
+test("session-start — malformed manifest: fail-open, still valid JSON", () => {
   ensureBuilt();
   const root = makeTmpProject();
   try {
-    mkdirSync(join(root, "memory"), { recursive: true });
-    writeFileSync(
-      join(root, "memory", "commitments.md"),
-      "# Commitments\n\n## Active\n\n<!-- one bullet per active commitment -->\n\n## Resolved (last 14 days)\n\n",
-    );
+    mkdirSync(join(root, ".cursor"), { recursive: true });
+    writeFileSync(join(root, ".cursor", "harness.json"), "{ this is not json");
 
     const { stdout, status } = runHook(root);
-    assert.equal(status, 0);
-    assert.equal(stdout.trim(), "{}");
+    assert.equal(status, 0, "a broken manifest must not crash the hook");
+    assert.doesNotThrow(() => JSON.parse(stdout), "stdout must remain valid JSON");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

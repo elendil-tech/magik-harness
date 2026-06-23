@@ -1,94 +1,34 @@
 {
-  "version": "0.8.1",
-  "fileCount": 22,
+  "version": "1.0.0",
+  "fileCount": 7,
   "entries": [
     {
-      "path": ".cursor/hooks.json",
-      "sha256": "4c75de3a5f32189e1482bb64e606e29752848122e76d0a6b3166c7f9e96e47b9"
+      "path": ".cursor/harness.json",
+      "sha256": "89fa0909e897e2827fb379bd4b00a141118fd7c3a98a7ca8ec96f1acb3df0c22"
     },
     {
-      "path": ".cursor/hooks/last-referenced-bump.js",
-      "sha256": "90aefd920f8ef8f502cb2d36fde94ca4b97a81434a0fa4a1002b9fc4e0093084"
+      "path": ".cursor/hooks.json",
+      "sha256": "1f88aea215d19421762074f7a264a1cd64be73b51b933d2c9da6b27b865d3e12"
     },
     {
       "path": ".cursor/hooks/session-start.js",
-      "sha256": "8ea6c0c24d7debc993216e1caa4e5896ac6067742191ff38fcce13153a634e5e"
-    },
-    {
-      "path": ".cursor/skills/_templates/domain-agent.md",
-      "sha256": "629bf7430c5e794f73c25de9df3c0450dc2eaeed5fbc771968a8abf3bbb0f02c"
-    },
-    {
-      "path": ".cursor/skills/_templates/domain-skill.md",
-      "sha256": "18c752fbb3e603648281bbbcde70fcf4b7e3ce1aeda23e35106f1f4791d4078e"
-    },
-    {
-      "path": ".cursor/skills/_templates/service-skill.md",
-      "sha256": "e852e447c44a9625848581384f40e072c243dfdadb0b0da1634f6fb35c44139d"
-    },
-    {
-      "path": ".cursor/skills/_templates/task-skill.md",
-      "sha256": "e6e54b2df5383bda06caa0e1d942bf75ec75c8873641e109fa691f2e42a7a7ca"
-    },
-    {
-      "path": ".cursor/skills/services/_index.md",
-      "sha256": "c137a5ac0a38c3d54b95455694ae7488a6bb713b917464accffabc83826bdfd6"
+      "sha256": "f8cde27e40f7defba84c5a7339da080ad94045008ec46072a2cec93426140416"
     },
     {
       "path": "AGENTS.primer.md",
-      "sha256": "92fd9c5b99f04f7e39126430e05359f60ea196d18ba943932eedca0ff87cc7b9"
-    },
-    {
-      "path": "codebase/README.md",
-      "sha256": "4ccfdddd76bdac33bc88d26ae99186e26d824dac76fba19d2d22986889021109"
+      "sha256": "17a619305937de9edcbf4f4c9ec662659f01a9578524a69dfe70ad6d83719d57"
     },
     {
       "path": "gitignore.harness",
-      "sha256": "a2dcb020f0dc04b7d37f60e83c12912490a38a75ed05d467a985d917b86b4ff1"
+      "sha256": "3747d225cc54ef33ce1e9e9119181b51308ee0c1a2eddf8cb5606c5212c001f4"
     },
     {
-      "path": "knowledge/_index.md",
-      "sha256": "ebb1667258cf06725195afe63b01bbc6e65027ec72b7a2e71a04893612640269"
+      "path": "vault/gitignore.vault",
+      "sha256": "7baee97eb832f29896e728db19b192d2265d54b1b11ee86a661b4e6c3b128d39"
     },
     {
-      "path": "knowledge/_meta/domains.md",
-      "sha256": "d14bed881ca264cb72a2261668c732082d12a2a5d3c7b58b9719fcbd2bc1cb43"
-    },
-    {
-      "path": "knowledge/_meta/glossary.md",
-      "sha256": "b3d2bda52c33fa3afba0a1182c67a43cf056fc903a828aaa98f14a6069931b7a"
-    },
-    {
-      "path": "knowledge/_meta/schemas/concept.md",
-      "sha256": "c6b8c8d44fe9043667866d5d318b8aa1795bb6e9f0de0af3221964af0576c665"
-    },
-    {
-      "path": "knowledge/_meta/schemas/decision.md",
-      "sha256": "efdece49ae3a2ffa64c1cfd9803539947bf8bcc6e20b86ea32b419aa38172f1f"
-    },
-    {
-      "path": "knowledge/_meta/schemas/fieldnote.md",
-      "sha256": "10013dd77e60b39e1e81ef108feac9c8d91e68bf15b2394d1908a675de231514"
-    },
-    {
-      "path": "knowledge/_meta/schemas/policy.md",
-      "sha256": "af9218dadfc42f7a89a1e039eaa91eea2cbe81c235b48c86ee77d1c377c04d0e"
-    },
-    {
-      "path": "knowledge/_meta/schemas/specification.md",
-      "sha256": "ec0c7a97e1b1592105721787b797fa73a3c330b6119c91467b3865df316594ac"
-    },
-    {
-      "path": "knowledge/_meta/subdomain-catalogue.md",
-      "sha256": "b6952272cb3e6d76a177cf33380e22491f7b691a8e3e8bfd6607f6450532e4e0"
-    },
-    {
-      "path": "workspace/.gitkeep",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    {
-      "path": "workspace/README.md",
-      "sha256": "cdf52d167689730d1ff031eb2c67f585ece57b14cd4c33a26c44b88fff8d069c"
+      "path": "vault/knowledge/_index.md",
+      "sha256": "68ac72ff8bb6d346170408ecb89c8daa32459c245b8b24819e11f273cd2c0746"
     }
   ]
 }

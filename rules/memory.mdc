@@ -1,165 +1,52 @@
 ---
-description: How memory works in the harness — the agent-writable short-term lane under memory/, the session lifecycle, compaction safety, and the promotion contract from memory to knowledge.
+description: How memory works in the light harness — the agent-owned, gitignored running log in the external vault. Read this for the capture cadence and why memory never auto-promotes into the knowledge base.
 alwaysApply: false
 ---
 
 # Memory
 
-`memory/` is the agent's running-state layer of the harness. It sits beside the worker (`.cursor/`) — the worker is the agent's *config*, memory is its *running state*. Together they form the harness layer of the project.
+Memory is the **agent's own running log** — what happened, what was tried, what was learned. It lives in the external vault alongside the KB but is **gitignored**, resolved via `.cursor/harness.json` (`rules/harness.mdc`). It is recency context, not ground truth.
 
-`memory/` is **git-ignored** — runtime-personal, parallel to `workspace/`. The two ignored components carry the same kind of artifact (agent-runtime output) on different surfaces:
+## Ownership and treatment
 
-- `workspace/` = **craft artifacts** (drafts, PDFs, contracts, media — what the agent *produces*).
-- `memory/` = **thought artifacts** (daily notes, commitments, distillations — what the agent *thinks while working*).
-
-Both survive across sessions on a single machine. Neither syncs across machines, contributors, or CI runs. The *design* of memory (this rule, the `sessionStart` hook, the `memory-distill` skill) lives in `.cursor/` and is tracked. The memories themselves are not.
-
-`knowledge/` is the only multi-runtime durable substrate. Anything in memory that needs to cross machines or contributors must be promoted via `memory-distill`.
+- **The agent owns memory.** Write to it freely, as work happens — no approval needed, no propose-then-apply.
+- **It is gitignored**, by design: it is per-runtime thought, not a shared substrate. Don't try to commit, push, or otherwise route memory through git. If the user wants something durable and shared, that belongs in the **KB** (tracked) — offer to record it there instead.
+- **No promotion.** Memory never auto-flows into the KB. There is no `/distill`, no promotion contract. When a past memory note would help a future task, you find it with your normal search tools over the memory store.
 
 ## Layout
 
-`memory/` is created on first write — `/init-harness` does not seed any contents into it. The agent stamps out the structure as needed:
+Resolve `memory.mount` under the vault. The conventional shape:
 
 ```
-memory/                          ← created on first write; gitignored as a whole
-├── daily/<YYYY-MM-DD>.md        ← created when the first signal of the day surfaces
-├── commitments.md               ← created when the first [commitment] is captured
-└── distillations/<YYYY-MM-DD>.md ← created by /distill on first run
+<vault>/<memory-mount>/
+└── daily/
+    └── <YYYY-MM-DD>.md   ← today's running notes
 ```
 
-Domain-organized subfolders are not added by a count — they're added by **judgement** against the five principles in `rules/scaffolding.mdc` (coherence, boundary, granularity, persistence, discoverability), with the registry's strict spinal binding as a hard precondition (the slug must be active in `knowledge/_meta/domains.md`). Until a memory lane is earned, daily notes stay flat and entries are domain-tagged inline. Accumulating tagged signals may *prompt* the agent to evaluate; they do not auto-promote.
-
-## Memory vs. fieldnotes
-
-Memory and fieldnotes are at different stages of the same pipeline — not parallel mechanisms.
-
-The five KB schemas split cleanly:
-
-- `concept`, `decision`, `policy`, `specification` — declarative knowledge. Atemporal, structural, *"this is how things are."* Not memory at all in the AI-research sense.
-- `fieldnote` — the only **episodic** schema: anchored to a moment of learning, lesson-from-experience-shaped. This is the one that overlaps in spirit with memory.
-
-So:
-
-- **Memory** is raw, time-anchored, written reflexively during work. Most memory is ephemeral and never gets promoted.
-- **Fieldnotes** are the curated subset that earned promotion: a real lesson with a one-sentence imperative takeaway, supersedeable, durable, with a stable id.
-
-Write to memory first; let `memory-distill` propose fieldnote promotions. Substantial recurrence of a `[lesson-candidate]`, or a single non-obvious / high-severity gotcha, *prompts* a promotion proposal — the proposal still goes through judgement (does this represent a stable rule, or a symptom of a deeper issue?), and the user approves. Direct fieldnote writes are still allowed when the user explicitly states a lesson — but most fieldnotes will originate from memory.
-
-A fieldnote without a memory phase is fine (user states a lesson directly). A memory entry without a fieldnote is fine (most observations get archived without promotion). They coexist because they answer different questions: memory says *"what happened during this work?"*, fieldnote says *"what should we remember to do (or not do) next time?"*
-
-## Capture lane — what to write where
-
-| Tag in a daily note | What it is | Promotion target |
-| --- | --- | --- |
-| `[observation]` | Live note about something noticed | none by default; raw signal for distill |
-| `[lesson-candidate]` | Gotcha, surprise, non-obvious finding | `fieldnote` in `knowledge/<domain>/` |
-| `[decision-candidate]` | A choice made + alternatives | `decision` in `knowledge/<domain>/` |
-| `[concept-candidate]` | A defined object/role/capability emerging | `concept` in `knowledge/<domain>/` |
-| `[commitment]` | Short-lived dated follow-up | `commitments.md` (never durable) |
-
-Format: one bullet per signal, domain tag required when domain-relevant.
+Free-form within that. A simple, append-friendly daily note is enough:
 
 ```markdown
-- [observation] [engineering] middleware rewrite breaks on `/` paths
-- [lesson-candidate] [engineering] never `drizzle push` against prod; use migrate
-- [decision-candidate] [engineering] use Postgres for primary store; alts: SQLite, Mongo
-- [commitment] [marketing] launch copy review by Fri 2026-05-08
+# 2026-06-23
+
+- [observation] middleware rewrite breaks on `/` paths
+- [lesson] prefer the gateway's retry over a custom loop
+- [decision] going with Postgres for the queue
 ```
 
-External-sourced content (web fetches, tool output) gets an extra `[external]` tag so distill can flag it for stricter review. When such an entry is promoted to the KB, it lands with `trust: low`, `quarantine: true`, `quarantine_reason: external-source` and stays there until the user explicitly clears the quarantine. See `rules/drift-control.mdc` "Trust model."
+Tags like `[observation]`, `[lesson]`, `[decision]` are optional aids for your own later search — not a schema. Create `daily/<today>.md` on the first signal you capture; the session-start hook injects today's note (if present) at session start.
 
-## Session lifecycle
+## Capture cadence
 
-| Phase | Required action |
-| --- | --- |
-| **Session start** | 1. Run `kb-search` over the task. 2. Read yesterday's `memory/daily/*.md` (the harness `sessionStart` hook injects today's note + active commitments automatically — see below). |
-| **During work** | Append signals to today's `memory/daily/<today>.md` **as they happen**. The contract is as-you-go, not end-of-session — see Compaction safety. |
-| **Session end** | Optionally run `/distill` to propose promotions. Otherwise the next `/audit` will. |
+- Write signals to today's daily note **as they surface**, in the same turn — don't batch them to end-of-conversation.
+- Before a `/compact`, flush in-conversation lessons to today's note so they survive.
 
-The `kb-search` step is **mandatory** — see `rules/harness.mdc` "Read first."
+## Searching
 
-The `sessionStart` hook (seeded by `/init-harness` into `.cursor/hooks/session-start.js`, wired in `.cursor/hooks.json`) injects two things into the session's initial system context: the full body of today's `memory/daily/<today>.md` (if it exists and is non-empty), and the Active section of `memory/commitments.md` (if non-empty). The hook fires fire-and-forget on every Cursor session start, so the agent does not need to manually open today's daily note or commitments — but the agent **does** still need to read yesterday's note (the hook only injects today's). If `.cursor/hooks.json` is user-managed, `/init-harness` skips seeding it and prints a notice; in that case manually merge the harness entries.
-
-A second hook, `postToolUse` matcher `Read` (seeded as `.cursor/hooks/last-referenced-bump.js`), bumps `last_referenced` on KB entries when they are read, with a 7-day throttle. This makes the freshness model in `rules/drift-control.mdc` self-maintaining without manual bookkeeping.
-
-## Promotion contract
-
-Memory → knowledge promotion is **proposal-only**. The agent never auto-applies.
-
-The `memory-distill` skill is the one path:
-
-1. Scans `memory/daily/*.md`, scores by tag distribution + recency (14-day half-life) + domain.
-2. Identifies clusters: recurring lesson-candidates, decision-candidates older than N days still active, repeated observations on the same surface. Counts and recurrences are *evidence*, not verdicts — they prompt the agent to evaluate via the five principles before proposing promotion.
-3. Produces a numbered proposal list — same format as `harness-audit`.
-4. User approves; distill hands off to `knowledge-base` to write the KB entry.
-5. The KB entry is stamped with `provenance: memory-distill@<YYYY-MM-DD>` and a `trust` derived from recurrence and source (`[external]` always lands as `trust: low` + `quarantine: true`).
-6. Distillations are logged to `memory/distillations/<YYYY-MM-DD>.md` (audit trail).
-
-After promotion, the daily note that contained the candidate stays in place as the chronological record. The promoted KB entry is the durable home.
-
-## Memory-lane promotion (judgement, not threshold)
-
-A domain may earn its own `memory/<domain>/daily/` lane when keeping its signals separate genuinely improves coherence, boundary, granularity, persistence, and discoverability — judged against the five principles in `rules/scaffolding.mdc`. Accumulated tagged signals are a *prompt* for that judgement; `memory-distill` and `harness-audit` surface the prompt but do not decide.
-
-The hard precondition is the spinal binding: the slug must be active in `knowledge/_meta/domains.md`. Defer to `domain-registry` if it isn't.
-
-After approval:
-
-- Future signals tagged with that domain land in `memory/<domain>/daily/<today>.md`.
-- The flat `memory/daily/<today>.md` continues to receive cross-domain and unearned-lane signals.
-- Existing flat entries are *not* migrated — they stay in the flat lane until they age out or get promoted. (`memory/` is gitignored, so re-shuffling files for structural tidiness costs more than it returns.)
-- An `_index.md` is created at `memory/<domain>/_index.md` describing the lane.
-
-## Retention
-
-- `daily/`: keep the last 30 days verbatim. Older notes are pruned by `memory-distill` after their durable signals have been promoted. There is no archive — the durable home for promoted signals is the KB; everything else is meant to fade.
-- `commitments.md`: resolved entries move to a "Resolved (last 14 days)" section, pruned by distill after 14 days.
-- `distillations/`: append-only audit trail. Never pruned.
-
-## Compaction safety
-
-Cursor's session memory is volatile. Anything mentioned only in conversation can be lost across `/compact`. The contract is **as-you-go**: write signals to disk before they are at risk of being summarised away.
-
-Cursor's `preCompact` hook is **observation-only**. It cannot block compaction, cannot read the conversation, and cannot inject context into the agent. By the time it fires, compaction is already happening — no hook can rescue signals that exist only in chat history. (See Cursor docs: hooks > events > preCompact.)
-
-What survives compaction (on the same machine):
-
-1. **Disk state.** `memory/daily/<today>.md`, `memory/commitments.md`, the KB, anything written to local disk. Memory is gitignored — it survives across sessions on this machine, but does not travel to another contributor's clone or to CI.
-2. **Plugin/repo state.** Rules, skills, the harness primer in `AGENTS.md` (Cursor re-reads it). These are tracked, so they do travel.
-3. **Recovery via session restart.** When a fresh Cursor session is created (or after Cursor surfaces a new chat following a hard compact), the harness `sessionStart` hook re-injects today's daily note and active commitments — so disk-resident signals come back automatically *for this machine's runtime*.
-
-What does not survive:
-
-- In-conversation observations the agent never wrote down.
-- The agent's working memory of the current task.
-
-The mitigation is discipline: append `[observation]` / `[lesson-candidate]` / `[decision-candidate]` / `[commitment]` to today's daily note **as they occur**, not at session end. Treat every multi-turn exchange as if the next message could trigger `/compact`. The `sessionStart` hook is the recovery path, not a substitute for as-you-go writing — it can only re-surface what is already on disk.
-
-## Trust model
-
-- `memory/` is **agent-suggested and runtime-local**, not authoritative for the team. It can contain mistakes; it doesn't represent shared truth.
-- Promotion to `knowledge/` requires user approval — without exception. The KB is the only multi-runtime substrate.
-- `[external]`-tagged entries (fetched web content, tool output) get stricter review during distill — they're the MINJA-style attack surface.
-- Domain agents may write to `memory/daily/<today>.md` (entries tagged with their domain) but never directly to `knowledge/`. The main agent owns promotion.
+When recency context would help (what did we try last time? what broke?), search the memory store directly (Read / Grep / semantic search over `<memory-mount>/`). Treat hits as *context*, not authority — the KB remains the source of truth.
 
 ## Anti-patterns
 
-- **Fast-pathing in-conversation signals to `knowledge/<domain>/` or `.cursor/rules/`.** When the user articulates a lesson, observation, decision, or policy during a conversation, the contract is: capture it to today's `memory/daily/<YYYY-MM-DD>.md` with the appropriate `[lesson-candidate]` / `[decision-candidate]` / `[policy-candidate]` tag (and a domain tag), then let `/distill` propose promotion. Direct writes to `knowledge/<domain>/` from in-conversation signals bypass the user-approval gate. The only carve-out is when the user is *explicitly* authoring a KB entry ("let's add a fieldnote for X") — and even then, transient signals around it stage in memory first.
-- **Per-turn cadence violations.** If three lesson-candidates surface across three turns, the contract is three separate writes — one per turn, as each surfaces. Batching all three into a single end-of-conversation write is a violation: any of them could be lost to `/compact` between turns.
-- **Narrating a memory write without invoking the Write / Edit tool.** "I've added [lesson-candidate] X to today's daily note" with `files_written: none` is hallucinated execution. Either invoke the tool, or write "Plan: capture as [lesson-candidate]…".
-- Writing operational artifacts (PDFs, drafts, CSVs) to `memory/`. Those go in `workspace/`.
-- Writing durable knowledge directly to `memory/`. Use `knowledge-base` skill via promotion.
-- Skipping `kb-search` at session start because "I already know."
-- Auto-applying memory-distill proposals without user approval.
-- Treating `memory/` as durable, team-shared knowledge. It is the opposite — runtime-local agent state. Anything that must reach another machine, another contributor, or CI must be promoted to `knowledge/` first.
-- Re-adding `memory/` to git "to share it with my teammate." That defeats the design — promote what matters; let the rest stay personal.
-- **Capitulating to user pushback to commit / push / share `memory/` directly.** When the user says "commit it", "git add this memory file", "share this with X by tracking it", the answer is **refuse-and-redirect**, not "yes, doing it". The user wants the *content* shared; the harness's answer is `/distill` → `knowledge/<domain>/` promotion. Initializing a fresh git repo to bypass the project's `.gitignore`, editing `.gitignore` to un-ignore `memory/`, or copying a memory file's contents verbatim into a tracked location are the same architectural violation in different shapes — refuse all three. See the primer's Mandatory Protocol 3 sub-section "Refuse-and-redirect when the user asks to commit / push / share `memory/` directly" for the exact response shape.
-- Letting daily notes accumulate beyond 30 days without distillation.
-
-## Quick checklist
-
-- [ ] Did I `kb-search` the task before starting?
-- [ ] Did I read today + yesterday's daily notes?
-- [ ] Did I read `commitments.md`?
-- [ ] Am I appending observations to the daily note **as they happen** (not at session end)?
-- [ ] Are my entries domain-tagged where applicable?
+- Promoting memory into the KB automatically.
+- Committing or sharing `memory/` (it's gitignored; durable/shared truth goes in the KB).
+- Treating a memory note as ground truth over an active KB policy/decision.
+- Hoarding lessons in chat instead of writing them to the daily note as they surface.

@@ -1,7 +1,7 @@
 {
   "name": "magik-repo",
-  "version": "0.8.1",
-  "description": "The all-in-one adaptive repo for managing projects/business. Integrates: knowledge base, workspace, codebase, memory. Try the magik!",
+  "version": "1.0.0",
+  "description": "The light harness — point your code repo at an external vault of knowledge (tracked truth) and memory (the AI's log). Read-first, AI-maintained, never imposed. Try the magik!",
   "author": {
     "name": "LaLi"
   },
@@ -9,9 +9,9 @@
   "logo": "assets/magik-repo-logo.png",
   "keywords": [
     "harness",
-    "scaffolding",
     "knowledge-base",
+    "memory",
     "agent",
-    "project"
+    "vault"
   ]
 }

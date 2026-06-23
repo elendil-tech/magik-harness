@@ -1,6 +1,0 @@
-{
-  "harness": false,
-  "description": "Content-only twin of `marketing-saturated`. The same eight marketing entries (brand-voice, paid-acquisition, content-ops shapes mixed under one folder) live as flat markdown under `docs/marketing/`, with no frontmatter, no schemas, no domain registry, no `_meta/`, no `.cursor/`, no `AGENTS.md`, no rules, no skills. The agent must self-steer purely from the raw content.",
-  "twin_of": "marketing-saturated",
-  "purpose": "Used by --control mode to measure the harness's contribution to *structural self-steering* — the harness's central claim. The delta `harnessed − content-only` isolates whether the agent recognizes domain saturation and proposes a Split because the harness teaches it to (five principles, five operations, registry-as-spine), or just because the content is on disk."
-}

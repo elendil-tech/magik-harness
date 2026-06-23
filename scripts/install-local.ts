@@ -83,7 +83,7 @@ function main(): void {
     `installed magik-repo → ${INSTALL_PATH}\n  source: ${resolve(PLUGIN_ROOT)}\n  copied: ${copied} top-level entries`,
   );
   console.log(
-    "\nNext: reload Cursor (Cmd+Shift+P → 'Developer: Reload Window').\nThen verify /init-harness, /audit, /drift-scan, /kb-add appear.",
+    "\nNext: reload Cursor (Cmd+Shift+P → 'Developer: Reload Window').\nThen verify /magik-repo-setup, /magik-repo-kb-sanitize, /magik-repo-kb-code-sync appear.",
   );
 }
 

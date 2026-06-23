@@ -2,30 +2,24 @@
 
 What `magik-repo` does **not** ship today, grouped by theme. The CHANGELOG is the canonical record of what is shipped; this file captures what is deliberately deferred and why.
 
-## Memory automation (incremental)
+v1.0 is intentionally minimal — a pointer plus a janitor. The roadmap is mostly *optional power layers* on top of that floor, not core obligations.
 
-- **`/clear-quarantine` slash command.** User-initiated workflow for clearing `quarantine: true` flags after review. Today, clearing is a manual edit to the entry's frontmatter. Targets v0.5.
-- **Cross-session memory pool.** A repo-level "what other agents found" pool that domain agents can consult before starting work. Touches subagent boundaries and would need a new top-level lane in `memory/`. Not in scope until a clear demand surfaces.
-- **Auto-prune `memory/daily/` past retention.** Today, prunes happen via `memory-distill` proposal. A non-interactive prune on a schedule (or in `harness-audit`) is a candidate for v0.5.
-- **Drift-scan: structured YAML parsing.** Today, drift-scan extracts frontmatter via line-oriented regex. A real YAML parse would catch malformed entries earlier and enable richer checks.
+## KB-structure templating (future)
 
-## Hook surface (extending v0.4)
+- **Starter KB templates per project type.** `/magik-repo-setup` today scaffolds an empty `knowledge/_index.md`. A future layer could offer opinionated starting structures (e.g. SaaS, agency, library) — folders + seed entries the user can accept or ignore. Kept out of 1.0 to preserve the "harness is agnostic to KB structure" principle; templating must be opt-in and easy to discard.
+- **`_index.md` auto-maintenance.** `/magik-repo-kb-sanitize` flags `_index.md` drift; a future option could regenerate the orientation map from the KB's actual shape on approval.
 
-- **`postToolUse` matcher for MCP tool reads.** Currently the `last_referenced` bump only fires for the `Read` tool. MCP-tool-cited KB entries (e.g., a domain agent reading via an MCP filesystem) miss the bump.
-- **JSON-merge for `.cursor/hooks.json`.** Today, `/init-harness` skips seeding `hooks.json` when one exists and prints a notice. Proper JSON-merge that adds the harness hook entries while preserving user hooks lands in v0.5.
-- **`afterAgentResponse` hook for citation-driven `last_referenced` bumps.** A more accurate signal than `Read` (the entry actually informed an answer). Pending stable behavior of that hook.
+## Skill layer (future)
 
-## Init-harness rigor
+- **Skill templating.** Help users author project-specific skills (service / domain / task) with a guided scaffold — the capability the old `scaffolding-author` skill provided, reimagined as an opt-in helper rather than part of the core harness.
+- **Skill-efficacy evals.** A way to score whether a user's authored skills actually change agent behavior. Lets users tune their own skills with real signal. (v1.0 removed the in-repo behavioral eval suite — see CHANGELOG — so this would be a fresh, opt-in capability rather than a revival of the old runner.)
 
-- **`--migrate=copy|subtree|submodule|none`** for code-at-root projects. v0.1 detected code at the repo root and printed a notice; v0.4 still does not act. Acting on the flag is the v0.5+ work.
-- **Atomic rollback on partial failure.** Today's `/init-harness` is best-effort: a mid-apply error leaves the project in an in-between state. Atomic apply (write-to-temp + rename) is a cleanup task.
-- **Refusal exit codes.** v0.1's INIT-SPEC defined `10` / `20` / `30` / `40` / `50` for distinct refusal reasons. The hook still emits only `0` / `1`.
+## Memory (incremental)
 
-## Scaffolding
+- **Memory retention/pruning.** Memory is gitignored and grows unbounded. A future helper could summarize or prune old `memory/daily/` notes on request (never automatically — memory is the agent's, and pruning is destructive).
+- **MCP-backed memory adapter.** `accessVia: mcp` is carried in the schema, but `/magik-repo-setup` only writes the manifest — wiring a remote memory store is left to the user's MCP config. A reference adapter could ship later if demand is clear.
 
-- **Example `engineering-agent` domain agent.** Ship a fully realized example under `seed-sources/.cursor/skills/_templates/` so users have a concrete reference, not just a template. Likely v0.5.
-- **Code-based skills.** A `skills/<name>/scripts/` convention for skills that are TypeScript-implemented (vs. instruction-only). The scaffolding-author skill already mentions this is reserved; actual support lands when there's a use case.
+## Setup rigor
 
-## Testing
-
-- **Agent-in-the-loop tests.** Today's tests cover `init-harness` and schema sanity. v0.4 adds fixture tests for `kb-search`, `memory-distill`, and `drift-scan` skill *procedures*. Live agent-driven tests (does an agent following the rules actually write the right files?) are a separate effort, likely via the Cursor SDK.
+- **JSON-merge for `.cursor/hooks.json`.** Today `/magik-repo-setup` skips seeding `hooks.json` when one exists and prints a notice. A proper JSON-merge that adds the `sessionStart` entry while preserving user hooks is a candidate follow-up.
+- **Per-machine vault override UX.** The manifest supports a gitignored `.cursor/harness.local.json` override conceptually; first-class `/magik-repo-setup` support for setting one is deferred.

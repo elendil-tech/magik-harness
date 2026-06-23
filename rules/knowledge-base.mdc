@@ -1,127 +1,55 @@
 ---
-description: How to read and write the knowledge base — five schemas (concept, decision, policy, specification, fieldnote) under knowledge/<domain>/.
+description: How to read and maintain the knowledge base — the human-authored, git-tracked vault of foundational project/business truth. Read this before writing to or reorganizing the KB.
 alwaysApply: false
 ---
 
 # Knowledge base
 
-`knowledge/` is **ground truth**, organized by project domain. It is the spine of the harness's claims about what's true.
+The KB is the project's **ground truth**: foundational decisions, policies, specifications, requirements, and durable context. It lives in the external vault, git-tracked, resolved via `.cursor/harness.json` (`rules/harness.mdc`). It is **human-authored**; the agent reads it constantly and maintains it on request.
 
-Five schemas in `knowledge/_meta/schemas/`:
+## Ownership
 
-- `concept` — definition of a defined object/role/capability.
-- `decision` — choice + rationale (ADR-style).
-- `policy` — rule that constrains future work.
-- `specification` — formal spec (feature, clause, asset, component).
-- `fieldnote` — time-stamped lesson; persistent project memory.
+- **You (human) own it.** You decide what is true and what the KB says.
+- **The agent reads it** before substantive work (the `kb-search` skill), cites it, and respects active policies.
+- **The agent writes it only when asked** — when you explicitly request an entry ("add a decision for X"), or when you approve a `kb-sanitize` / `kb-code-sync` proposal. The agent never auto-populates the KB from its own memory.
 
-## Spinal binding (strict)
+## Structure floor
 
-Every KB entry's `domain:` frontmatter MUST be an active slug in `knowledge/_meta/domains.md`. Every `knowledge/<x>/` folder MUST correspond to an active slug. No exceptions. Cross-domain reach is expressed via `applies_to:` and `links:`, not by inventing folders.
+Deliberately thin — enough for a graph, not a schema system:
 
-If you need to write content for a domain that isn't in the registry, the answer is to propose adding the domain (via `domain-registry`) — *not* to create `knowledge/<x>/` ad hoc.
+- **Markdown files**, free-form folders. Organize however suits the project; the agent navigates with its own search.
+- **Light frontmatter:**
+  ```yaml
+  ---
+  status: active        # active | deprecated
+  updated: 2026-06-23
+  ---
+  ```
+  Add other fields freely (tags, links, owner) — none are required.
+- **Links.** Cross-reference with relative links (`../engineering/auth.md`) or wikilinks (`[[auth]]`). The link graph is what `kb-sanitize` heals as the KB evolves.
+- **Orientation.** An optional `_index.md` at the KB root sketches the layout for a fresh reader. Keep it roughly current; it is a map, not a contract. No domain registry, no enforced slugs.
 
-## Domain assets (binary companion artifacts)
+## Reading
 
-The five schemas are markdown — prose with frontmatter. Some domains also produce **durable binary artifacts** that programmatic consumers (CI builds, automation bots, AI workflows) need: logos, fonts, app icons, brand SVG/PNG/TTF files; rendered diagrams that complement a `decision`; canonical sample datasets; signed assets shipped in a build. These artifacts are *not* KB entries — they are companions to the prose entries that define them.
+Before any domain-relevant task, run the `kb-search` skill: resolve the KB mount, navigate the `_index.md` and relevant entries, read every `active` policy/decision/spec that bears on the task. If an action would violate an active policy, stop and surface it.
 
-Place such assets under `knowledge/<domain>/assets/`:
+## Writing (when asked)
 
-```
-knowledge/brand/
-├── _index.md
-├── identity.md          ← schema: concept
-├── visual-system.md     ← schema: specification
-└── assets/
-    ├── _index.md        ← tracked catalog (what is in here, with semantic notes)
-    ├── logo-primary.svg
-    ├── logo-primary@2x.png
-    └── fonts/<…>.ttf
-```
+1. Confirm what the user wants recorded and where it belongs (ask if unclear — don't invent structure).
+2. Write a Markdown file with the light frontmatter (`status: active`, `updated: <today>`).
+3. Link it to related entries and, if a deprecated entry is now superseded, set its `status: deprecated` and link forward.
+4. If the KB root has an `_index.md`, reflect the addition there.
 
-Conventions:
+## Maintaining
 
-- **`assets/_index.md` is the catalog.** It lists every asset with its semantic meaning, intended consumers (e.g., "Android launcher icon", "webapp marketing hero", "Twitter avatar"), and links to the prose entry that governs it (e.g., the `visual-system` specification). KB tooling (`kb-search`, `drift-scan`) walks this `_index.md` like any other knowledge entry; the binaries themselves are inert payloads next to it.
-- **Programmatic consumers reference `knowledge/<domain>/assets/` directly.** CI workflows `cp -R knowledge/brand/assets …` into the build output. Social-media bots open `knowledge/brand/assets/png/lockup-light.png` by exact path. The repo path is the canonical contract.
-- **Operational iteration (drafts, alternate concepts, WIP exports) stays in `workspace/<domain>/`.** Promoting an asset from `workspace/<domain>/` to `knowledge/<domain>/assets/` is a deliberate "this ships now" act — equivalent to merging code to main. Gated by review.
-- **Heavy media that should not live in git** (long videos, large photo libraries, raw design source files >50 MB) belong in external storage (object store, dedicated DAM) and are pulled at build time via a hydration step. Not in `knowledge/<domain>/assets/`. The companion-artifact pattern is for small, stable, ships-with-the-product binaries.
+- `/magik-repo-kb-sanitize` — internal coherence: contradictory `active` entries, legacy/orphaned files, broken or obsolete links, stale `_index.md`.
+- `/magik-repo-kb-code-sync` — external coherence: documented policies/features vs. what the code actually does.
 
-The split is consumption-driven: durable + cross-machine + automation-consumed → `knowledge/<domain>/assets/`; everything else (iteration, drafts, large raws, human-only browse) → `workspace/<domain>/`.
+Both are proposal-first. Apply only what the user approves; never silently reshape the KB.
 
-## Read (mandatory before producing domain-relevant work)
+## Anti-patterns
 
-1. **Run the `kb-search` skill** with the task description as the query. Reading `_index.md` directly is not sufficient — it works for narrow cases and misses cross-domain hits and policy conflicts. `kb-search` is the contract.
-2. Read every `active` `decision`, `policy`, and `specification` the search surfaces.
-3. Read the relevant domain's `_index.md` for orientation.
-
-If ground truth is missing for what you're about to do, **stop and propose a KB entry first** (via the `knowledge-base` skill, typically by promoting a `[concept-candidate]` / `[decision-candidate]` from `memory/daily/` first).
-
-## Write
-
-1. Pick a schema by intent (definition? choice? rule? formal spec? lesson?).
-2. Copy the matching schema file into `knowledge/<domain>/<id>.md`.
-3. Fill the frontmatter: `id`, `domain`, `status`, `created`, `updated`. Optional: `applies_to`, `links`, `supersedes`, `superseded_by`, `tags`, `enforcement` (for policies).
-4. Cross-link related entries by relative path; mirror the link in their `links:` block.
-5. Update the domain's `_index.md` (or run the `knowledge-base` skill to regenerate it).
-
-## Cross-domain content — three patterns, in order
-
-Most cross-domain content has a clear primary owner; only a few cases need their own meta-domain. Try in order:
-
-**Pattern A — Primary owner + `applies_to:` + `links:` (default).**
-The entry lives in the domain that *owns* it most. Other domains discover it via `applies_to:` queries and `links:` from their own entries. Use this pattern unless A demonstrably fails.
-
-```yaml
-domain: legal
-applies_to: [legal, engineering, marketing]
-links:
-  - knowledge/engineering/data-handling-decision.md
-  - knowledge/marketing/consent-flow-spec.md
-```
-
-**Pattern B — Project tag (frontmatter `tags: [<project>]`).**
-For *transient* cross-cutting concerns. A "Q4 launch" is a project, not a domain. Entries stay in their domain folders and carry the tag. When the project ends, the tag is archived; entries stay where they are.
-
-```yaml
-domain: marketing
-tags: [q4-launch]
-```
-
-**Pattern C — Cross-cutting meta-domain.**
-A new top-level domain (e.g., `compliance/`, `accessibility/`, `security/`). Only propose C when **all three** hold:
-
-1. No single existing domain is the natural primary owner.
-2. The concern persists indefinitely (not a project).
-3. The content passes all five principles independently as a domain.
-
-C is rare on purpose. Most projects need none. See `rules/domains.mdc` for the operation; the proposal goes through `domain-registry`.
-
-## Frontmatter status values
-
-`draft` → `active` → `deprecated` | `archived`. Never silently delete an `active` entry; supersede it.
-
-## Decisions are immutable in spirit
-
-Don't rewrite a `decision` to flip its choice. Create a new `decision` that supersedes the old one, set `status: deprecated` and `superseded_by:` on the original.
-
-## Fieldnotes (memory)
-
-Fieldnotes are the **curated, durable** layer of episodic memory in the KB — the only KB schema that is not atemporal. The four other schemas (`concept`, `decision`, `policy`, `specification`) are declarative knowledge.
-
-Most fieldnotes originate from `[lesson-candidate]` entries in `memory/daily/` via `memory-distill`. Direct authoring is fine when the lesson is already crisp (the user states it explicitly). See `rules/memory.mdc` "Memory vs. fieldnotes" for the conceptual split.
-
-Write (or promote) a `fieldnote` whenever you:
-
-- make a non-trivial mistake worth not repeating,
-- discover a gotcha not obvious from reading the code or spec,
-- repeat the same fix.
-
-## Fieldnote → policy promotion is a judgement, not a count
-
-A fieldnote's `recurrence` field counts how many times the same lesson has surfaced. Recurrence is **evidence**, not a verdict:
-
-- A high `recurrence` (typically 3 or more) *prompts* you to evaluate whether the fieldnote represents a stable rule worth promoting to a `policy`. It does not auto-promote.
-- A `severity: high` fieldnote may warrant promotion at `recurrence` of one — the lesson is its own evidence.
-- A fieldnote that has recurred but is a *symptom* of a deeper issue should be addressed at the deeper level (a new `concept` or `decision`), not by hardening the symptom into policy.
-
-Run the five principles before proposing the promotion. The user approves.
+- Auto-promoting memory or session chatter into the KB.
+- Inventing folders/taxonomy the user didn't ask for.
+- Rewriting or reorganizing existing entries without approval.
+- Answering domain questions from training priors without reading the KB.

@@ -15,10 +15,6 @@
   "include": [
     "scripts/**/*.ts",
     "hooks/**/*.ts",
-    "tests/**/*.ts",
-    "evals/**/*.ts"
-  ],
-  "exclude": [
-    "evals/fixtures/**"
+    "tests/**/*.ts"
   ]
 }

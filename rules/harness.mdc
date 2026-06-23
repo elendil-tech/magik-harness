@@ -1,70 +1,63 @@
 ---
-description: The five-component model — knowledge, memory, workspace, codebase, .cursor — that defines how a harness repo is organized.
+description: The light harness operating model — a code repo that points at an external vault of knowledge (tracked truth) and memory (the AI's log), resolved via .cursor/harness.json. Read this for how the harness is wired and the few rules it enforces.
 alwaysApply: false
 ---
 
-# Project harness — operating model
+# The light harness — operating model
 
-This repo is **a project**, not just a code repo. It has five components, split into two layers.
+This repo is a **normal code repo**. The harness adds two external services and a pointer to them — nothing more. It enforces *where* knowledge and memory live and *how they are treated*; it does not impose a folder ontology on your code or your KB.
 
-## Project layer (the project itself)
+## The two services
 
-| Component | Path | Git | Role |
-| --- | --- | --- | --- |
-| Knowledge base | `knowledge/` | tracked | Ground truth, organized by project domain — *interpretations*. |
-| Codebase | `codebase/` | tracked | Standard code repo, nested one level. Seeded with a README; may be empty if the project doesn't ship code. |
-| Workspace | `workspace/` | ignored | **Craft artifacts** — drafts, PDFs, media, contracts; what the agent *produces*. |
+| Service | Lives in | Git | Owner | Role |
+| --- | --- | --- | --- | --- |
+| **Knowledge base** | the vault | tracked | human | Foundational project/business truth — decisions, policies, specs, context. You author it; the agent reads it and maintains it. |
+| **Memory** | the vault | gitignored | the agent | A running log of what happened and what was learned. The agent writes it freely; it is never the source of truth. |
 
-## Harness layer (how the agent operates)
+Both are plain Markdown in an **external vault** (a folder outside this repo, often its own git repo). Co-locating them in one vault is for retrieval convenience; they remain distinct concerns.
 
-| Component | Path | Git | Role |
-| --- | --- | --- | --- |
-| Worker | `.cursor/` | tracked | Agent's config — rules, skills, agents, commands, hooks. |
-| Memory | `memory/` | ignored | **Thought artifacts** — daily notes, commitments, distillation log; what the agent *thinks while working*. |
+## The pointer: `.cursor/harness.json`
 
-## Tracked vs. ignored — the seam
+A tracked manifest in this repo names the vault and the mounts. Tracked so every git worktree of this clone resolves the **same** vault — the fix for worktree fragmentation.
 
-One rule covers both ignored components: **tracked = the durable substrate we agree on, build, and ship; ignored = agent-runtime output, runtime-personal**. `workspace/` is craft, `memory/` is thought; they are parallel, not exceptional.
+```json
+{
+  "schema": "magik-repo/harness@1",
+  "vault": "~/Projects/elendil-technologies-vault",
+  "knowledge": { "mount": "falconproxy/knowledge", "accessVia": "path" },
+  "memory":    { "mount": "falconproxy/memory",    "accessVia": "path" }
+}
+```
 
-Practically:
+**Resolution:**
 
-- Two contributors on the same repo each have their own `memory/`. Neither sees the other's daily notes.
-- The same contributor on two machines has two memory streams. Anything that needs to cross machines belongs in `knowledge/` (via promotion) or in `codebase/`.
-- The *design* of memory (this rule, `rules/memory.mdc`, the `sessionStart` hook, the `memory-distill` skill) lives under `.cursor/` and is tracked. The memories themselves are not.
+- Read `.cursor/harness.json`. Expand a leading `~` in `vault` to the home directory.
+- `accessVia: path` (default) → the store is the filesystem path `join(vault, mount)`. Navigate it with your normal tools (Read / Grep / semantic search / list).
+- `accessVia: mcp` → the store is remote; `vault` may be null and `mount` is a logical id wired through the user's MCP config. Reach it via that MCP server.
+- **Graceful degradation:** if the vault path is missing or a remote store is unreachable, say so and proceed with what you have — never block the task. If the manifest itself is absent, the repo simply isn't harnessed; offer `/magik-repo-setup`.
 
-## Hard rules
+It is the user's choice whether the vault is user-level (many projects) or project-level (one). The harness does not enforce either — the `mount` paths point you at the right place; you may navigate wider in the vault when it helps.
 
-- **Never** place artifacts at repo root. Use the right component.
-- **Never** put code outside `codebase/`. Tooling, lockfiles, package manifests all live there.
-- **Never** put operational artifacts inside `knowledge/`. Knowledge is *interpretation*; workspace is *artifacts*; memory is *agent state*.
-- **Never** put durable knowledge directly into `memory/`. Use the promotion path: `memory/daily/` → `memory-distill` → `knowledge/<domain>/`. Memory is per-runtime; knowledge is the only multi-runtime durable substrate.
-- **Never** silently re-add `workspace/**` or `memory/**` to git. Both are agent-runtime output and stay ignored.
-- **Never** put durable binary assets that programmatic consumers (CI builds, automation bots) need into `workspace/`. Such assets are source-of-truth substrate; they belong in `knowledge/<domain>/assets/` with a tracked `_index.md` catalog. See `rules/knowledge-base.mdc` for the companion-artifact pattern.
-- **Never** put inline secrets in `.cursor/mcp.json`. The file is git-tracked; secrets it references must come from environment variables (e.g., `${env:DOPPLER_TOKEN}`). Per-developer or per-machine overrides go in `.cursor/mcp.local.json`, which is gitignored. The same convention applies to any `.local.*`, `.private.*`, or `secrets*`-named file under `.cursor/` — all three patterns are gitignored as escape hatches for files that incidentally need to live there but carry credentials.
+## What the harness enforces
 
-## Domain spine
+Almost nothing — that's the point. The rules are:
 
-Every component except `workspace/` is organized by **project domain**. The single source of truth for which domains exist is `knowledge/_meta/domains.md`. Read it before doing anything that touches a domain.
+1. **Read the KB before substantive work.** Before producing, modifying, or committing anything domain-relevant, search the knowledge base (the `kb-search` skill). Your training priors are not this project's ground truth. Skipping this because "I already know" is the one failure mode the harness exists to catch.
+2. **Don't silently restructure the KB.** The KB is human-authored. You read it always, and write or reshape it **only when asked** (or when the user approves a `kb-sanitize` / `kb-code-sync` proposal). Adding a note the user explicitly requests is fine; quietly reorganizing folders, renaming entries, or rewriting others' entries is not.
+3. **Memory is yours; the KB is theirs.** Write observations and lessons to memory freely. Never auto-promote memory into the KB — when a past memory note is useful later, find it with your own search. Memory is gitignored by design; if asked to commit/share it, redirect to the KB (the durable, tracked substrate) instead.
 
-## Read first (mandatory before substantive work)
+## Commands
 
-Before any task that produces, modifies, or commits content:
+- `/magik-repo-setup` — point this repo at a vault (interactive); writes the manifest, primer, and session-start hook, and scaffolds the vault.
+- `/magik-repo-kb-sanitize` — heal the KB from the inside (conflicts, legacy remnants, links).
+- `/magik-repo-kb-code-sync` — check the KB against the code (documented policies/features vs. reality).
 
-1. **`knowledge/_meta/domains.md`** — what domains exist.
-2. **Run `kb-search` over the task description.** Read every `active` `decision`, `policy`, or `specification` it surfaces. If a `policy` would be violated, stop and surface the conflict before proceeding. *This step is non-negotiable.*
-3. **Scan `memory/daily/<today>.md` and `memory/daily/<yesterday>.md`** for unflushed context and recent observations relevant to the task.
-4. **Read `memory/commitments.md`** — there may be a due follow-up that affects this task.
-5. Relevant `.cursor/skills/<domain>/` — domain & task skills available.
+## Structure floor (light, not zero)
 
-A task that skips step 2 is in violation of the harness contract.
+The KB is free-form Markdown with a thin convention so the two maintenance commands have something to reason about:
 
-**"Reading" means invoking the Read tool.** Recalling content from prior conversation context, or summarising what a file "would say", does not count. If you state that the policy says X, you must have just read the policy file — and the eval harness's tool-invocation log will reflect it. Hallucinated reads are the failure mode this clause exists to forbid.
+- Light frontmatter: `status: active | deprecated` and `updated:`.
+- Relative links / wikilinks between entries form the graph.
+- An optional `_index.md` at the KB root orients a fresh reader. It replaces any rigid registry — keep it roughly current; don't treat it as a contract.
 
-## Memory
-
-The memory contract — capture lane, session lifecycle, compaction safety, promotion to KB — lives in `rules/memory.mdc`. In short:
-
-- **Session memory** → managed by Cursor. Do not duplicate.
-- **Short-term project memory** → `memory/daily/<today>.md`, agent-writable, **git-ignored** (per-runtime, like `workspace/`). Survives across sessions on a single machine; does not sync across machines or contributors.
-- **Persistent project memory** → `knowledge/<domain>/`, promoted from memory via `memory-distill`. The five KB schemas are the durable forms and the only multi-runtime substrate.
-- **Promotion** → proposal-only, user-approved.
+No enforced schemas, no domain-registry spine, no promotion contract. Navigate the KB naturally. See `rules/knowledge-base.mdc` and `rules/memory.mdc`.

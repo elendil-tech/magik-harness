@@ -1,5 +1,77 @@
 # magik-repo
 
+## 1.0.0 — 2026-06-23
+
+Tracks `harness@1`. **The light harness — a clean break.** The repo goes back to being a normal **code repo** that carries only a tracked vault pointer, a slim `AGENTS.md` primer, a `.gitignore` secret block, and a session-start hook. Knowledge (git-tracked) and memory (gitignored) move **out of the repo** into an external **vault** and become *services* the agent connects to. The harness becomes a **pointer plus a janitor**: it resolves the stores, gates the agent on reading the KB first, and offers two cleanup commands. The five-component model, five KB schemas, domain registry, memory→KB promotion, and the trust/quarantine + propose-then-apply governance system are **removed**. No backwards-compatibility constraints. Full design: [`bundles/ARCHITECTURE-v1.md`](./bundles/ARCHITECTURE-v1.md).
+
+### Why this ships now
+
+v0.x turned the repo into a project/business repo and, in real use, two problems compounded. (1) **Worktree fragmentation** — `memory/` was a gitignored, repo-local folder, so a single operator running multiple git worktrees got a *different* memory per worktree; state forked instead of accumulating. (2) **Over-imposition** — the harness recorded low-level code detail into the KB, enforced a heavy ontology, and gave the agent authoring control over the KB via promotion. v1.0 fixes both by separating the stores from the repo (resolved through a tracked manifest, coherent across worktrees) and stripping the ontology down to a thin structure floor.
+
+### The new model
+
+- **`.cursor/harness.json` (`harness@1`)** — the tracked vault pointer: `vault` (supports `~`) + `knowledge`/`memory` each with a `mount` and `accessVia` (`path` default, or `mcp` for remote). Tracked, so every worktree resolves the same stores.
+- **Knowledge base** — external, git-tracked, **human-authored**; the agent reads it (the `kb-search` gate) and maintains it only on request.
+- **Memory** — external, **gitignored**, **agent-owned**; written freely, **never auto-promoted** into the KB.
+- **Structure floor** — light frontmatter (`status`, `updated`) + relative links + an optional `knowledge/_index.md`. No schemas, no registry.
+- **The three rules** — read the KB before substantive work; don't silently restructure the KB; memory is the agent's, the KB is the human's.
+
+### Added
+
+- **`/magik-repo-setup`** (command + `hooks/setup.ts`) — interactive Q&A that writes the repo-side pointer/primer/gitignore/hook and scaffolds the vault side (knowledge `_index.md`, memory dir, vault `.gitignore`, `git init`).
+- **`/magik-repo-kb-sanitize`** (command + skill) — heal the KB from the inside: logical conflicts, legacy/orphaned entries, broken/obsolete links. Proposal-first.
+- **`seed-sources/vault/`** — vault-side seeds (`knowledge/_index.md` orientation stub, `gitignore.vault`).
+
+### Changed
+
+- **`rules/`** collapsed 9 → 3: `harness` (light model + manifest resolution + the three rules), `knowledge-base` (human-authored + structure floor), `memory` (agent-owned, no promotion).
+- **`skills/`** collapsed 7 → 3: `kb-search` (slimmed, vault-aware read-first), `kb-sanitize` (new), `kb-code-sync` (renamed from `drift-scan`, KB ↔ code only).
+- **`commands/`** collapsed 5 → 3: `/magik-repo-setup`, `/magik-repo-kb-sanitize`, `/magik-repo-kb-code-sync` (branded slugs to namespace the harness in the slash menu).
+- **`seed-sources/.cursor/harness.json`** is now a `harness@1` pointer template; **`session-start.js`** resolves the manifest vault + memory mount and injects today's daily note; **`hooks.json`** wires `sessionStart` only.
+- **`AGENTS.primer.md`** is short (external vault services + the three rules + three commands); **`gitignore.harness`** drops `workspace/`/`memory/` and keeps `.cursor/` secret hygiene + OS noise.
+
+### Removed
+
+- The `knowledge/`, `memory/`, `workspace/`, and `codebase/` in-repo folders and all their seeds; the five KB schemas; the domain registry (`_meta/domains.md`); memory→KB promotion (`/distill`, `memory-distill`); the trust/quarantine model; propose-then-apply governance; `/audit`, `/kb-add`, `/init-harness`; the `backends`, `domains`, `drift-control`, `scaffolding`, `subagents`, `skills-organization` rules; the `basic-memory` reference adapter; the `postToolUse` `last_referenced` hook.
+- **The behavioral eval subsystem** — the entire `evals/` tree (Cursor-SDK runner, scenarios, fixtures, baselines, results, LLM judge), the `tests/evals-runner.test.ts` unit coverage, the model-probe/judge-debug dev scripts, the `eval`/`eval:results` package scripts, and the `@cursor/sdk` / `js-yaml` / `zod` devDependencies that only it used. The suite was valuable while tuning rule wording; for a stable, no-longer-iterated v1.0 it was recurring maintenance with no recurring benefit (it never ran without an explicit, paid `pnpm eval`). The deterministic, offline `node:test` suite that covers the shipped hooks/seeds/manifest stays.
+
+### Migration
+
+None — this is a clean break with no migration path. Run `/magik-repo-setup` on a repo to wire it to a vault. Old harnessed repos can delete their in-repo `knowledge/`/`memory/`/`workspace/`/`codebase/` folders and move durable content into the vault KB.
+
+## 0.9.0 — 2026-06-22
+
+Tracks `harness@0.9.0`. **The backend-agnostic harness.** The largest architectural reframe since the five-component model: `knowledge`, `memory`, and the business store stop being welded to fixed repo folders and become **logical components resolved to pluggable, relocatable backends** via a tracked `.cursor/harness.json` topology manifest. magik-repo's value moves decisively to **governance** (spine, promotion, trust, drift, the five principles) — it delegates storage/search/graph to a *mounted* backend, with the existing Markdown substrate as the zero-config default. Non-breaking: a project with no manifest behaves exactly as v0.8.x. Full design: [`bundles/ARCHITECTURE-v1.md`](./bundles/ARCHITECTURE-v1.md).
+
+### Why this ships now
+
+Real-project use surfaced a structural defect: the v0.x model assumed *one repo = one working copy = one runtime*, but **git worktrees break it**. A gitignored folder is per-*worktree*, not per-*machine* — so `memory/` and `workspace/` fork per worktree, and a single orchestrator running parallel agent sessions across worktrees gets fragmented, unaligned state. The root cause is conflating two independent axes: **sync scope** (who shares this) and **storage location** (where it physically lives). v0.x welded `gitignored ⇒ inside-worktree ⇒ per-worktree`. v0.9.0 separates location from identity. Two further observations drove the reframe: the KB was accumulating low-level, code-coupled decisions that belong with the code; and mature OSS (Basic Memory, Mem0, Zep/Graphiti, Cognee) already solves storage/retrieval far better than the harness should try to — the harness should *govern* those, not reimplement them.
+
+### Added
+
+- **`.cursor/harness.json` topology manifest** (tracked, seeded) — the project's "fstab." Per component: `{ backend, mount, accessVia, scope }` (+ `layers` for knowledge). Tracked under `.cursor/`, so **every worktree resolves the same stores** — the fix for worktree fragmentation. Seeded with all components on the default `markdown` backend at their v0.x paths (no behavior change).
+- **`rules/backends.mdc`** (the ninth rule) — the mount interface: backend-neutral verbs (`resolve` / `capture` / `search` / `read` / `link` / `promote`), default-vs-mounted resolution, graceful degradation, and the invariants that hold on every backend.
+- **`bundles/ARCHITECTURE-v1.md`** — the canonical design spec for the harness-over-backends model, companion to `bundles/INIT-SPEC.md`.
+- **`seed-sources/.cursor/skills/services/basic-memory/SKILL.md`** — the reference external backend adapter, mapping the six verbs onto Basic Memory's MCP tools. Inert unless the manifest mounts `backend: basic-memory`.
+- **`seed-sources/codebase/docs/README.md`** — the code-coupled documentation tier. Implementation ADRs and module architecture live *with the code*; the KB stays high-altitude.
+
+### Changed
+
+- **`rules/harness.mdc`** — components are now logical roles resolved via the manifest; the worktree caveat and `scope` are explicit; workspace is reframed as scratch vs an external business store; new hard rules for altitude (KB vs `codebase/docs/`), backend resolution, and the scratch→business-store promotion.
+- **`rules/memory.mdc`** — mountable + scoped memory; the git-swarm and shard concurrency options for shared writers; `capture`/`promote` framing.
+- **`rules/knowledge-base.mdc` + `rules/domains.mdc`** — two-cut knowledge (altitude split into `codebase/docs/`; layerable project + umbrella KB); spinal binding restated **by `domain` attribute** so it holds on folder and graph backends; layered-registry resolution rules.
+- **`rules/drift-control.mdc`** — drift spans mounts (KB↔codebase altitude, layered-registry conflicts, unreachable backends report `unverified`); trust/quarantine extends to external-backend and cross-project/umbrella reads.
+- **Primer / README / init seam** — `seed-sources/AGENTS.primer.md`, `commands/init-harness.md`, `hooks/init-harness.ts`, and `README.md` document the manifest, the backend model, and the docs split. `PLUGIN_VERSION → 0.9.0` upgrades the primer + `.gitignore` marker blocks in place on re-run.
+
+### Migration
+
+Strictly non-breaking. A project with **no `.cursor/harness.json`** resolves every component to its v0.8.x default Markdown path — identical behavior. Re-run `/init-harness` to seed the manifest (skip-if-exists), the `codebase/docs/` tier, and the `basic-memory` adapter, and to upgrade the marker blocks in place. Opting into a relocated or external backend is editing one tracked file; downgrading is deleting it. The harness never silently moves an existing `knowledge/`, `memory/`, or `workspace/`.
+
+### Unchanged
+
+- **The governance contracts.** Read-first gate, propose-then-apply, user-approved promotion, the five principles, the domain spine, the trust model — all intact; they are now expressed in backend-neutral verbs.
+- **The default experience.** Markdown substrate, the same folders, the same skills. Backends are an opt-in slot, not a requirement.
+
 ## 0.8.1 — 2026-05-25
 
 Tracks `harness@0.8.1`. **UX point release.** A single-pattern fix to `seed-sources/gitignore.harness` so the IDE explorer dims `workspace/` at the folder level — restoring the visual symmetry with `memory/` that v0.8.0's stock pattern accidentally broke. No rule prose change, no eval-scenario change, no seed-payload prose change beyond gitignore.harness.

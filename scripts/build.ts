@@ -8,7 +8,7 @@
  *   <plugin>/skills/<name>/SKILL.md   — Cursor skills (flat, one level deep)
  *   <plugin>/commands/*.md            — Cursor slash commands
  *   <plugin>/hooks/*                  — Cursor hooks
- *   <plugin>/seed-sources/            — what /init-harness lays into a project
+ *   <plugin>/seed-sources/            — what /magik-repo-setup lays into a project + vault
  *
  * Build output (gitignored, regenerated each run):
  *

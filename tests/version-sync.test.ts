@@ -34,18 +34,18 @@ test("version-sync — .cursor-plugin/plugin.json matches package.json", () => {
   );
 });
 
-test("version-sync — hooks/init-harness.ts PLUGIN_VERSION matches package.json", () => {
-  const path = join(PLUGIN_ROOT_DIR, "hooks", "init-harness.ts");
+test("version-sync — hooks/setup.ts PLUGIN_VERSION matches package.json", () => {
+  const path = join(PLUGIN_ROOT_DIR, "hooks", "setup.ts");
   const src = readFileSync(path, "utf-8");
   const m = src.match(/const\s+PLUGIN_VERSION\s*=\s*"([^"]+)"/);
   assert.ok(
     m,
-    "hooks/init-harness.ts must declare `const PLUGIN_VERSION = \"x.y.z\"`",
+    "hooks/setup.ts must declare `const PLUGIN_VERSION = \"x.y.z\"`",
   );
   assert.equal(
     m![1],
     PLUGIN_VERSION,
-    `PLUGIN_VERSION in hooks/init-harness.ts (${m![1]}) must match package.json#version (${PLUGIN_VERSION}). Drift here breaks marker-block upgrades.`,
+    `PLUGIN_VERSION in hooks/setup.ts (${m![1]}) must match package.json#version (${PLUGIN_VERSION}). Drift here breaks marker-block upgrades.`,
   );
 });
 
@@ -76,7 +76,7 @@ test("version-sync — no leftover marker stamps from older versions in source f
   // hardcoded "v=0.x.y" in source can mask drift. We only check non-CHANGELOG
   // sources (CHANGELOG legitimately references historic versions).
   const filesToScan = [
-    "hooks/init-harness.ts",
+    "hooks/setup.ts",
     "README.md",
     ".cursor-plugin/plugin.json",
     "package.json",
