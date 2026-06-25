@@ -1,10 +1,10 @@
 {
-  "version": "1.1.0",
-  "fileCount": 7,
+  "version": "1.2.0",
+  "fileCount": 6,
   "entries": [
     {
       "path": ".cursor/harness.json",
-      "sha256": "89fa0909e897e2827fb379bd4b00a141118fd7c3a98a7ca8ec96f1acb3df0c22"
+      "sha256": "eeae4fe9454c57c93746b69b4de28ad10348e8140dd83c7eb6ce15b2673c025b"
     },
     {
       "path": ".cursor/hooks.json",
@@ -16,19 +16,15 @@
     },
     {
       "path": "AGENTS.primer.md",
-      "sha256": "17a619305937de9edcbf4f4c9ec662659f01a9578524a69dfe70ad6d83719d57"
+      "sha256": "3c70aeb63acebbf418b968f91573dcebec1a323e2525cd88d4863a6436f6232d"
     },
     {
       "path": "gitignore.harness",
       "sha256": "3747d225cc54ef33ce1e9e9119181b51308ee0c1a2eddf8cb5606c5212c001f4"
     },
     {
-      "path": "vault/gitignore.vault",
-      "sha256": "7baee97eb832f29896e728db19b192d2265d54b1b11ee86a661b4e6c3b128d39"
-    },
-    {
       "path": "vault/knowledge/_index.md",
-      "sha256": "95cd70262e26330329ec3fe0c624eea5de2eb784e5904cf713e42ec595b185b1"
+      "sha256": "19ef2973be3b7e4b4d63ec531efb7a17cf5caa5229cd878f3c50d9b2d61ecaab"
     }
   ]
 }

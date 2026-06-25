@@ -1,11 +1,11 @@
 ---
-description: How to read and maintain the knowledge base — the human-authored, git-tracked vault of foundational project/business truth. Read this before writing to or reorganizing the KB.
+description: How to read and maintain the knowledge base — the human-authored vault of foundational project/business truth. Read this before writing to or reorganizing the KB.
 alwaysApply: false
 ---
 
 # Knowledge base
 
-The KB is the project's **ground truth**: foundational decisions, policies, specifications, requirements, and durable context. It lives in the external vault, git-tracked, resolved via `.cursor/harness.json` (`rules/harness.mdc`). It is **human-authored**; the agent reads it constantly and maintains it on request.
+The KB is the project's **ground truth**: foundational decisions, policies, specifications, requirements, and durable context. It lives in the external vault, resolved via `.cursor/harness.json` (`rules/harness.mdc`). It is **human-authored**; the agent reads it constantly and maintains it on request.
 
 ## Ownership
 

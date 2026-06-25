@@ -15,20 +15,20 @@ v1.0 resolves both by **separating the stores from the repo** and **stripping th
 
 The repo is a **normal code repo**. The harness adds two external services and a tracked pointer:
 
-| Service | Location | Git | Owner | Role |
-| --- | --- | --- | --- | --- |
-| Knowledge base | external vault | tracked | human | foundational project/business truth |
-| Memory | external vault | gitignored | agent | running log of what happened / was learned |
+| Service | Location | Owner | Role |
+| --- | --- | --- | --- |
+| Knowledge base | external vault | human | foundational project/business truth |
+| Memory | external vault | agent | running log of what happened / was learned |
 
-"Vault" is just a folder outside the repo (often its own git repo, e.g. an Obsidian vault). Knowledge and memory are co-located in it for retrieval convenience but remain distinct concerns: knowledge is committed; memory is ignored.
+"Vault" is just a folder outside the repo (often its own git repo, e.g. an Obsidian vault). Knowledge and memory are co-located in it for retrieval convenience but remain distinct concerns. How the vault is stored or git-tracked is the user's choice — the harness only points at it and does not manage how it is stored or tracked.
 
 ```
-code repo (this repo)                external vault
-├── <your code at root>             ├── .git/  .gitignore  (ignores memory)
-├── AGENTS.md   (primer block)      ├── <project>/knowledge/   ← tracked truth
-└── .cursor/                        │   └── _index.md
-    ├── harness.json  ← pointer ───▶└── <project>/memory/      ← gitignored log
-    └── hooks/session-start.js          └── daily/<date>.md
+code repo (this repo)                external vault (your storage, your tracking)
+├── <your code at root>             ├── <project>/knowledge/   ← ground truth
+├── AGENTS.md   (primer block)      │   └── _index.md
+└── .cursor/                        └── <project>/memory/      ← the agent's log
+    ├── harness.json  ← pointer ───▶    └── daily/<date>.md
+    └── hooks/session-start.js
 ```
 
 ## 3. The pointer: `.cursor/harness.json`
@@ -56,7 +56,7 @@ Only the contract above plus three behaviors (full text in `rules/harness.mdc`):
 
 1. **Read the KB before substantive work** (the `kb-search` skill).
 2. **Don't silently restructure the KB** — it's human-authored; the agent writes/reshapes it only on request or approved proposal.
-3. **Memory is the agent's; the KB is the human's** — write memory freely, never auto-promote it into the KB, and keep memory out of git.
+3. **Memory is the agent's; the KB is the human's** — write memory freely, never auto-promote it into the KB; durable shared truth belongs in the KB.
 
 ## 5. Structure floor
 
@@ -80,7 +80,7 @@ No five schemas, no registry spine, no promotion, no trust/quarantine, no propos
 `/magik-repo-setup` is a short Q&A (vault path; user- vs project-level layout → mounts; path vs mcp), then the `hooks/setup.ts` hook performs deterministic writes:
 
 - **Repo side:** `.cursor/harness.json`, marker-bounded `AGENTS.md` primer, slim `.gitignore` secret block, `.cursor/hooks/session-start.js` + `.cursor/hooks.json`.
-- **Vault side (path):** `<vault>/<knowledge-mount>/_index.md`, `<vault>/<memory-mount>/`, `<vault>/.gitignore` (ignores memory), and `git init` if the vault isn't a repo.
+- **Vault side (path):** `<vault>/<knowledge-mount>/_index.md` and `<vault>/<memory-mount>/`. The harness does not touch the vault's git tracking — no `git init`, no vault `.gitignore`; how the vault is stored or tracked is the user's choice.
 
 All writes are skip-if-exists; the `AGENTS.md` / `.gitignore` marker blocks upgrade in place on re-run.
 

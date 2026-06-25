@@ -1,16 +1,16 @@
 ---
-description: How memory works in the light harness — the agent-owned, gitignored running log in the external vault. Read this for the capture cadence and why memory never auto-promotes into the knowledge base.
+description: How memory works in the light harness — the agent-owned running log in the external vault. Read this for the capture cadence and why memory never auto-promotes into the knowledge base.
 alwaysApply: false
 ---
 
 # Memory
 
-Memory is the **agent's own running log** — what happened, what was tried, what was learned. It lives in the external vault alongside the KB but is **gitignored**, resolved via `.cursor/harness.json` (`rules/harness.mdc`). It is recency context, not ground truth.
+Memory is the **agent's own running log** — what happened, what was tried, what was learned. It lives in the external vault alongside the KB, resolved via `.cursor/harness.json` (`rules/harness.mdc`). It is recency context, not ground truth.
 
 ## Ownership and treatment
 
 - **The agent owns memory.** Write to it freely, as work happens — no approval needed, no propose-then-apply.
-- **It is gitignored**, by design: it is per-runtime thought, not a shared substrate. Don't try to commit, push, or otherwise route memory through git. If the user wants something durable and shared, that belongs in the **KB** (tracked) — offer to record it there instead.
+- **It is per-runtime thought, not a shared substrate.** If the user wants something durable and shared, that belongs in the **KB** — offer to record it there instead. How the vault is stored or git-tracked is the user's choice; the harness only points at it and doesn't manage it.
 - **No promotion.** Memory never auto-flows into the KB. There is no `/distill`, no promotion contract. When a past memory note would help a future task, you find it with your normal search tools over the memory store.
 
 ## Layout
@@ -47,6 +47,6 @@ When recency context would help (what did we try last time? what broke?), search
 ## Anti-patterns
 
 - Promoting memory into the KB automatically.
-- Committing or sharing `memory/` (it's gitignored; durable/shared truth goes in the KB).
+- Treating memory as the durable, shared substrate — durable/shared truth goes in the KB.
 - Treating a memory note as ground truth over an active KB policy/decision.
 - Hoarding lessons in chat instead of writing them to the daily note as they surface.

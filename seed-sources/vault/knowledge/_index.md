@@ -5,7 +5,7 @@ updated: 2026-01-01
 
 # Knowledge base
 
-This is the project's **ground truth** — foundational decisions, policies, specifications, and durable context. It is human-authored and git-tracked. Agents read it before substantive work and maintain it on request (`/magik-repo-kb-sanitize`, `/magik-repo-kb-code-sync`); they do not auto-populate it.
+This is the project's **ground truth** — foundational decisions, policies, specifications, and durable context. It is human-authored. Agents read it before substantive work and maintain it on request (`/magik-repo-kb-sanitize`, `/magik-repo-kb-code-sync`); they do not auto-populate it.
 
 ## How this KB is organized
 

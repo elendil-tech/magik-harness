@@ -4,11 +4,12 @@
  * The hook wires a code repo into the light harness:
  *   - repo side: .cursor/harness.json (vault pointer), AGENTS.md primer,
  *     slim .gitignore secret block, .cursor/hooks/session-start.js + hooks.json
- *   - vault side (accessVia=path): <vault>/<km>/_index.md, <vault>/<mm>/,
- *     <vault>/.gitignore (ignores memory), git init
+ *   - vault side (accessVia=path): <vault>/<km>/_index.md, <vault>/<mm>/
  *
- * It never creates knowledge/, memory/, workspace/, or codebase/ folders in
- * the code repo. Tests spawn the real CLI against tmp dirs.
+ * The harness only points at the vault — it does NOT manage how the vault is
+ * stored or git-tracked, so setup never runs `git init` or writes a vault
+ * `.gitignore`. It also never creates knowledge/, memory/, workspace/, or
+ * codebase/ folders in the code repo. Tests spawn the real CLI against tmp dirs.
  */
 
 import { spawnSync } from "node:child_process";
@@ -128,7 +129,7 @@ test("empty project — writes the repo-side pointer + primer + hook, not the ol
   }
 });
 
-test("empty project — scaffolds the vault (knowledge index, memory dir, gitignore, git init)", () => {
+test("empty project — scaffolds the vault content (knowledge index, memory dir) but never touches vault git", () => {
   ensureBuilt();
   const root = makeTmpProject();
   const vault = makeTmpVault();
@@ -138,11 +139,11 @@ test("empty project — scaffolds the vault (knowledge index, memory dir, gitign
 
     assert.ok(existsSync(join(vault, "knowledge", "_index.md")), "vault knowledge/_index.md missing");
     assert.ok(existsSync(join(vault, "memory")), "vault memory/ dir missing");
-    assert.ok(existsSync(join(vault, ".gitignore")), "vault .gitignore missing");
-    assert.ok(existsSync(join(vault, ".git")), "vault should be a git repo after init");
 
-    const vgi = readFileSync(join(vault, ".gitignore"), "utf-8");
-    assert.match(vgi, /^memory\/$/m, "vault .gitignore must ignore the memory mount");
+    // The harness must NOT manage how the vault is stored or tracked: no git
+    // init, no vault .gitignore.
+    assert.ok(!existsSync(join(vault, ".gitignore")), "harness must NOT write a vault .gitignore");
+    assert.ok(!existsSync(join(vault, ".git")), "harness must NOT git init the vault");
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(vault, { recursive: true, force: true });

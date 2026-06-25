@@ -1,6 +1,6 @@
 {
   "schema": "magik-repo/harness@1",
-  "_doc": "The vault pointer. Tracked under .cursor/ so every git worktree of this clone resolves the SAME external vault. 'vault' is the vault root (supports ~). Each service has a 'mount' relative to the vault and an 'accessVia': 'path' for a local folder, or 'mcp' for remote storage (then 'vault' may be null and 'mount' is a logical id wired through your MCP config). Knowledge is git-tracked truth; memory is the agent's gitignored log. Secrets NEVER go here. Full spec: bundles/ARCHITECTURE-v1.md and rules/harness.mdc.",
+  "_doc": "The vault pointer. Tracked under .cursor/ so every git worktree of this clone resolves the SAME external vault. 'vault' is the vault root (supports ~). Each service has a 'mount' relative to the vault and an 'accessVia': 'path' for a local folder, or 'mcp' for remote storage (then 'vault' may be null and 'mount' is a logical id wired through your MCP config). Knowledge is the project's durable ground truth; memory is the agent's running log. How the vault is stored or git-tracked is your choice — the harness only points at it. Secrets NEVER go here. Full spec: bundles/ARCHITECTURE-v1.md and rules/harness.mdc.",
   "vault": "__VAULT__",
   "knowledge": {
     "mount": "__KNOWLEDGE_MOUNT__",

@@ -1,5 +1,22 @@
 # magik-repo
 
+## 1.2.0 — 2026-06-25
+
+Tracks `harness@1`. **The harness stops opinionating vault git-tracking.** How the external vault is stored or tracked is entirely the user's choice — the harness only *points* at it (via `.cursor/harness.json`) and no longer manages how it is stored or versioned. The manifest schema is unchanged.
+
+### Changed
+
+- **`hooks/setup.ts`** — vault scaffolding no longer runs `git init` on the vault or writes a vault `.gitignore`. Setup still scaffolds the KB `_index.md` stub and the memory directory (path access), and now emits a notice that vault git-tracking is the user's to manage. Removed the `ensureVaultGitignore` / `gitInitVault` helpers and the unused `node:child_process` import. `PLUGIN_VERSION → 1.2.0` (primer / `.gitignore` marker blocks upgrade in place on re-run).
+- **Rules** — `harness` (dropped the per-service "Git" column; rule 3 reframed around durability, not git), `memory` (no longer described as "gitignored by design"; the agent-vs-KB distinction is about role/ownership, not tracking), and `knowledge-base` (dropped "git-tracked" from the KB description) now describe knowledge and memory by *role*, not by git state.
+- **`seed-sources/AGENTS.primer.md`** — primer reframed to say the harness only points at the vault; dropped "tracked" / "gitignored" claims and the "don't commit memory" framing.
+- **`seed-sources/.cursor/harness.json`** + **`seed-sources/vault/knowledge/_index.md`** — `_doc` and the KB stub no longer assert git-tracking; they note that vault storage/tracking is the user's choice.
+- **Docs** — `README.md`, `bundles/ARCHITECTURE-v1.md`, `ROADMAP.md`, and `commands/magik-repo-setup.md` updated: wiring diagrams, tables, and setup descriptions drop the vault `.gitignore` / `git init` steps and the "memory is gitignored" language.
+- **Version** — `magik-repo@1.2.0`; still ships `harness@1` content.
+
+### Removed
+
+- **`seed-sources/vault/gitignore.vault`** — the seeded vault `.gitignore` is gone; the harness no longer writes one.
+
 ## 1.1.0 — 2026-06-25
 
 Tracks `harness@1`. **The KB metadata convention.** Adds a recommended, portable metadata standard for knowledge-base entries — frontmatter schema, tagging, and relations — plus the **judgment** for applying it coherently, and wires it into every agent-interaction point (writes, sanitize, code-sync). Purely additive: the required floor stays `status` + `updated`; everything new is *recommended*, never a schema gate. Generic and project-agnostic — each project owns its own tag vocabulary in its `knowledge/conventions.md`.

@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-1.1.0-8A2BE2?style=for-the-badge" />
+    <img alt="Version" src="https://img.shields.io/badge/version-1.2.0-8A2BE2?style=for-the-badge" />
   </a>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge" />
@@ -18,7 +18,7 @@
 </p>
 
 🪄 **Point your code repo at a knowledge + memory vault — then let the agent read first and keep it clean.**
-A light Cursor harness: your repo stays a normal code repo, and the knowledge base (tracked truth) and memory (the AI's log) live in an external vault the agent connects to.
+A light Cursor harness: your repo stays a normal code repo, and the knowledge base (the project's ground truth) and memory (the AI's log) live in an external vault the agent connects to.
 
 **Try the magik!** ✨
 
@@ -30,22 +30,20 @@ A light Cursor harness: your repo stays a normal code repo, and the knowledge ba
 
 **magik-repo is a light Cursor harness — a pointer plus a janitor.** Your repo stays a normal code repo. The harness adds two external *services* and a tracked pointer to them:
 
-- 📚 **Knowledge base** — the project's foundational truth (decisions, policies, specs, business context). **Git-tracked. Human-authored.** The agent reads it before substantive work and maintains it on request.
-- 🧠 **Memory** — the agent's running log of what happened and was learned. **Gitignored. Agent-owned.** Written freely, never auto-promoted into the KB.
+- 📚 **Knowledge base** — the project's foundational truth (decisions, policies, specs, business context, decisions). The agent reads it before work and maintains it on request.
+- 🧠 **Memory** — the agent's running log of what happened and was learned. The agent writes it freely, never auto-promoted into the KB.
 
-Both are plain Markdown in an **external vault** (a folder outside the repo — often its own git repo, e.g. an Obsidian vault). A tracked `.cursor/harness.json` names the vault and the mounts, so every git worktree of your clone resolves the **same** stores — the fix for worktree fragmentation.
-
-> This is a clean break from the v0.x model, which imposed `knowledge/`, `memory/`, `workspace/`, and `codebase/` folders, five KB schemas, a domain registry, and a promotion/governance system inside the repo. v1.0 moves the stores out and strips the ontology. See [`bundles/ARCHITECTURE-v1.md`](./bundles/ARCHITECTURE-v1.md).
+Both are plain Markdown in an **external vault** (a folder outside the repo — often its own git repo, e.g. an Obsidian vault). A tracked `.cursor/harness.json` names the vault and the mounts, so every git worktree of your clone resolves the **same** source. How the vault itself is stored or git-tracked is entirely up to you — the harness just points at it and shapes it.
 
 ## 🧱 How it's wired
 
 ```text
-code repo (your repo)                external vault (your choice of location)
-├── <your code at root>             ├── .git/  .gitignore  (ignores memory)
-├── AGENTS.md   (primer block)      ├── <mount>/knowledge/   ← tracked truth
-└── .cursor/                        │   └── _index.md
-    ├── harness.json  ← pointer ───▶└── <mount>/memory/      ← gitignored log
-    └── hooks/session-start.js          └── daily/<date>.md
+code repo (your repo)                external vault (your storage, your tracking)
+├── <your code at root>             ├── <mount>/knowledge/   ← ground truth
+├── AGENTS.md   (primer block)      │   └── _index.md
+└── .cursor/                        └── <mount>/memory/      ← the AI's log
+    ├── harness.json  ← pointer ───▶    └── daily/<date>.md
+    └── hooks/session-start.js
 ```
 
 ```json
@@ -63,7 +61,7 @@ code repo (your repo)                external vault (your choice of location)
 
 1. **Read the KB before substantive work.** The agent resolves the KB and reads it before producing, modifying, or committing anything domain-relevant. If an active policy would be violated, it stops and surfaces it.
 2. **Don't silently restructure the KB.** It's human-authored. The agent reads always; it writes or reshapes only when you ask or approve a proposal.
-3. **Memory is the agent's; the KB is yours.** The agent writes memory freely and never auto-promotes it into the KB. Memory is gitignored by design.
+3. **Memory is the agent's; the KB is yours.** The agent writes memory freely and never auto-promotes it into the KB. Durable, shared truth belongs in the KB, not memory.
 
 ## ✨ Features
 
@@ -71,7 +69,7 @@ code repo (your repo)                external vault (your choice of location)
 
 📚 **Read-first knowledge base** — a mandatory `kb-search` gate before substantive work, over your external, human-authored KB. Light structure floor (frontmatter + links + optional `_index.md`), no enforced schemas.
 
-🧠 **Agent-owned memory** — a gitignored daily log in the vault; the session-start hook injects today's notes. No promotion ceremony — past lessons are found with the agent's own search.
+🧠 **Agent-owned memory** — a daily log in the vault; the session-start hook injects today's notes. No promotion ceremony — past lessons are found with the agent's own search.
 
 🧹 **Two janitor commands** — `/magik-repo-kb-sanitize` heals the KB from the inside (conflicts, legacy remnants, broken links, and metadata-standard drift — tags, relations, dangling `[[id]]` refs); `/magik-repo-kb-code-sync` checks documented policies/features against the code. Both are proposal-first.
 
@@ -89,7 +87,7 @@ Enable the `magik-repo` plugin in Cursor (project or user scope), then run from 
 /magik-repo-setup
 ```
 
-`/magik-repo-setup` asks where your vault is (or creates one), how it's laid out (user-level vs project-level → mounts), and how the agent reaches it (`path` or `mcp`). It then writes `.cursor/harness.json`, the `AGENTS.md` primer block, a slim `.gitignore` secret block, and the session-start hook — and scaffolds the vault side (knowledge `_index.md`, memory dir, vault `.gitignore`, `git init`).
+`/magik-repo-setup` asks where your vault is (or creates one), how it's laid out (user-level vs project-level → mounts), and how the agent reaches it (`path` or `mcp`). It then writes `.cursor/harness.json`, the `AGENTS.md` primer block, a slim `.gitignore` secret block, and the session-start hook — and scaffolds the vault side (knowledge `_index.md`, memory dir). How the vault is stored or git-tracked is left entirely to you — the harness never runs `git init` or writes a vault `.gitignore`.
 
 > 🛡️ **Idempotent and safe.** Re-running `/magik-repo-setup` never overwrites your content. Marker-bounded blocks in `AGENTS.md` and `.gitignore` keep the harness's bytes cleanly separate from yours, and upgrade in place.
 
@@ -172,7 +170,7 @@ pnpm clean
 │   │   ├── harness.json           # the vault-pointer template (tokens filled at /magik-repo-setup)
 │   │   ├── hooks.json             # sessionStart wiring
 │   │   └── hooks/session-start.js
-│   └── vault/                     # vault-side seeds (knowledge/_index.md, gitignore.vault)
+│   └── vault/                     # vault-side seeds (knowledge/_index.md)
 ├── tests/                         # node:test suite (setup, hook, version, seed-tree, manifest)
 ├── package.json / tsconfig.json
 ├── README.md / LICENSE / CHANGELOG.md
@@ -192,7 +190,7 @@ The plugin ships a deterministic `node:test` suite (`pnpm test`) covering the se
 
 ## 🏷️ Versioning
 
-`magik-repo@1.1.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
+`magik-repo@1.2.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
 ## 📄 License
 

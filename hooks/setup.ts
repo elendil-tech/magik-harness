@@ -2,9 +2,11 @@
 /**
  * /setup hook — magik-repo v1.0 (the light harness).
  *
- * The repo is a normal code repo. Knowledge (git-tracked) and memory
- * (gitignored) live in an EXTERNAL vault and are resolved through a tracked
- * pointer at `.cursor/harness.json`. This hook performs the deterministic
+ * The repo is a normal code repo. Knowledge (the project's ground truth) and
+ * memory (the agent's running log) live in an EXTERNAL vault and are resolved
+ * through a tracked pointer at `.cursor/harness.json`. How the vault itself is
+ * stored or git-tracked is the user's choice — the harness only points at it.
+ * This hook performs the deterministic
  * file ops behind the interactive `/magik-repo-setup` command, given the answers the
  * agent collected (vault path + knowledge/memory mounts + access method):
  *
@@ -17,8 +19,10 @@
  *   Vault side (the external store; only when accessVia=path):
  *     - <vault>/<knowledge-mount>/_index.md : orientation stub (skip if present)
  *     - <vault>/<memory-mount>/             : created if missing
- *     - <vault>/.gitignore                  : ensures the memory mount is ignored
- *     - git init <vault>                    : when the vault is not already a repo
+ *
+ * How the vault is stored or git-tracked is entirely the user's choice — the
+ * harness only points at it. Setup never runs `git init` on the vault or writes
+ * a vault `.gitignore`; it does not manage how the vault is stored or tracked.
  *
  * No knowledge/, memory/, workspace/, or codebase/ folders are created in the
  * code repo — those concepts are gone in v1.0. Full spec:
@@ -35,14 +39,13 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { execFileSync } from "node:child_process";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // --- Constants ---------------------------------------------------------------
 
-const PLUGIN_VERSION = "1.1.0";
+const PLUGIN_VERSION = "1.2.0";
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(HOOK_DIR);
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");
@@ -287,42 +290,6 @@ function renderManifest(args: CliArgs): string {
     .replace(/"__ACCESS_VIA__"/g, JSON.stringify(args.accessVia));
 }
 
-// --- Vault scaffolding -------------------------------------------------------
-
-function ensureVaultGitignore(vaultRoot: string, memoryMount: string): boolean {
-  const giPath = join(vaultRoot, ".gitignore");
-  const line = `${memoryMount}/`;
-  if (!existsSync(giPath)) {
-    const body = readSeed("vault/gitignore.vault").replace(
-      /__MEMORY_MOUNT__/g,
-      memoryMount,
-    );
-    writeFileSync(giPath, body.endsWith("\n") ? body : `${body}\n`);
-    return true;
-  }
-  const existing = readFileSync(giPath, "utf-8");
-  const present = existing
-    .split("\n")
-    .some((l) => l.trim() === line || l.trim() === `/${line}`);
-  if (present) return false;
-  const normalized = existing.endsWith("\n") ? existing : `${existing}\n`;
-  writeFileSync(
-    giPath,
-    `${normalized}\n# magik-repo: memory is the AI's runtime log — never tracked.\n${line}\n`,
-  );
-  return true;
-}
-
-function gitInitVault(vaultRoot: string): boolean {
-  if (existsSync(join(vaultRoot, ".git"))) return false;
-  try {
-    execFileSync("git", ["init", "-q"], { cwd: vaultRoot, stdio: "ignore" });
-    return true;
-  } catch {
-    return false; // fail-open: a missing git binary must not abort setup
-  }
-}
-
 // --- Plan building -----------------------------------------------------------
 
 function buildPlan(args: CliArgs): PlanItem[] {
@@ -483,7 +450,7 @@ function buildPlan(args: CliArgs): PlanItem[] {
       items.push({
         kind: "create",
         target: `${args.vault}/${args.memoryMount}/`,
-        reason: "memory store (gitignored)",
+        reason: "memory store (the agent's running log)",
         apply: () => ensureDir(memDir),
       });
     } else {
@@ -491,26 +458,12 @@ function buildPlan(args: CliArgs): PlanItem[] {
     }
 
     items.push({
-      kind: "modify",
-      target: `${args.vault}/.gitignore`,
-      reason: `ignore ${args.memoryMount}/`,
-      apply: () => {
-        ensureDir(vaultAbs);
-        ensureVaultGitignore(vaultAbs, args.memoryMount);
-      },
+      kind: "notice",
+      target: `${args.vault}`,
+      reason:
+        "how the vault is stored and git-tracked is yours to manage — the harness only points at it. " +
+        "Setup does not run `git init` or write a vault `.gitignore`.",
     });
-
-    if (!existsSync(join(vaultAbs, ".git"))) {
-      items.push({
-        kind: "create",
-        target: `${args.vault}/.git`,
-        reason: "git init the vault",
-        apply: () => {
-          ensureDir(vaultAbs);
-          gitInitVault(vaultAbs);
-        },
-      });
-    }
   } else if (args.accessVia === "mcp") {
     items.push({
       kind: "notice",

@@ -16,7 +16,7 @@ v1.0 is intentionally minimal — a pointer plus a janitor. The roadmap is mostl
 
 ## Memory (incremental)
 
-- **Memory retention/pruning.** Memory is gitignored and grows unbounded. A future helper could summarize or prune old `memory/daily/` notes on request (never automatically — memory is the agent's, and pruning is destructive).
+- **Memory retention/pruning.** Memory grows unbounded. A future helper could summarize or prune old `memory/daily/` notes on request (never automatically — memory is the agent's, and pruning is destructive).
 - **MCP-backed memory adapter.** `accessVia: mcp` is carried in the schema, but `/magik-repo-setup` only writes the manifest — wiring a remote memory store is left to the user's MCP config. A reference adapter could ship later if demand is clear.
 
 ## Setup rigor

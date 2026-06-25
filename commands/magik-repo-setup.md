@@ -1,6 +1,6 @@
 ---
 name: magik-repo-setup
-description: Point this code repo at an external knowledge + memory vault. Interactive Q&A that writes .cursor/harness.json, a slim AGENTS.md primer, the session-start hook, and scaffolds the vault (knowledge tracked, memory gitignored).
+description: Point this code repo at an external knowledge + memory vault. Interactive Q&A that writes .cursor/harness.json, a slim AGENTS.md primer, the session-start hook, and scaffolds the vault (knowledge _index.md + memory dir). How the vault is git-tracked is left to the user.
 ---
 
 Wire this code repo into the magik-repo harness. The repo stays a normal code repo; knowledge and memory live in an **external vault** resolved through a tracked pointer at `.cursor/harness.json`.
@@ -37,7 +37,7 @@ Surface the hook's stdout and exit code verbatim.
 | Side | Writes |
 | --- | --- |
 | Code repo | `.cursor/harness.json` (the vault pointer), `AGENTS.md` primer block, slim `.gitignore` secret block, `.cursor/hooks/session-start.js` + `.cursor/hooks.json`. |
-| Vault (path access) | `<vault>/<knowledge-mount>/_index.md` orientation stub, `<vault>/<memory-mount>/`, `<vault>/.gitignore` (ignores memory), and `git init` the vault if needed. |
+| Vault (path access) | `<vault>/<knowledge-mount>/_index.md` orientation stub and `<vault>/<memory-mount>/`. The harness does **not** touch the vault's git tracking — no `git init`, no vault `.gitignore`. How the vault is stored or tracked is the user's choice. |
 
 It never creates `knowledge/`, `memory/`, `workspace/`, or `codebase/` folders in the code repo. Everything is skip-if-exists; the marker-bounded `AGENTS.md` / `.gitignore` blocks upgrade in place on re-run. The hook exits `0` on success or no-op, `1` on any unrecoverable error.
 

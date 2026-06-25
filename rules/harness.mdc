@@ -1,5 +1,5 @@
 ---
-description: The light harness operating model — a code repo that points at an external vault of knowledge (tracked truth) and memory (the AI's log), resolved via .cursor/harness.json. Read this for how the harness is wired and the few rules it enforces.
+description: The light harness operating model — a code repo that points at an external vault of knowledge (the project's ground truth) and memory (the AI's log), resolved via .cursor/harness.json. Read this for how the harness is wired and the few rules it enforces.
 alwaysApply: false
 ---
 
@@ -9,12 +9,12 @@ This repo is a **normal code repo**. The harness adds two external services and 
 
 ## The two services
 
-| Service | Lives in | Git | Owner | Role |
-| --- | --- | --- | --- | --- |
-| **Knowledge base** | the vault | tracked | human | Foundational project/business truth — decisions, policies, specs, context. You author it; the agent reads it and maintains it. |
-| **Memory** | the vault | gitignored | the agent | A running log of what happened and what was learned. The agent writes it freely; it is never the source of truth. |
+| Service | Lives in | Owner | Role |
+| --- | --- | --- | --- |
+| **Knowledge base** | the vault | human | Foundational project/business truth — decisions, policies, specs, context. You author it; the agent reads it and maintains it. |
+| **Memory** | the vault | the agent | A running log of what happened and what was learned. The agent writes it freely; it is never the source of truth. |
 
-Both are plain Markdown in an **external vault** (a folder outside this repo, often its own git repo). Co-locating them in one vault is for retrieval convenience; they remain distinct concerns.
+Both are plain Markdown in an **external vault** (a folder outside this repo, often its own git repo). Co-locating them in one vault is for retrieval convenience; they remain distinct concerns. How the vault is stored or git-tracked is the user's choice — the harness only points at it and does not manage how it is stored or tracked.
 
 ## The pointer: `.cursor/harness.json`
 
@@ -44,7 +44,7 @@ Almost nothing — that's the point. The rules are:
 
 1. **Read the KB before substantive work.** Before producing, modifying, or committing anything domain-relevant, search the knowledge base (the `kb-search` skill). Your training priors are not this project's ground truth. Skipping this because "I already know" is the one failure mode the harness exists to catch.
 2. **Don't silently restructure the KB.** The KB is human-authored. You read it always, and write or reshape it **only when asked** (or when the user approves a `kb-sanitize` / `kb-code-sync` proposal). Adding a note the user explicitly requests is fine; quietly reorganizing folders, renaming entries, or rewriting others' entries is not.
-3. **Memory is yours; the KB is theirs.** Write observations and lessons to memory freely. Never auto-promote memory into the KB — when a past memory note is useful later, find it with your own search. Memory is gitignored by design; if asked to commit/share it, redirect to the KB (the durable, tracked substrate) instead.
+3. **Memory is yours; the KB is theirs.** Write observations and lessons to memory freely. Never auto-promote memory into the KB — when a past memory note is useful later, find it with your own search. Durable, shared truth belongs in the KB, not memory; if a memory note should become ground truth, offer to record it there instead.
 
 ## Commands
 
