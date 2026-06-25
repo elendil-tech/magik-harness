@@ -76,6 +76,14 @@ So the rule is simple:
 - If you rename an entry's `id`, **rename the file to match** (and update inbound `"[[id]]"` refs). If two entries would share a basename, their `id`s collide — pick distinct `id`s.
 - `aliases` are optional and purely for discoverability (autocomplete shows `[[Real Title|alias]]`). Never rely on an alias to resolve a relation.
 
+### 1.7 `id` is opaque — categorization lives elsewhere
+
+An `id` is an **opaque, permanent handle** (and the filename) — not a path. Taxonomy and categorization come from the entry's **folder location + `domain` + `tags`**, never from parsing an `id` prefix. Don't read meaning into a `payments-…` or `eng-…` prefix; read `domain`/`tags`/the folder.
+
+- After a restructure, an `id`'s prefix may no longer match the entry's current folder. **This is expected and acceptable.** Do **not** realign or rename `id`s to mirror folder paths — that re-couples `id`s to a mutable location and defeats their path-independence.
+- **Moving an entry between folders keeps the same `id`/filename.** Re-file freely; the handle is stable, and `[[id]]` keeps resolving (basename resolution is folder-independent, §1.6).
+- *Portability tip:* tools and skills that reference KB entries should prefer a **folder-glob** (e.g. `knowledge/payments/**`) over pinning exact entry filenames, so they don't churn when entries are added, moved, or renamed.
+
 ---
 
 ## 2. Tagging standard
