@@ -11,7 +11,7 @@ The KB is the project's **ground truth**: foundational decisions, policies, spec
 
 - **You (human) own it.** You decide what is true and what the KB says.
 - **The agent reads it** before substantive work (the `kb-search` skill), cites it, and respects active policies.
-- **The agent writes it only when asked** — when you explicitly request an entry ("add a decision for X"), or when you approve a `kb-sanitize` / `kb-code-sync` proposal. The agent never auto-populates the KB from its own memory.
+- **The agent writes it only when asked** — when you explicitly request an entry ("add a decision for X"), or when you approve a `kb-sanitize` / `kb-code-sync` proposal. The one exception: it may autonomously **correct a verified-wrong fact** — a claim a newer KB entry or the actual code demonstrably contradicts (verified, not assumed). It never restructures, rewrites dated decision annotations, or promotes assumptions/memory on its own, and never auto-populates the KB from its own memory.
 
 ## Structure floor
 
@@ -51,5 +51,5 @@ Both are proposal-first. Apply only what the user approves; never silently resha
 
 - Auto-promoting memory or session chatter into the KB.
 - Inventing folders/taxonomy the user didn't ask for.
-- Rewriting or reorganizing existing entries without approval.
+- Rewriting or reorganizing existing entries without approval — except correcting a verified-wrong fact.
 - Answering domain questions from training priors without reading the KB.
