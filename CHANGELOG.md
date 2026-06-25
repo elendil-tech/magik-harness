@@ -1,5 +1,30 @@
 # magik-repo
 
+## 1.3.0 — 2026-06-26
+
+Tracks `harness@1`. **Tunable KB autonomy.** The "don't silently restructure the KB" rule becomes a configurable posture instead of a fixed default-deny. A new `knowledge.autonomy` field in `.cursor/harness.json` tunes how freely the agent writes the KB on its own initiative — and the **default is now `open`**, so agents keep the knowledge base in sync with their work (adding/updating the entries a task touches) without stopping to ask. This addresses the common case where work on a feature has associated documentation that must not drift; the agent now maintains both together hands-free. Tighten to `ask` (write only on request/approval) or `readonly` (report only) per project. Purely additive and backward-compatible — the manifest schema is unchanged, and an absent/unrecognized value resolves to `open`.
+
+### Added
+
+- **`knowledge.autonomy`** in the manifest — `open` (default) / `ask` / `readonly`:
+  - **`open`** — the agent maintains the KB as part of its work, creating/updating relevant entries without asking, following `kb-conventions`. Large or destructive restructurings (mass renames, folder reorgs, deleting/rewriting others' entries) are still surfaced first.
+  - **`ask`** — the prior conservative posture: write or reshape only on explicit request or an approved `kb-sanitize` / `kb-code-sync` proposal (the verified-wrong-fact correction is still permitted).
+  - **`readonly`** — never write the KB; report what would change and leave it to the human.
+- **`hooks/setup.ts`** — new `--kb-autonomy <open|ask|readonly>` flag (default `open`), validated and rendered into the manifest; the plan output now reports the chosen autonomy. `PLUGIN_VERSION → 1.3.0`.
+- **`commands/magik-repo-setup.md`** — adds a fourth Q&A step for KB autonomy (default `open`) and passes `--kb-autonomy`.
+- **README** — a "Tuning KB autonomy" section + feature bullet; rule 2 and the manifest example updated to show `autonomy`.
+
+### Changed
+
+- **`seed-sources/.cursor/harness.json`** — the `knowledge` block carries `"autonomy": "__KB_AUTONOMY__"`; `_doc` documents the three values.
+- **Rules** — `harness` (rule 2 reframed as "keep the KB in sync — at the autonomy the manifest grants", plus an `autonomy` resolution line) and `knowledge-base` (Ownership / Writing / Maintaining / Anti-patterns rewritten around the three postures; the old "Writing (when asked)" heading is now "Writing").
+- **`seed-sources/AGENTS.primer.md`** — rule 2 reframed around `knowledge.autonomy` and the `open` default.
+- **Skills** — `kb-sanitize` and `kb-code-sync` now apply per `knowledge.autonomy`: under `open` they apply clearly-safe additive/in-sync fixes directly and surface judgment-call or destructive ones; under `ask` they stay proposal-first; under `readonly` they report only. `kb-code-sync` is no longer strictly report-only for KB edits.
+- **`commands/magik-repo-kb-sanitize.md`** + **`commands/magik-repo-kb-code-sync.md`** — describe the autonomy-aware apply behavior.
+- **`seed-sources/vault/knowledge/_index.md`** — the scaffold notes the `open` default and how to tighten it.
+- **`bundles/ARCHITECTURE-v1.md`** — manifest field list, the three behaviors, and the setup-flow Q&A updated for `knowledge.autonomy`.
+- **Version** — `magik-repo@1.3.0`; still ships `harness@1` content (the manifest schema is unchanged).
+
 ## 1.2.0 — 2026-06-25
 
 Tracks `harness@1`. **The harness stops opinionating vault git-tracking.** How the external vault is stored or tracked is entirely the user's choice — the harness only *points* at it (via `.cursor/harness.json`) and no longer manages how it is stored or versioned. The manifest schema is unchanged.

@@ -3,13 +3,14 @@ name: kb-code-sync
 description: >-
   Check for drift between the knowledge base and the code. Use to verify that
   documented policies and features are actually implemented, and that the code
-  hasn't diverged from documented truth. Produces a triage report; mutates
-  nothing. Resolves the KB via .cursor/harness.json.
+  hasn't diverged from documented truth. Produces a triage report; KB
+  reconciliations follow knowledge.autonomy, code fixes always need approval.
+  Resolves the KB via .cursor/harness.json.
 ---
 
 # KB ↔ code sync
 
-Drift = the KB and the code disagreeing. This skill compares the project's documented truth against what the code actually does and produces a triaged report with proposals. It does not mutate state.
+Drift = the KB and the code disagreeing. This skill compares the project's documented truth against what the code actually does and produces a triaged report with proposals. It never edits code on its own; KB reconciliations are applied per `knowledge.autonomy` (see below).
 
 ## Procedure
 
@@ -17,7 +18,7 @@ Drift = the KB and the code disagreeing. This skill compares the project's docum
 2. **Collect KB claims.** Read `active` entries that assert something checkable about the system — policies ("never write to the DB directly"), specifications (a feature's intended behavior), and decisions that name a technology, API, or path.
 3. **Inspect the code.** For each claim, look at the relevant code (search by symbol, path, dependency manifest, config). Use judgment about depth — this is a review, not a proof.
 4. **Classify each finding** (see table), assign severity, and propose a reconciliation.
-5. **Report.** Never edit files here.
+5. **Report, then reconcile per `knowledge.autonomy`.** Code changes are always the user's to approve; KB edits follow the autonomy setting (see "Reconciliations" below).
 
 ## Checks
 
@@ -50,16 +51,16 @@ Drift = the KB and the code disagreeing. This skill compares the project's docum
 
 ## Proposals
 1. Code change: add auth guard in `src/jobs/import.ts`.
-2. KB edit (approval): note Stripe in the pricing/integrations entry.
-3. KB edit (verified-wrong fact — autonomous): fix moved path in `auth.md`.
+2. KB edit (open: apply / ask: approval): note Stripe in the pricing/integrations entry.
+3. KB edit (verified-wrong fact): fix moved path in `auth.md`.
 ```
 
-Reconciliations land as **either** a KB edit **or** code work — never both silently. Surface the choice; let the user decide which side is wrong. The KB is human-authored, so apply KB edits only with the user's go-ahead — **except** a verified-wrong fact this sync proved (e.g. a `[stale]` reference to a moved path, or a decision naming a technology the code no longer uses), which you may correct autonomously. Restructuring, rewriting dated decision annotations, and anything that promotes an assumption still wait for approval.
+Reconciliations land as **either** a KB edit **or** code work — never both silently. Surface the choice; let the user decide which side is wrong. KB-edit reconciliations follow `knowledge.autonomy` (from `.cursor/harness.json`, default **`open`**): under **`open`** apply clearly-safe fixes (a `[stale]` reference to a moved path, an additive note that keeps docs in step with the code) directly, and surface judgment calls (deprecating an entry, contradicting an `active` policy, restructuring); under **`ask`** apply KB edits only with the user's go-ahead — **except** a verified-wrong fact this sync proved, which you may correct autonomously; under **`readonly`** report only. A code-side fix is always the user's to approve. Restructuring and rewriting others' dated decision annotations are always surfaced first.
 
 When a reconciliation *is* a KB edit (a new entry, or a fixed reference), follow the recommended metadata standard in `rules/kb-conventions.mdc` and the project's `knowledge/conventions.md` vocabulary — give a new entry honest `type`/`domain`/`summary`/`tags`, save it as `<id>.md` (filename == `id` so `"[[id]]"` resolves — resolution is by filename, not alias; §1.6), and wire its relations in frontmatter. When a target moves or is renamed, keep its filename matching its `id` and update inbound relation/`[[id]]` refs (not just body paths). Stale-reference findings include relation `[[id]]` refs that no longer resolve to a live entry's filename.
 
 ## Anti-patterns
 
-- Editing the KB or the code from this skill without approval.
+- Editing the code from this skill without approval, or editing the KB beyond what `knowledge.autonomy` permits (no autonomous KB edits under `readonly`; only on approval under `ask`).
 - Treating every undocumented behavior as a defect — some code is simply below the KB's altitude.
 - Reporting findings with no proposed resolution.

@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-1.2.0-8A2BE2?style=for-the-badge" />
+    <img alt="Version" src="https://img.shields.io/badge/version-1.3.0-8A2BE2?style=for-the-badge" />
   </a>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge" />
@@ -50,17 +50,17 @@ code repo (your repo)                external vault (your storage, your tracking
 {
   "schema": "magik-repo/harness@1",
   "vault": "~/Projects/elendil-technologies-vault",
-  "knowledge": { "mount": "falconproxy/knowledge", "accessVia": "path" },
+  "knowledge": { "mount": "falconproxy/knowledge", "accessVia": "path", "autonomy": "open" },
   "memory":    { "mount": "falconproxy/memory",    "accessVia": "path" }
 }
 ```
 
-`accessVia` is `path` (local folder, default) or `mcp` (remote storage wired through your MCP config). `~` expands at resolve time. Whether the vault is user-level (many projects) or project-level (one) is **your** choice — the harness doesn't enforce it.
+`accessVia` is `path` (local folder, default) or `mcp` (remote storage wired through your MCP config). `~` expands at resolve time. `knowledge.autonomy` tunes how freely the agent writes the KB (`open` default / `ask` / `readonly` — see [Tuning KB autonomy](#-tuning-kb-autonomy)). Whether the vault is user-level (many projects) or project-level (one) is **your** choice — the harness doesn't enforce it.
 
 ## 🧭 The three rules
 
 1. **Read the KB before substantive work.** The agent resolves the KB and reads it before producing, modifying, or committing anything domain-relevant. If an active policy would be violated, it stops and surfaces it.
-2. **Don't silently restructure the KB.** It's human-authored. The agent reads always; it writes or reshapes only when you ask or approve a proposal.
+2. **Keep the KB in sync — at the autonomy you grant.** It's human-authored ground truth; `knowledge.autonomy` tunes how freely the agent maintains it. Default `open` — it keeps the KB in step with its work *without asking*, surfacing only large or destructive restructurings. See [Tuning KB autonomy](#-tuning-kb-autonomy).
 3. **Memory is the agent's; the KB is yours.** The agent writes memory freely and never auto-promotes it into the KB. Durable, shared truth belongs in the KB, not memory.
 
 ## ✨ Features
@@ -71,7 +71,9 @@ code repo (your repo)                external vault (your storage, your tracking
 
 🧠 **Agent-owned memory** — a daily log in the vault; the session-start hook injects today's notes. No promotion ceremony — past lessons are found with the agent's own search.
 
-🧹 **Two janitor commands** — `/magik-repo-kb-sanitize` heals the KB from the inside (conflicts, legacy remnants, broken links, and metadata-standard drift — tags, relations, dangling `[[id]]` refs); `/magik-repo-kb-code-sync` checks documented policies/features against the code. Both are proposal-first.
+🧹 **Two janitor commands** — `/magik-repo-kb-sanitize` heals the KB from the inside (conflicts, legacy remnants, broken links, and metadata-standard drift — tags, relations, dangling `[[id]]` refs); `/magik-repo-kb-code-sync` checks documented policies/features against the code. Both honor `knowledge.autonomy`.
+
+🎚️ **Tunable KB autonomy** — `knowledge.autonomy` in the manifest sets how hands-free the agent is with the KB: `open` (default — maintain it in sync with the work, no asking), `ask` (write only on request/approval), or `readonly` (report only). Chosen at setup; change it any time by editing the manifest.
 
 🏷️ **Recommended metadata standard** — a portable, project-agnostic convention (`kb-conventions`) for frontmatter, tagging, and relations, plus the judgment for applying it coherently. Additive only: the required floor stays `status` + `updated`; each project owns its tag vocabulary.
 
@@ -87,7 +89,7 @@ Enable the `magik-repo` plugin in Cursor (project or user scope), then run from 
 /magik-repo-setup
 ```
 
-`/magik-repo-setup` asks where your vault is (or creates one), how it's laid out (user-level vs project-level → mounts), and how the agent reaches it (`path` or `mcp`). It then writes `.cursor/harness.json`, the `AGENTS.md` primer block, a slim `.gitignore` secret block, and the session-start hook — and scaffolds the vault side (knowledge `_index.md`, memory dir). How the vault is stored or git-tracked is left entirely to you — the harness never runs `git init` or writes a vault `.gitignore`.
+`/magik-repo-setup` asks where your vault is (or creates one), how it's laid out (user-level vs project-level → mounts), how the agent reaches it (`path` or `mcp`), and how freely it may write the KB (`knowledge.autonomy`: `open` default / `ask` / `readonly`). It then writes `.cursor/harness.json`, the `AGENTS.md` primer block, a slim `.gitignore` secret block, and the session-start hook — and scaffolds the vault side (knowledge `_index.md`, memory dir). How the vault is stored or git-tracked is left entirely to you — the harness never runs `git init` or writes a vault `.gitignore`.
 
 > 🛡️ **Idempotent and safe.** Re-running `/magik-repo-setup` never overwrites your content. Marker-bounded blocks in `AGENTS.md` and `.gitignore` keep the harness's bytes cleanly separate from yours, and upgrade in place.
 
@@ -96,8 +98,20 @@ Enable the `magik-repo` plugin in Cursor (project or user scope), then run from 
 | Command | Does |
 | --- | --- |
 | 🪄 `/magik-repo-setup` | Point this repo at a vault (interactive). Writes the pointer + primer + hook; scaffolds the vault. |
-| 🧹 `/magik-repo-kb-sanitize` | Heal the KB from the inside — logical conflicts, legacy/orphaned entries, broken/obsolete links. Proposal-first. |
-| 🔍 `/magik-repo-kb-code-sync` | Check for drift between the KB and the code — documented policies/features vs. reality. Triage report. |
+| 🧹 `/magik-repo-kb-sanitize` | Heal the KB from the inside — logical conflicts, legacy/orphaned entries, broken/obsolete links. Applies per `knowledge.autonomy`. |
+| 🔍 `/magik-repo-kb-code-sync` | Check for drift between the KB and the code — documented policies/features vs. reality. Triage report; reconciles the KB per `knowledge.autonomy`. |
+
+### 🎚️ Tuning KB autonomy
+
+`knowledge.autonomy` in `.cursor/harness.json` controls how freely the agent writes the KB **on its own initiative**. Pick it at setup; change it any time by editing the manifest.
+
+| Value | What the agent does |
+| --- | --- |
+| **`open`** (default) | Maintains the KB as part of its work — adds and updates the entries a task touches to keep documentation and code from drifting, **without asking**. Large or destructive restructurings (mass renames, folder reorgs, deleting/rewriting others' entries) are still surfaced first. |
+| **`ask`** | Reads always; writes or reshapes the KB **only** when you ask, or when you approve a `/magik-repo-kb-sanitize` / `/magik-repo-kb-code-sync` proposal. |
+| **`readonly`** | Never writes the KB — reports what it would change and leaves the edit to you. |
+
+An explicit instruction always overrides the default for that action. Whatever the setting, the agent never silently reorganizes structure or rewrites your entries.
 
 ### 🧭 A typical session
 
@@ -190,7 +204,7 @@ The plugin ships a deterministic `node:test` suite (`pnpm test`) covering the se
 
 ## 🏷️ Versioning
 
-`magik-repo@1.2.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
+`magik-repo@1.3.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
 ## 📄 License
 

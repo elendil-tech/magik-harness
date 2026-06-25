@@ -5,7 +5,7 @@ description: Heal the knowledge base from the inside — find logical conflicts,
 
 Look into the knowledge base itself and keep it coherent as it evolves. Knowledge and memory live in the external vault resolved via `.cursor/harness.json` — resolve the KB mount first, then operate on it.
 
-Invoke the `kb-sanitize` skill and follow it strictly. It is **proposal-first**: it surveys the KB and produces a numbered cleanup list; it does not rewrite entries until you approve.
+Invoke the `kb-sanitize` skill and follow it strictly. It surveys the KB and produces a numbered cleanup list, then applies per `knowledge.autonomy` in `.cursor/harness.json` (default `open`): under `open` it applies the clearly-safe, additive/in-sync fixes directly and surfaces judgment-call or destructive ones; under `ask` it is proposal-first and rewrites nothing until you approve; under `readonly` it reports only.
 
 What it looks for:
 
@@ -15,4 +15,4 @@ What it looks for:
 - **Metadata coherence** — conformance to the recommended standard (`rules/kb-conventions.mdc`): frontmatter shape, tag-vocabulary drift, relation reciprocity, dangling `[[id]]` refs, deprecated-without-forward-link. Proposed, not gated.
 - **Orientation drift** — the `_index.md` map no longer reflects the KB's actual shape.
 
-Output: a short report (Conflicts, Legacy, Links, Orientation) with concrete proposed edits. Apply only the proposals the user approves.
+Output: a short report (Conflicts, Legacy, Links, Orientation) with concrete edits, applied per the `knowledge.autonomy` posture above.

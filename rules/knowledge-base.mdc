@@ -9,9 +9,13 @@ The KB is the project's **ground truth**: foundational decisions, policies, spec
 
 ## Ownership
 
-- **You (human) own it.** You decide what is true and what the KB says.
+- **You (human) own it.** You decide what is true and what the KB says; you can override the agent's edits at any time.
 - **The agent reads it** before substantive work (the `kb-search` skill), cites it, and respects active policies.
-- **The agent writes it only when asked** — when you explicitly request an entry ("add a decision for X"), or when you approve a `kb-sanitize` / `kb-code-sync` proposal. The one exception: it may autonomously **correct a verified-wrong fact** — a claim a newer KB entry or the actual code demonstrably contradicts (verified, not assumed). It never restructures, rewrites dated decision annotations, or promotes assumptions/memory on its own, and never auto-populates the KB from its own memory.
+- **The agent maintains it at the autonomy you grant.** `knowledge.autonomy` in `.cursor/harness.json` (default **`open`**) sets how freely the agent writes the KB on its own initiative:
+  - **`open`** (default) — the agent keeps the KB in sync with its work: as a task produces or changes durable knowledge, it adds or updates the relevant entries itself (following the conventions below), without asking. It still surfaces — rather than silently performs — large or destructive restructurings.
+  - **`ask`** — the agent writes or reshapes the KB only when you explicitly request it ("add a decision for X"), or when you approve a `kb-sanitize` / `kb-code-sync` proposal. (It may still autonomously correct a verified-wrong fact.)
+  - **`readonly`** — the agent never writes the KB; it reports what it would change and leaves the edit to you.
+- **Never** auto-populate the KB from the agent's own memory, and never reorganize structure or rewrite others' entries silently — surface those regardless of the autonomy setting.
 
 ## Structure floor
 
@@ -33,9 +37,11 @@ Deliberately thin — enough for a graph, not a schema system:
 
 Before any domain-relevant task, run the `kb-search` skill: resolve the KB mount, navigate the `_index.md` and relevant entries, read every `active` policy/decision/spec that bears on the task. If an action would violate an active policy, stop and surface it.
 
-## Writing (when asked)
+## Writing
 
-1. Confirm what the user wants recorded and where it belongs (ask if unclear — don't invent structure).
+Under `open` autonomy you write as part of your work; under `ask` you write on request or an approved proposal; under `readonly` you don't write at all. Whenever you do write:
+
+1. Confirm what belongs and where it goes — under `ask`, confirm with the user when the placement is unclear; under `open`, use the existing layout and don't invent new structure (surface a restructure rather than performing one).
 2. Write a Markdown file named `<id>.md` (filename basename == `id`, so `"[[id]]"` relations resolve — resolution is by filename, not alias; `rules/kb-conventions.mdc` §1.6) with the required floor (`status: active`, `updated: <today>`), then add the recommended metadata (`id`, `aliases`, `type`, `domain`, `title`, `summary`, `tags`) — applied with judgment, honest to the entry's actual content, never padded to fill fields.
 3. Link it to related entries via the frontmatter relation fields, choosing tags from the project's controlled vocabulary; if a deprecated entry is now superseded, set its `status: deprecated` and link forward (`superseded_by`).
 4. If the KB root has an `_index.md`, reflect the addition there.
@@ -45,11 +51,12 @@ Before any domain-relevant task, run the `kb-search` skill: resolve the KB mount
 - `/magik-repo-kb-sanitize` — internal coherence: contradictory `active` entries, legacy/orphaned files, broken or obsolete links, stale `_index.md`, and conformance to the recommended metadata standard (`rules/kb-conventions.mdc`) — frontmatter shape, tag-vocabulary drift, relation reciprocity, dangling `[[id]]` refs, deprecated-without-forward-link.
 - `/magik-repo-kb-code-sync` — external coherence: documented policies/features vs. what the code actually does.
 
-Both are proposal-first. Apply only what the user approves; never silently reshape the KB. Metadata is **recommended**, so propose conformance fixes — don't gate on them.
+Both honor `knowledge.autonomy`: under `ask`/`readonly` they are proposal-first (apply only what the user approves; under `readonly`, report only); under `open` the agent may apply clearly-safe, additive/in-sync fixes directly and still surfaces judgment-call or destructive ones. Never silently reshape the KB's structure. Metadata is **recommended**, so propose conformance fixes — don't gate on them.
 
 ## Anti-patterns
 
 - Auto-promoting memory or session chatter into the KB.
 - Inventing folders/taxonomy the user didn't ask for.
-- Rewriting or reorganizing existing entries without approval — except correcting a verified-wrong fact.
+- Reorganizing structure or rewriting others' entries silently — surface these regardless of the autonomy setting.
+- Writing the KB under `ask`/`readonly` without the user's go-ahead (and, conversely, pestering for permission on every in-sync edit when autonomy is `open`).
 - Answering domain questions from training priors without reading the KB.

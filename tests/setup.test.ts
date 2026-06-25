@@ -168,18 +168,71 @@ test("manifest — well-formed harness@1 with the collected mounts", () => {
     const manifest = JSON.parse(readFileSync(join(root, ".cursor", "harness.json"), "utf-8")) as {
       schema: string;
       vault: string;
-      knowledge: { mount: string; accessVia: string };
+      knowledge: { mount: string; accessVia: string; autonomy: string };
       memory: { mount: string; accessVia: string };
     };
     assert.equal(manifest.schema, "magik-repo/harness@1");
     assert.equal(manifest.vault, vault);
     assert.equal(manifest.knowledge.mount, "falconproxy/knowledge");
     assert.equal(manifest.knowledge.accessVia, "path");
+    assert.equal(manifest.knowledge.autonomy, "open", "autonomy must default to open");
     assert.equal(manifest.memory.mount, "falconproxy/memory");
     assert.equal(manifest.memory.accessVia, "path");
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(vault, { recursive: true, force: true });
+  }
+});
+
+test("kb-autonomy — defaults to open, accepts a valid value, rejects an invalid one", () => {
+  ensureBuilt();
+
+  // Default → open.
+  {
+    const root = makeTmpProject();
+    const vault = makeTmpVault();
+    try {
+      assert.equal(runHook(root, PATH_ARGS(vault)).status, 0);
+      const manifest = JSON.parse(
+        readFileSync(join(root, ".cursor", "harness.json"), "utf-8"),
+      ) as { knowledge: { autonomy: string } };
+      assert.equal(manifest.knowledge.autonomy, "open");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(vault, { recursive: true, force: true });
+    }
+  }
+
+  // Explicit value is honored.
+  {
+    const root = makeTmpProject();
+    const vault = makeTmpVault();
+    try {
+      const { status, stdout } = runHook(root, [...PATH_ARGS(vault), "--kb-autonomy", "readonly"]);
+      assert.equal(status, 0, `hook failed: ${stdout}`);
+      const manifest = JSON.parse(
+        readFileSync(join(root, ".cursor", "harness.json"), "utf-8"),
+      ) as { knowledge: { autonomy: string } };
+      assert.equal(manifest.knowledge.autonomy, "readonly");
+      assert.match(stdout, /readonly/, "plan should report the chosen autonomy");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(vault, { recursive: true, force: true });
+    }
+  }
+
+  // Invalid value fails with a clear error.
+  {
+    const root = makeTmpProject();
+    const vault = makeTmpVault();
+    try {
+      const { status, stderr } = runHook(root, [...PATH_ARGS(vault), "--kb-autonomy", "wide-open"]);
+      assert.notEqual(status, 0, "invalid autonomy must fail");
+      assert.match(stderr, /--kb-autonomy must be/i);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+      rmSync(vault, { recursive: true, force: true });
+    }
   }
 });
 

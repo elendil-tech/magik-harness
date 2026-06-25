@@ -45,7 +45,7 @@ import { fileURLToPath } from "node:url";
 
 // --- Constants ---------------------------------------------------------------
 
-const PLUGIN_VERSION = "1.2.0";
+const PLUGIN_VERSION = "1.3.0";
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(HOOK_DIR);
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");
@@ -63,6 +63,9 @@ const GITIGNORE_END_RE = /^# harness:gitignore:end$/m;
 // --- Types -------------------------------------------------------------------
 
 type AccessVia = "path" | "mcp";
+type KbAutonomy = "open" | "ask" | "readonly";
+
+const KB_AUTONOMY_VALUES: readonly KbAutonomy[] = ["open", "ask", "readonly"];
 
 interface CliArgs {
   dryRun: boolean;
@@ -71,6 +74,7 @@ interface CliArgs {
   knowledgeMount: string;
   memoryMount: string;
   accessVia: AccessVia;
+  kbAutonomy: KbAutonomy;
 }
 
 type PlanKind = "create" | "modify" | "skip" | "notice";
@@ -93,6 +97,7 @@ function parseArgs(argv: string[]): CliArgs {
   let knowledgeMount = "knowledge";
   let memoryMount = "memory";
   let accessVia: AccessVia = "path";
+  let kbAutonomy: KbAutonomy = "open";
 
   function takeValue(arg: string, inline: string | undefined, next: string | undefined): { value: string; consumedNext: boolean } {
     if (inline !== undefined) return { value: inline, consumedNext: false };
@@ -147,6 +152,17 @@ function parseArgs(argv: string[]): CliArgs {
         if (consumedNext) i++;
         break;
       }
+      case "--kb-autonomy": {
+        const { value, consumedNext } = takeValue(flag, inline, next);
+        if (!KB_AUTONOMY_VALUES.includes(value as KbAutonomy)) {
+          throw new Error(
+            `--kb-autonomy must be one of ${KB_AUTONOMY_VALUES.join(" | ")} (got "${value}")`,
+          );
+        }
+        kbAutonomy = value as KbAutonomy;
+        if (consumedNext) i++;
+        break;
+      }
       case "--version":
         console.log(`magik-repo ${PLUGIN_VERSION}`);
         process.exit(0);
@@ -161,7 +177,7 @@ function parseArgs(argv: string[]): CliArgs {
     }
   }
 
-  return { dryRun, projectRoot, vault, knowledgeMount, memoryMount, accessVia };
+  return { dryRun, projectRoot, vault, knowledgeMount, memoryMount, accessVia, kbAutonomy };
 }
 
 function printUsage(): void {
@@ -174,6 +190,8 @@ function printUsage(): void {
       "  --knowledge-mount <rel>   KB path under the vault (default: knowledge).",
       "  --memory-mount <rel>      Memory path under the vault (default: memory).",
       "  --access-via <path|mcp>   How workers reach the vault (default: path).",
+      "  --kb-autonomy <open|ask|readonly>",
+      "                            How freely the agent writes the KB (default: open).",
       "  --project-root <path>     The code repo root (default: cwd).",
       "  --dry-run                 Print the plan; do not write.",
       "  --version                 Print plugin version and exit.",
@@ -287,6 +305,7 @@ function renderManifest(args: CliArgs): string {
     .replace('"__VAULT__"', JSON.stringify(args.vault))
     .replace('"__KNOWLEDGE_MOUNT__"', JSON.stringify(args.knowledgeMount))
     .replace('"__MEMORY_MOUNT__"', JSON.stringify(args.memoryMount))
+    .replace('"__KB_AUTONOMY__"', JSON.stringify(args.kbAutonomy))
     .replace(/"__ACCESS_VIA__"/g, JSON.stringify(args.accessVia));
 }
 
@@ -313,7 +332,7 @@ function buildPlan(args: CliArgs): PlanItem[] {
     items.push({
       kind: "create",
       target: ".cursor/harness.json",
-      reason: `vault pointer → ${args.vault ?? "(mcp)"}`,
+      reason: `vault pointer → ${args.vault ?? "(mcp)"} · kb autonomy: ${args.kbAutonomy}`,
       apply: () => {
         ensureDir(dirname(manifestPath));
         writeFileSync(manifestPath, renderManifest(args));
@@ -486,6 +505,7 @@ function printPlan(args: CliArgs, items: PlanItem[]): void {
   console.log(`/magik-repo-setup — plan (magik-repo@${PLUGIN_VERSION})`);
   console.log(`  project root: ${args.projectRoot}`);
   if (args.vault) console.log(`  vault       : ${args.vault} (${args.accessVia})`);
+  console.log(`  kb autonomy : ${args.kbAutonomy}`);
   console.log("");
 
   const groups: Array<[string, PlanKind]> = [

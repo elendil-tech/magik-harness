@@ -19,8 +19,8 @@ The recommended metadata standard it checks against — frontmatter schema, tagg
 2. **Load the conventions.** Read `rules/kb-conventions.mdc` (the generic standard) and the project's `knowledge/conventions.md` if present (its tag vocabulary + local fields). Absent the latter, fall back to the generic rules.
 3. **Inventory.** List every entry; record each entry's **filename basename** and parse frontmatter (`status`, `updated`, `id`/`aliases`, `type`, `domain`, `tags`, relations); collect outbound links/wikilinks and relation targets. `[[id]]` resolves by filename (not alias — see `rules/kb-conventions.mdc` §1.6), so build the resolution map from filenames. Read the root `_index.md` if present.
 4. **Run the checks below.**
-5. **Report + propose.** Group findings; end with a numbered proposal list the user can approve in batch.
-6. **Apply approved items only**, as ordinary KB edits. Never reorganize or rewrite unapproved.
+5. **Report + propose.** Group findings; end with a numbered proposal list.
+6. **Apply per `knowledge.autonomy`** (read it from `.cursor/harness.json`; default `open`). Under **`ask`** apply only items the user approves; under **`readonly`** apply nothing (report only); under **`open`** apply the clearly-safe, additive/in-sync fixes (e.g. fix a broken link, add a missing reciprocal relation, set `superseded_by` on an already-deprecated entry, add a missing recommended field) directly, and still surface the judgment-call or destructive ones (reconciling contradictory `active` entries, deprecating an entry, deleting/renaming, `_index.md` reshapes) for the user to settle. Never reorganize structure or rewrite others' entries without surfacing it first.
 
 ## Checks
 
@@ -88,7 +88,7 @@ Apply which? (e.g. "1,3,4" / "all" / "none")
 
 ## Anti-patterns
 
-- Editing entries before the user approves.
+- Editing entries before the user approves when `knowledge.autonomy` is `ask`/`readonly` (under `open`, applying safe additive/in-sync fixes directly is expected — but not the judgment-call or destructive ones).
 - Inventing new structure/taxonomy under the guise of cleanup.
 - Touching memory or code (that's out of scope — see `kb-code-sync`).
 - Deleting an entry outright when deprecate-and-link preserves history.

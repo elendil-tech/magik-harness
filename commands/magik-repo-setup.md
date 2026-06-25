@@ -16,6 +16,7 @@ Ask the user, one compact prompt at a time, and accept sensible defaults:
    - User-level → knowledge mount like `<project>/knowledge`, memory mount like `<project>/memory`.
    - Single-project → knowledge mount `knowledge`, memory mount `memory`.
 3. **Access.** Local path (default) or remote via MCP? Choose `mcp` only for remote storage; then vault scaffolding is skipped and the mounts are logical ids wired through the user's MCP config.
+4. **KB autonomy.** How freely should the agent write the knowledge base on its own initiative? Default **`open`** — the agent keeps the KB in sync with its work (adding/updating entries as it goes) without asking, surfacing only large or destructive restructurings. Offer the two tighter postures: **`ask`** (write only on explicit request or an approved `kb-sanitize` / `kb-code-sync` proposal) and **`readonly`** (never write — only report). When unsure, keep the `open` default.
 
 ## 2. Invoke the hook
 
@@ -27,7 +28,8 @@ npx --yes tsx ~/.cursor/plugins/local/magik-repo/hooks/setup.ts \
   --vault <vault-path> \
   --knowledge-mount <knowledge-mount> \
   --memory-mount <memory-mount> \
-  --access-via <path|mcp> [--dry-run]
+  --access-via <path|mcp> \
+  --kb-autonomy <open|ask|readonly> [--dry-run]
 ```
 
 Surface the hook's stdout and exit code verbatim.

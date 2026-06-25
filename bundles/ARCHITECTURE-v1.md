@@ -39,7 +39,7 @@ Tracked in the code repo, so every git worktree of the clone resolves the **same
 {
   "schema": "magik-repo/harness@1",
   "vault": "~/Projects/elendil-technologies-vault",
-  "knowledge": { "mount": "falconproxy/knowledge", "accessVia": "path" },
+  "knowledge": { "mount": "falconproxy/knowledge", "accessVia": "path", "autonomy": "open" },
   "memory":    { "mount": "falconproxy/memory",    "accessVia": "path" }
 }
 ```
@@ -47,6 +47,7 @@ Tracked in the code repo, so every git worktree of the clone resolves the **same
 - `vault` — the vault root; a leading `~` expands to the home directory.
 - `mount` — path under the vault (for `accessVia: path`) or a logical store id (for `accessVia: mcp`).
 - `accessVia` — `path` (local folder, default) or `mcp` (remote storage wired through the user's MCP config; `vault` may be null).
+- `knowledge.autonomy` — how freely the agent writes the KB on its own initiative: `open` (default — keep the KB in sync with the work, surfacing only large/destructive restructurings), `ask` (write only on request or an approved proposal), or `readonly` (report only). Absent/unrecognized → `open`. Additive and backward-compatible; the schema is unchanged.
 
 It is the user's choice whether the vault is user-level (many projects) or project-level (one). The harness enforces neither — the mounts point the agent at the right place; it may navigate wider when useful. A per-machine override can live in a gitignored `.cursor/harness.local.json` if the tracked path doesn't suit every clone.
 
@@ -55,7 +56,7 @@ It is the user's choice whether the vault is user-level (many projects) or proje
 Only the contract above plus three behaviors (full text in `rules/harness.mdc`):
 
 1. **Read the KB before substantive work** (the `kb-search` skill).
-2. **Don't silently restructure the KB** — it's human-authored; the agent writes/reshapes it only on request or approved proposal.
+2. **Keep the KB in sync — at the autonomy the manifest grants** — it's human-authored ground truth; `knowledge.autonomy` (default `open`) tunes how freely the agent maintains it on its own initiative (`open` / `ask` / `readonly`). Large or destructive restructurings are always surfaced first.
 3. **Memory is the agent's; the KB is the human's** — write memory freely, never auto-promote it into the KB; durable shared truth belongs in the KB.
 
 ## 5. Structure floor
@@ -77,7 +78,7 @@ No five schemas, no registry spine, no promotion, no trust/quarantine, no propos
 
 ## 7. Setup flow
 
-`/magik-repo-setup` is a short Q&A (vault path; user- vs project-level layout → mounts; path vs mcp), then the `hooks/setup.ts` hook performs deterministic writes:
+`/magik-repo-setup` is a short Q&A (vault path; user- vs project-level layout → mounts; path vs mcp; `knowledge.autonomy` → `open` default / `ask` / `readonly`), then the `hooks/setup.ts` hook performs deterministic writes:
 
 - **Repo side:** `.cursor/harness.json`, marker-bounded `AGENTS.md` primer, slim `.gitignore` secret block, `.cursor/hooks/session-start.js` + `.cursor/hooks.json`.
 - **Vault side (path):** `<vault>/<knowledge-mount>/_index.md` and `<vault>/<memory-mount>/`. The harness does not touch the vault's git tracking — no `git init`, no vault `.gitignore`; how the vault is stored or tracked is the user's choice.

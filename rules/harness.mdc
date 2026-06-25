@@ -24,7 +24,7 @@ A tracked manifest in this repo names the vault and the mounts. Tracked so every
 {
   "schema": "magik-repo/harness@1",
   "vault": "~/Projects/elendil-technologies-vault",
-  "knowledge": { "mount": "falconproxy/knowledge", "accessVia": "path" },
+  "knowledge": { "mount": "falconproxy/knowledge", "accessVia": "path", "autonomy": "open" },
   "memory":    { "mount": "falconproxy/memory",    "accessVia": "path" }
 }
 ```
@@ -34,6 +34,7 @@ A tracked manifest in this repo names the vault and the mounts. Tracked so every
 - Read `.cursor/harness.json`. Expand a leading `~` in `vault` to the home directory.
 - `accessVia: path` (default) → the store is the filesystem path `join(vault, mount)`. Navigate it with your normal tools (Read / Grep / semantic search / list).
 - `accessVia: mcp` → the store is remote; `vault` may be null and `mount` is a logical id wired through the user's MCP config. Reach it via that MCP server.
+- `knowledge.autonomy` (default `open`) → how freely you may write the KB on your own initiative (see rule 2). If the field is absent or unrecognized, treat it as `open`.
 - **Graceful degradation:** if the vault path is missing or a remote store is unreachable, say so and proceed with what you have — never block the task. If the manifest itself is absent, the repo simply isn't harnessed; offer `/magik-repo-setup`.
 
 It is the user's choice whether the vault is user-level (many projects) or project-level (one). The harness does not enforce either — the `mount` paths point you at the right place; you may navigate wider in the vault when it helps.
@@ -43,7 +44,11 @@ It is the user's choice whether the vault is user-level (many projects) or proje
 Almost nothing — that's the point. The rules are:
 
 1. **Read the KB before substantive work.** Before producing, modifying, or committing anything domain-relevant, search the knowledge base (the `kb-search` skill). Your training priors are not this project's ground truth. Skipping this because "I already know" is the one failure mode the harness exists to catch.
-2. **Don't silently restructure the KB.** The KB is human-authored. You read it always, and reshape it **only when asked** (or when the user approves a `kb-sanitize` / `kb-code-sync` proposal). One narrow exception: you may autonomously **correct a verified-wrong fact** — a claim a newer KB entry or the actual code demonstrably contradicts (verified, not assumed). Restructuring or reorganizing, rewriting dated/historical decision annotations, and promoting assumptions, memory, or merely-stale-looking content all still need the user's go-ahead. Adding a note the user explicitly requests is fine; quietly reorganizing folders, renaming entries, or rewriting others' entries is not.
+2. **Keep the KB in sync — at the autonomy the manifest grants.** The KB is human-authored ground truth; how freely you maintain it on your own initiative is tuned by `knowledge.autonomy` in the manifest (default **`open`**):
+   - **`open`** (default) — keep the KB in step with your work *without asking*. When the work you're doing produces or changes durable knowledge (a decision made, a policy clarified, a spec that now matches the code, a fact the code contradicts), create or update the relevant entries as part of the same task, following `rules/knowledge-base.mdc` and `rules/kb-conventions.mdc`. The point is to stop documentation and code from drifting. You still **surface rather than silently perform** large or destructive moves: mass renames, folder reorganizations, deleting entries, or rewriting unrelated human-authored entries wholesale. Routine additive and in-sync edits need no permission.
+   - **`ask`** — read always; write or reshape the KB **only when the user asks**, or when they approve a `kb-sanitize` / `kb-code-sync` proposal. (You may still autonomously correct a *verified-wrong* fact.)
+   - **`readonly`** — never write the KB; report what you'd change and let the human apply it.
+   An explicit instruction always wins over the configured default for that action. Whatever the setting, never quietly reorganize the KB's structure or rewrite others' entries — surface that first.
 3. **Memory is yours; the KB is theirs.** Write observations and lessons to memory freely. Never auto-promote memory into the KB — when a past memory note is useful later, find it with your own search. Durable, shared truth belongs in the KB, not memory; if a memory note should become ground truth, offer to record it there instead.
 
 ## Commands
