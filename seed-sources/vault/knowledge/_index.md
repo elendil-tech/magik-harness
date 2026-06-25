@@ -23,6 +23,11 @@ _Nothing here yet. Start adding entries and sketch the layout below._
 ## Conventions
 
 - Markdown files, free-form folders.
-- Light frontmatter on each entry: `status: active | deprecated` and `updated: <date>`.
-- Cross-link related entries with relative links or `[[wikilinks]]`.
-- When an entry is superseded, set `status: deprecated` and link forward to the successor.
+- Light frontmatter on each entry: `status: active | deprecated` and `updated: <date>` — the only required floor.
+- Recommended metadata (frontmatter schema, tagging, relations) and the judgment for applying it: see the harness rule `kb-conventions`. It's additive convention, not a gate.
+- Cross-link related entries — the canonical relation graph lives in frontmatter (`related`, `supersedes`/`superseded_by`, …); body prose may also use relative links or `[[wikilinks]]`.
+- When an entry is superseded, set `status: deprecated` and add `superseded_by` linking forward to the successor.
+
+### This project's vocabulary
+
+Maintain this project's controlled **tag vocabulary** (and any project-local field conventions, e.g. extra `type` values) in a `conventions.md` here. The harness rule ships the generic rules; this file owns the specifics. Start one once your tag set is worth pinning down.

@@ -12,6 +12,7 @@ What it looks for:
 - **Logical conflicts** — two `active` entries that contradict each other; pick the survivor or reconcile.
 - **Legacy remnants** — entries that should be `deprecated`/removed, stale `updated` dates, orphaned files nothing links to.
 - **Linking integrity** — broken relative links / wikilinks, links pointing at deprecated entries, missing back-links.
+- **Metadata coherence** — conformance to the recommended standard (`rules/kb-conventions.mdc`): frontmatter shape, tag-vocabulary drift, relation reciprocity, dangling `[[id]]` refs, deprecated-without-forward-link. Proposed, not gated.
 - **Orientation drift** — the `_index.md` map no longer reflects the KB's actual shape.
 
 Output: a short report (Conflicts, Legacy, Links, Orientation) with concrete proposed edits. Apply only the proposals the user approves.

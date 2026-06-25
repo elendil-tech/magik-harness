@@ -1,5 +1,28 @@
 # magik-repo
 
+## 1.1.0 — 2026-06-25
+
+Tracks `harness@1`. **The KB metadata convention.** Adds a recommended, portable metadata standard for knowledge-base entries — frontmatter schema, tagging, and relations — plus the **judgment** for applying it coherently, and wires it into every agent-interaction point (writes, sanitize, code-sync). Purely additive: the required floor stays `status` + `updated`; everything new is *recommended*, never a schema gate. Generic and project-agnostic — each project owns its own tag vocabulary in its `knowledge/conventions.md`.
+
+### Added
+
+- **`rules/kb-conventions.mdc`** (new agent-requestable rule) — the recommended metadata standard and the judgment for it:
+  - **Frontmatter schema** — tiny required floor (`status`, `updated`) plus recommended fields (`id`, `aliases` = `[id]` so `[[id]]` resolves path-independently, `type` enum, `domain`, `title`, `summary`, `tags`, relations); canonical field order; `status` lifecycle; "omit empty relation fields".
+  - **Tagging** — `lowercase-kebab-case`, ~3–7 per entry, a project-controlled vocabulary, no tags that restate structured fields, optional lifecycle/area/topic facets.
+  - **Relations** — canonical fields `related` (symmetric), `supersedes`/`superseded_by`, `implements`/`implemented_by`, `depends_on` (directional); `"[[id]]"` reference form; no self-refs; deprecation must link forward via `superseded_by` when a successor exists; frontmatter is the canonical home.
+  - **Judgment (§4)** — how to decide relations/tags/scope/`type`/`domain` honestly and consistent with context, when to add a relation vs not, when to split vs merge an entry, and to surface ambiguity rather than fabricate metadata.
+  - **Per-project vocabulary (§5)** — each project maintains its controlled tag vocabulary + local field conventions in its own `knowledge/conventions.md`; the harness ships only the generic rules.
+
+### Changed
+
+- **`rules/knowledge-base.mdc`** — the structure floor now points at `kb-conventions` for the recommended schema/links; **Writing** applies the recommended metadata with judgment; **Maintaining** lists the new metadata-coherence checks. The required floor is unchanged (`status` + `updated`).
+- **`skills/kb-sanitize`** — new **Metadata**, **Tags**, **Relations**, and **Deprecation** checks (frontmatter conformance, tag-vocabulary drift, relation reciprocity, dangling/phantom `[[id]]` refs, deprecated-without-forward-link); loads `kb-conventions` + the project's `conventions.md` first; proposals stay proposal-first and never gate on recommended metadata.
+- **`skills/kb-code-sync`** — KB-edit reconciliations now follow `kb-conventions` (honest `type`/`domain`/`summary`/`tags`, frontmatter relations), and stale-reference findings include relation/`[[id]]` refs that no longer resolve.
+- **`skills/kb-search`** — read-time navigation now uses frontmatter relations + `[[id]]` refs and follows `superseded_by` forward links.
+- **`commands/magik-repo-kb-sanitize.md`** — adds a "Metadata coherence" line to what the sanitize pass looks for.
+- **`seed-sources/vault/knowledge/_index.md`** — the scaffold's Conventions section references `kb-conventions` and prompts the project to keep its tag vocabulary in a `conventions.md`.
+- **Version** — `magik-repo@1.1.0`; still ships `harness@1` content (the manifest schema is unchanged).
+
 ## 1.0.0 — 2026-06-23
 
 Tracks `harness@1`. **The light harness — a clean break.** The repo goes back to being a normal **code repo** that carries only a tracked vault pointer, a slim `AGENTS.md` primer, a `.gitignore` secret block, and a session-start hook. Knowledge (git-tracked) and memory (gitignored) move **out of the repo** into an external **vault** and become *services* the agent connects to. The harness becomes a **pointer plus a janitor**: it resolves the stores, gates the agent on reading the KB first, and offers two cleanup commands. The five-component model, five KB schemas, domain registry, memory→KB promotion, and the trust/quarantine + propose-then-apply governance system are **removed**. No backwards-compatibility constraints. Full design: [`bundles/ARCHITECTURE-v1.md`](./bundles/ARCHITECTURE-v1.md).

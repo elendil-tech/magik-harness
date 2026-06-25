@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-1.0.0-8A2BE2?style=for-the-badge" />
+    <img alt="Version" src="https://img.shields.io/badge/version-1.1.0-8A2BE2?style=for-the-badge" />
   </a>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge" />
@@ -73,7 +73,9 @@ code repo (your repo)                external vault (your choice of location)
 
 🧠 **Agent-owned memory** — a gitignored daily log in the vault; the session-start hook injects today's notes. No promotion ceremony — past lessons are found with the agent's own search.
 
-🧹 **Two janitor commands** — `/magik-repo-kb-sanitize` heals the KB from the inside (conflicts, legacy remnants, broken links); `/magik-repo-kb-code-sync` checks documented policies/features against the code. Both are proposal-first.
+🧹 **Two janitor commands** — `/magik-repo-kb-sanitize` heals the KB from the inside (conflicts, legacy remnants, broken links, and metadata-standard drift — tags, relations, dangling `[[id]]` refs); `/magik-repo-kb-code-sync` checks documented policies/features against the code. Both are proposal-first.
+
+🏷️ **Recommended metadata standard** — a portable, project-agnostic convention (`kb-conventions`) for frontmatter, tagging, and relations, plus the judgment for applying it coherently. Additive only: the required floor stays `status` + `updated`; each project owns its tag vocabulary.
 
 📦 **Pure additive install** — drops into existing repos with no migrations and no lock-in. The repo footprint is tiny: a pointer, a primer block, a `.gitignore` secret block, and one hook.
 
@@ -118,7 +120,7 @@ You:   /magik-repo-kb-code-sync   → reports where the code and the documented 
 
 ## 🧰 What ships
 
-📜 **3 agent-requestable rules** (`rules/*.mdc`) — `harness` (the operating model + manifest resolution + the three rules), `knowledge-base` (read/maintain the human-authored KB + structure floor), `memory` (the agent-owned log, no promotion).
+📜 **4 agent-requestable rules** (`rules/*.mdc`) — `harness` (the operating model + manifest resolution + the three rules), `knowledge-base` (read/maintain the human-authored KB + structure floor), `memory` (the agent-owned log, no promotion), `kb-conventions` (the recommended metadata standard — frontmatter, tags, relations — + the judgment for it).
 
 🧪 **3 framework skills** — `kb-search` (read-first gate), `kb-sanitize` (internal KB coherence), `kb-code-sync` (KB ↔ code drift).
 
@@ -158,7 +160,7 @@ pnpm clean
 ├── .cursor-plugin/plugin.json     # plugin manifest
 ├── assets/                        # banner, logo, social card
 ├── commands/*.md                  # /magik-repo-setup, /magik-repo-kb-sanitize, /magik-repo-kb-code-sync (authored)
-├── rules/*.mdc                    # harness, knowledge-base, memory (authored)
+├── rules/*.mdc                    # harness, knowledge-base, memory, kb-conventions (authored)
 ├── skills/<name>/SKILL.md         # kb-search, kb-sanitize, kb-code-sync (authored)
 ├── hooks/setup.ts                 # the /magik-repo-setup hook (authored)
 ├── scripts/                       # build & install tooling (authored)
@@ -190,7 +192,7 @@ The plugin ships a deterministic `node:test` suite (`pnpm test`) covering the se
 
 ## 🏷️ Versioning
 
-`magik-repo@1.0.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
+`magik-repo@1.1.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
 ## 📄 License
 

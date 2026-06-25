@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "fileCount": 7,
   "entries": [
     {
@@ -28,7 +28,7 @@
     },
     {
       "path": "vault/knowledge/_index.md",
-      "sha256": "68ac72ff8bb6d346170408ecb89c8daa32459c245b8b24819e11f273cd2c0746"
+      "sha256": "95cd70262e26330329ec3fe0c624eea5de2eb784e5904cf713e42ec595b185b1"
     }
   ]
 }

@@ -21,7 +21,7 @@ The pre-task gate over the knowledge base. The KB is the project's ground truth;
 1. **Resolve the KB.** Read `.cursor/harness.json`. Expand `~` in `vault`; the KB lives at `join(vault, knowledge.mount)` (for `accessVia: path`) or behind the MCP server (for `accessVia: mcp`). If the manifest is absent, the repo isn't harnessed — offer `/magik-repo-setup` and proceed without the gate.
 2. **Orient.** Read the KB root `_index.md` if present to learn the layout.
 3. **Navigate to relevance.** Use the best available tool: semantic search over the KB folder, `Grep` for the query's nouns/verbs, `Glob`/list to find candidate files. Open the entries that actually bear on the task.
-4. **Honor status.** Prefer `status: active` entries. If an entry is `deprecated`, follow its forward link to the current one. Treat memory hits (from the memory mount) as *context*, never as authority.
+4. **Honor status.** Prefer `status: active` entries. If an entry is `deprecated`, follow its `superseded_by` forward link to the current one. Use frontmatter relations (`related`, `depends_on`, `implements`/`implemented_by`) and `[[id]]` refs to traverse to neighbouring truth when they help (see `rules/kb-conventions.mdc`). Treat memory hits (from the memory mount) as *context*, never as authority.
 5. **Surface conflicts.** If an `active` policy/decision would be **violated** by the task, stop and surface it before proceeding. If one is merely *relevant*, read it before acting so you don't contradict or duplicate it.
 6. **Degrade gracefully.** If the vault path is missing or the remote store is unreachable, say so and proceed with what you have — never block.
 

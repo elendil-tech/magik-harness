@@ -1,0 +1,175 @@
+---
+description: The KB metadata standard — frontmatter schema, tagging, and relations — plus the judgment for applying them coherently. Read this when writing or editing KB entries, and when running kb-sanitize / kb-code-sync. All recommendations sit above the tiny required floor; each project owns its own tag vocabulary.
+alwaysApply: false
+---
+
+# KB metadata conventions
+
+This is the harness's **recommended** metadata standard for knowledge-base entries: the frontmatter schema, the tagging standard, and the relations standard — plus the **judgment** for applying them coherently rather than mechanically. It is generic and portable; the project owns the specifics (its tag vocabulary and any extra field conventions) in its own `knowledge/conventions.md` (see §5).
+
+> **Relationship to the floor.** `rules/knowledge-base.mdc` requires only `status` + `updated`. Everything here is **additive convention, not a schema gate**. The required floor stays tiny on purpose; the rest is *recommended* so the graph stays useful without becoming rigid. An entry that carries only `status` + `updated` is still valid — apply the rest with judgment, and propose (never silently impose) it when maintaining.
+
+---
+
+## 1. Frontmatter schema
+
+Every **entry** (a content `.md` file) carries YAML frontmatter. `_index.md` orientation maps are exempt — they may carry just `status` + `updated`, or nothing.
+
+### 1.1 Field set
+
+| Field | Tier | Type / format | Notes |
+| --- | --- | --- | --- |
+| `status` | **required** | enum: `active` \| `deprecated` | The only lifecycle gate. `draft` is an optional pre-publication value (see 1.3). |
+| `updated` | **required** | ISO date `YYYY-MM-DD` | The last **substantive** change to the entry's *content*, not mechanical reformatting. |
+| `id` | recommended | `kebab-case`, stable, path-independent | The entry's permanent handle. Relations point at `id`, so it must not change when files move. |
+| `aliases` | recommended | list, **`[id]`** | Exactly the entry's own `id`, so wikilink resolvers resolve `[[id]]` regardless of path. |
+| `type` | recommended | enum (see 1.2) | The entry's kind. |
+| `domain` | recommended | `kebab-case` | The area the entry belongs to (usually mirrors its folder). |
+| `title` | recommended | quoted string | Human title. If absent, the body `# H1` serves. |
+| `summary` | recommended | one-line string | One-sentence "what this is", for search/preview. |
+| `tags` | recommended | flow list, controlled vocab (see §2) | A small set of lowercase-kebab tags. |
+| relations | recommended | see §3 | `related`, `supersedes`/`superseded_by`, `implements`/`implemented_by`, `depends_on`. |
+
+**Type-specific fields** are allowed and unconstrained — carry whatever a given `type` needs (e.g. `decision`/`alternatives`/`consequences`/`deciders` for a decision; `enforcement`/`applies_to`/`scope`/`exceptions` for a policy; `severity`/`recurrence` for a fieldnote; `version`/`owner` for a specification). They sit between `summary` and the relations block.
+
+### 1.2 `type` enum
+
+| `type` | Meaning |
+| --- | --- |
+| `concept` | Explanatory / contextual entry — an overview, model, framing, or durable background. |
+| `decision` | A recorded decision (ADR-style), usually dated, with context + alternatives + consequences. |
+| `specification` | A precise description of how something is built or behaves — a contract, design spec, or interface. |
+| `policy` | A normative rule that must be followed; typically carries `enforcement` and `applies_to`. |
+| `fieldnote` | An observation or lesson from operations/incidents; typically carries `severity` + `recurrence`. |
+
+A project may extend this enum in its own `conventions.md`, but prefer reusing a generic kind over inventing a near-synonym.
+
+### 1.3 `status` lifecycle
+
+- `active` — current ground truth.
+- `deprecated` — no longer current. **MUST** carry `superseded_by` pointing at the successor entry **when a successor exists**. If the entry was obsoleted with no replacement, `superseded_by` may be omitted, but the body should say *why* it's gone.
+- `draft` — optional, pre-publication. Not part of the required floor; use it for entries not yet adopted, and promote to `active` (or delete) once settled.
+
+### 1.4 Canonical field order
+
+For consistency, emit fields in this order (omit any that don't apply):
+
+```
+id → aliases → type → domain → title → status → updated → summary
+→ [type-specific fields]
+→ implements → implemented_by → supersedes → superseded_by → depends_on → related
+→ tags
+```
+
+### 1.5 Empty fields
+
+Do **not** carry empty placeholder relation fields (`supersedes: []`, `related: []`). Omit a relation field entirely when it has no members — absence and emptiness should read the same.
+
+---
+
+## 2. Tagging standard
+
+Tags are a **secondary, faceted index** over the KB — they complement `domain` and the folder tree, they don't replace them.
+
+### 2.1 Rules
+
+1. **Format.** `lowercase-kebab-case`. Words separated by hyphens, never spaces or underscores (`cause-class`, not `cause_class` or `cause class`).
+2. **Count.** Keep it small — aim for roughly **3–7** tags per entry. Too few under-indexes; too many dilutes.
+3. **Controlled vocabulary.** Prefer an existing canonical tag over inventing a near-synonym. New tags are fine when a genuinely new topic appears; synonyms of existing tags are not. The canonical list is the **project's** (see §5).
+4. **De-duplicate.** No repeats within an entry; **no tag that merely restates a structured field** (don't tag `p0`/`severity-high` when a `priority`/`severity` field already carries it; don't tag the `domain` value).
+5. **Retire dead context.** Drop tags for things the project has migrated away from, except on entries that are explicitly historical and document that (now past) reality.
+
+### 2.2 Facets (an aid, not a schema)
+
+Tags stay coherent when each one answers a known question. Three optional facets that together land in the 3–7 range:
+
+- **Lifecycle / role** (≤1): what *kind* of knowledge this is as a reader signal — e.g. `foundational`, `gotcha`, `runbook`, `reference`, `historical`. (Distinct from `type`, which is structural; these are search-time signals.)
+- **Area** (0–2): the subject area, when it adds cross-domain findability beyond `domain`.
+- **Topic** (2–5): the concrete subjects — mechanisms, vendors, protocols, concepts.
+
+---
+
+## 3. Relations standard
+
+Relations form the KB's link graph. They live in **frontmatter** (the canonical home), referencing entries by `id` in **wikilink form**.
+
+### 3.1 Reference format
+
+- Always **`"[[id]]"`** — a quoted wikilink to the target's `id` (resolved via the target's `aliases`). Never a relative path, never a bare id, in relation fields. (Relative-path links remain fine *in body prose*; see 3.5.)
+- **No self-references.** An entry never lists its own `id`.
+- One target appears at most once per field.
+
+### 3.2 Relation fields
+
+| Field | Meaning | Reciprocal |
+| --- | --- | --- |
+| `related` | Symmetric "see also" — a relevant neighbour, no hierarchy. | `related` (A↔B) |
+| `supersedes` | This entry replaces an older one. | `superseded_by` |
+| `superseded_by` | This entry is replaced by a newer one (set on the `deprecated` entry). | `supersedes` |
+| `implements` | This entry realizes a spec/policy/decision. | `implemented_by` |
+| `implemented_by` | This entry (a spec/policy) is realized by another. | `implements` |
+| `depends_on` | This entry's truth depends on another being true (directional, **not** symmetric). | *(none required)* |
+
+### 3.3 Reciprocity
+
+- `related` is **symmetric**: if A lists B, B should list A. When healing, add the missing back-link *only* when the pairing is clearly mutual — don't fabricate links to force symmetry.
+- `supersedes` ↔ `superseded_by` and `implements` ↔ `implemented_by` are **reciprocal pairs**: set both sides.
+- `depends_on` is directional; no back-link is required.
+
+### 3.4 Deprecation rule
+
+- A `deprecated` entry **MUST** carry `superseded_by → successor` when a successor exists; the successor carries `supersedes → this`.
+- `active` entries should point at the **current** successor, not a superseded entry. When healing, if a `related` target is now `deprecated` and has a `superseded_by`, repoint to the successor.
+- A `deprecated` entry with no successor keeps `status: deprecated` with no `superseded_by`; note *why* in the body.
+
+### 3.5 Canonical home: frontmatter
+
+Relations live in **frontmatter**, not a body "Relationships" section — one canonical, machine-readable home avoids drift between two lists. Body prose may still link to other entries inline (relative links or `[[id]]`) where it aids reading; those are narrative, not the relation graph.
+
+---
+
+## 4. Judgment — applying the standard coherently
+
+The schema above is the *grammar*; this section is the *taste*. Metadata is only useful when it is **honest and consistent with the entry's actual content and the surrounding KB**. Apply it the way a careful librarian would, not as a checklist to maximize.
+
+### 4.1 Relations: link the real dependency, not every neighbour
+
+- **Add a relation when the graph would mislead without it** — a reader on entry A genuinely needs B to act correctly, or B is the authoritative source A defers to. Add `depends_on` when A's claims stop being true if B changes; `implements`/`implemented_by` when one entry is the spec and another is its realization; `supersedes`/`superseded_by` when one truly replaces another.
+- **Don't add a relation just because two entries share a topic** — that's what `tags` and `domain` are for. `related` is for a meaningful "you'll also want this", not "these both mention auth". A handful of high-signal links beats a dense mat of weak ones.
+- **Keep direction honest.** `depends_on` points from the dependent to the depended-upon; don't invert it to look symmetric. Reserve `related` for genuinely peer relationships.
+- **Repoint, don't accumulate.** When a target is deprecated, move the link to its successor rather than keeping both. Stale links to dead entries are worse than no link.
+
+### 4.2 Tags: describe, don't duplicate or sprawl
+
+- **Choose from the project's vocabulary first.** Reach for an existing canonical tag before coining one. Coin a new tag only when a genuinely new topic appears that no existing tag covers — and then it becomes part of the vocabulary (record it; see §5).
+- **Tag what the entry is *about*, at the altitude a searcher would use** — not every noun it mentions. If a tag wouldn't help someone *find* this entry among its siblings, it's noise.
+- **Don't restate structured fields as tags** (`type`, `domain`, `status`, `priority`, `severity` are already indexed). Tags add a *different* axis, not a copy of one you already have.
+- **Prefer the canonical synonym.** If the vocabulary maps `billing → payments`, use `payments`. Drift in tag spelling fragments the index silently.
+
+### 4.3 Scope: one coherent claim per entry
+
+- **An entry should answer one question well.** If you can't write a one-line `summary` that honestly covers the whole file, it's probably two entries — **split** it, and connect the parts with `related` (or `implements`/`depends_on` if there's a real hierarchy).
+- **Conversely, don't shatter a single idea** across many thin stubs that each say almost nothing. If two entries can't stand alone without constantly cross-referencing each other, **merge** them.
+- **Match scope to `type`.** A `decision` records *one* decision with its context and consequences; a `policy` states *one* rule; a `specification` describes *one* thing's behavior. When an entry's body has outgrown its `type`, fix the `type` or split the entry — don't let a "decision" quietly become a sprawling design doc.
+
+### 4.4 `type` and `domain`: keep them honest
+
+- **`type` reflects what the entry *is*, not what you wish it were.** A page of observations from an incident is a `fieldnote`, even if it lives in a "decisions" folder. If the content and the `type` disagree, the content wins — change the `type` (and propose moving the file if `domain`/folder now mislead).
+- **`domain` usually mirrors the folder**, but it tracks the *subject*, not the path. If a file was filed under the wrong area, the fix is to correct placement, not to bend `domain` to match a bad location.
+- **`status` and `updated` must tell the truth.** Bump `updated` only on substantive content change. Flip to `deprecated` the moment an entry stops being current — and link forward — rather than leaving a stale entry `active` because no one revisited it.
+
+### 4.5 When unsure
+
+Convention serves coherence, not the other way around. If applying a field would force a dishonest value (a `type` that doesn't fit, a relation that overstates a link), **omit it and note the uncertainty** rather than inventing structure. During maintenance, surface the ambiguity as a proposal for the human to settle — never silently impose a guess (see `rules/knowledge-base.mdc`, `skills/kb-sanitize`).
+
+---
+
+## 5. Per-project vocabulary and conventions
+
+The harness ships the **generic rules** above; each project owns its **specifics**:
+
+- **Controlled tag vocabulary.** Maintain the canonical tag list — grouped by facet (§2.2) — plus a synonym→canonical mapping and a note of any retired tags, in the project's `knowledge/conventions.md`. The §2 rules point *at* that list; they don't contain it.
+- **Project field conventions.** Any extension to the `type` enum (§1.2) or extra type-specific fields a project standardizes on belong in the same `knowledge/conventions.md`, marked clearly as project-local.
+- **Consolidation is a one-pass edit.** When merging synonyms or retiring tags, record the mapping in `conventions.md` and apply it across all entries in a single proposal, so the index never sits half-migrated.
+
+If a project has no `knowledge/conventions.md` yet, the generic standard here is enough to start; create one when the tag vocabulary is worth pinning down.
