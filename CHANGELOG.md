@@ -7,7 +7,7 @@ Tracks `harness@1`. **The KB metadata convention.** Adds a recommended, portable
 ### Added
 
 - **`rules/kb-conventions.mdc`** (new agent-requestable rule) — the recommended metadata standard and the judgment for it:
-  - **Frontmatter schema** — tiny required floor (`status`, `updated`) plus recommended fields (`id`, `aliases` = `[id]` so `[[id]]` resolves path-independently, `type` enum, `domain`, `title`, `summary`, `tags`, relations); canonical field order; `status` lifecycle; "omit empty relation fields".
+  - **Frontmatter schema** — tiny required floor (`status`, `updated`) plus recommended fields (`id` — the path-independent handle **and** the filename basename `<id>.md`, so `"[[id]]"` resolves by filename; `aliases` for autocomplete/discoverability only — they do **not** resolve `[[id]]`; `type` enum, `domain`, `title`, `summary`, `tags`, relations); canonical field order; `status` lifecycle; "omit empty relation fields".
   - **Tagging** — `lowercase-kebab-case`, ~3–7 per entry, a project-controlled vocabulary, no tags that restate structured fields, optional lifecycle/area/topic facets.
   - **Relations** — canonical fields `related` (symmetric), `supersedes`/`superseded_by`, `implements`/`implemented_by`, `depends_on` (directional); `"[[id]]"` reference form; no self-refs; deprecation must link forward via `superseded_by` when a successor exists; frontmatter is the canonical home.
   - **Judgment (§4)** — how to decide relations/tags/scope/`type`/`domain` honestly and consistent with context, when to add a relation vs not, when to split vs merge an entry, and to surface ambiguity rather than fabricate metadata.
@@ -16,7 +16,7 @@ Tracks `harness@1`. **The KB metadata convention.** Adds a recommended, portable
 ### Changed
 
 - **`rules/knowledge-base.mdc`** — the structure floor now points at `kb-conventions` for the recommended schema/links; **Writing** applies the recommended metadata with judgment; **Maintaining** lists the new metadata-coherence checks. The required floor is unchanged (`status` + `updated`).
-- **`skills/kb-sanitize`** — new **Metadata**, **Tags**, **Relations**, and **Deprecation** checks (frontmatter conformance, tag-vocabulary drift, relation reciprocity, dangling/phantom `[[id]]` refs, deprecated-without-forward-link); loads `kb-conventions` + the project's `conventions.md` first; proposals stay proposal-first and never gate on recommended metadata.
+- **`skills/kb-sanitize`** — new **Metadata**, **Tags**, **Relations**, **Filenames**, and **Deprecation** checks (frontmatter conformance, tag-vocabulary drift, relation reciprocity, dangling/phantom `[[id]]` refs, filename-basename ≠ `id` mismatches that break `[[id]]` resolution, deprecated-without-forward-link); loads `kb-conventions` + the project's `conventions.md` first; proposals stay proposal-first and never gate on recommended metadata.
 - **`skills/kb-code-sync`** — KB-edit reconciliations now follow `kb-conventions` (honest `type`/`domain`/`summary`/`tags`, frontmatter relations), and stale-reference findings include relation/`[[id]]` refs that no longer resolve.
 - **`skills/kb-search`** — read-time navigation now uses frontmatter relations + `[[id]]` refs and follows `superseded_by` forward links.
 - **`commands/magik-repo-kb-sanitize.md`** — adds a "Metadata coherence" line to what the sanitize pass looks for.

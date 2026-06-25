@@ -36,7 +36,7 @@ Before any domain-relevant task, run the `kb-search` skill: resolve the KB mount
 ## Writing (when asked)
 
 1. Confirm what the user wants recorded and where it belongs (ask if unclear — don't invent structure).
-2. Write a Markdown file with the required floor (`status: active`, `updated: <today>`), then add the recommended metadata (`id`/`aliases`, `type`, `domain`, `title`, `summary`, `tags`) per `rules/kb-conventions.mdc` — applied with judgment, honest to the entry's actual content, never padded to fill fields.
+2. Write a Markdown file named `<id>.md` (filename basename == `id`, so `"[[id]]"` relations resolve — resolution is by filename, not alias; `rules/kb-conventions.mdc` §1.6) with the required floor (`status: active`, `updated: <today>`), then add the recommended metadata (`id`, `aliases`, `type`, `domain`, `title`, `summary`, `tags`) — applied with judgment, honest to the entry's actual content, never padded to fill fields.
 3. Link it to related entries via the frontmatter relation fields, choosing tags from the project's controlled vocabulary; if a deprecated entry is now superseded, set its `status: deprecated` and link forward (`superseded_by`).
 4. If the KB root has an `_index.md`, reflect the addition there.
 

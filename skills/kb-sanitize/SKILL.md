@@ -17,7 +17,7 @@ The recommended metadata standard it checks against — frontmatter schema, tagg
 
 1. **Resolve the KB.** Read `.cursor/harness.json`; the KB is at `join(vault, knowledge.mount)` (path) or behind MCP. Operate over that store only — never touch memory or code.
 2. **Load the conventions.** Read `rules/kb-conventions.mdc` (the generic standard) and the project's `knowledge/conventions.md` if present (its tag vocabulary + local fields). Absent the latter, fall back to the generic rules.
-3. **Inventory.** List every entry; parse frontmatter (`status`, `updated`, `id`/`aliases`, `type`, `domain`, `tags`, relations) and collect outbound links/wikilinks and relation targets. Read the root `_index.md` if present.
+3. **Inventory.** List every entry; record each entry's **filename basename** and parse frontmatter (`status`, `updated`, `id`/`aliases`, `type`, `domain`, `tags`, relations); collect outbound links/wikilinks and relation targets. `[[id]]` resolves by filename (not alias — see `rules/kb-conventions.mdc` §1.6), so build the resolution map from filenames. Read the root `_index.md` if present.
 4. **Run the checks below.**
 5. **Report + propose.** Group findings; end with a numbered proposal list the user can approve in batch.
 6. **Apply approved items only**, as ordinary KB edits. Never reorganize or rewrite unapproved.
@@ -31,7 +31,8 @@ The recommended metadata standard it checks against — frontmatter schema, tagg
 | **Links** | Broken relative links / wikilinks; links pointing at `deprecated` entries (should point at the successor); missing reciprocal back-links between clearly related entries. |
 | **Metadata** | Missing required floor (`status`/`updated`); recommended fields a reader clearly needs but the entry lacks (`id`/`aliases`, `type`, `domain`, `summary`) — propose, don't gate; `type`/`domain` that disagree with the entry's actual content; empty placeholder relation fields. |
 | **Tags** | Tags off the project's controlled vocabulary (near-synonyms of a canonical tag); malformed tags (not `lowercase-kebab-case`); tags that merely restate a structured field (`type`/`domain`/`priority`/`severity`); counts well outside ~3–7; dead-context tags on non-historical entries. |
-| **Relations** | Non-reciprocal `related` (A→B but not B→A) and broken reciprocal pairs (`supersedes`↔`superseded_by`, `implements`↔`implemented_by`) where the pairing is clearly mutual; relation refs not in `"[[id]]"` form; self-references; **dangling/phantom `[[id]]`** refs that resolve to no entry's `id`/`aliases`. |
+| **Relations** | Non-reciprocal `related` (A→B but not B→A) and broken reciprocal pairs (`supersedes`↔`superseded_by`, `implements`↔`implemented_by`) where the pairing is clearly mutual; relation refs not in `"[[id]]"` form; self-references; **dangling/phantom `[[id]]`** refs that resolve to no entry's filename (`<id>.md`). |
+| **Filenames** | Entries whose **filename basename ≠ `id`** — this breaks `[[id]]` resolution (which is by filename, not alias; `rules/kb-conventions.mdc` §1.6). Propose renaming the file to `<id>.md` (and updating inbound `"[[id]]"` refs), or correcting the `id`. Also flag basename collisions between entries (ambiguous `[[id]]`). |
 | **Deprecation** | A `deprecated` entry with a successor in the KB but no `superseded_by` forward link; `active` entries whose `related` points at a now-`deprecated` target that has a successor (repoint to the successor). |
 | **Orientation** | `_index.md` missing entries that exist, or listing entries that were removed/renamed. |
 
@@ -63,7 +64,10 @@ For the metadata/tag/relation checks, apply the **judgment** in `rules/kb-conven
 ## Relations
 - `auth.md` lists `related: ["[[sessions]]"]` but `sessions.md` doesn't link back.
 - `old-auth.md` deprecated but missing `superseded_by → "[[auth]]"`.
-- `oauth.md` relation `"[[oauth-flow]]"` is a phantom — no entry has that `id`.
+- `oauth.md` relation `"[[oauth-flow]]"` is a phantom — no entry's filename resolves it.
+
+## Filenames
+- `billing.md` declares `id: payments` — basename ≠ id, so `"[[payments]]"` won't resolve.
 
 ## Orientation
 - `_index.md` omits `compliance/gdpr.md`.
@@ -76,7 +80,8 @@ For the metadata/tag/relation checks, apply the **judgment** in `rules/kb-conven
 5. Replace `login` → `auth` and drop `p0` in `auth.md` tags.
 6. Add reciprocal `related → "[[auth]]"` in `sessions.md`.
 7. Resolve or remove the phantom `"[[oauth-flow]]"` ref in `oauth.md`.
-8. Add `compliance/gdpr.md` to `_index.md`.
+8. Rename `billing.md` → `payments.md` (or set `id: billing`) so filename == id.
+9. Add `compliance/gdpr.md` to `_index.md`.
 
 Apply which? (e.g. "1,3,4" / "all" / "none")
 ```

@@ -56,7 +56,7 @@ Drift = the KB and the code disagreeing. This skill compares the project's docum
 
 Reconciliations land as **either** a KB edit (KB is human-authored — apply only with the user's go-ahead) **or** code work — never both silently. Surface the choice; let the user decide which side is wrong.
 
-When a reconciliation *is* a KB edit (a new entry, or a fixed reference), follow the recommended metadata standard in `rules/kb-conventions.mdc` and the project's `knowledge/conventions.md` vocabulary — give a new entry honest `type`/`domain`/`summary`/`tags` and wire its relations in frontmatter, and update relation/`[[id]]` refs (not just body paths) when a target moves. Stale-reference findings include relation refs that no longer resolve to a live entry's `id`.
+When a reconciliation *is* a KB edit (a new entry, or a fixed reference), follow the recommended metadata standard in `rules/kb-conventions.mdc` and the project's `knowledge/conventions.md` vocabulary — give a new entry honest `type`/`domain`/`summary`/`tags`, save it as `<id>.md` (filename == `id` so `"[[id]]"` resolves — resolution is by filename, not alias; §1.6), and wire its relations in frontmatter. When a target moves or is renamed, keep its filename matching its `id` and update inbound relation/`[[id]]` refs (not just body paths). Stale-reference findings include relation `[[id]]` refs that no longer resolve to a live entry's filename.
 
 ## Anti-patterns
 
