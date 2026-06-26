@@ -5,7 +5,6 @@
 - `.cursor/harness.json` (tracked) names the `vault` and the `knowledge` / `memory` mounts. Resolve it, expand a leading `~`, and reach each store at `join(vault, mount)` for `accessVia: path`, or via MCP for `accessVia: mcp`.
 - **Knowledge base** = ground truth: decisions, policies, specs, project/business context. Human-authored.
 - **Memory** = the agent's log of what happened and was learned. Agent-owned.
-- The harness only **points** at the vault — how the vault is stored or git-tracked is the user's choice; the harness doesn't manage it.
 - If a store is unreachable, say so and proceed with what you have — never block. If the manifest is absent, the repo isn't harnessed: offer `/magik-repo-setup`.
 
 ## The rules (there are only three)

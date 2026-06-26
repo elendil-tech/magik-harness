@@ -1,6 +1,6 @@
 {
   "name": "magik-repo",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "The light harness — point your code repo at an external vault of knowledge (the project's ground truth) and memory (the AI's log). Read-first, AI-maintained, never imposed. Try the magik!",
   "author": {
     "name": "LaLi"

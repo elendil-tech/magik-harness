@@ -14,7 +14,7 @@ This repo is a **normal code repo**. The harness adds two external services and 
 | **Knowledge base** | the vault | human | Foundational project/business truth — decisions, policies, specs, context. You author it; the agent reads it and maintains it. |
 | **Memory** | the vault | the agent | A running log of what happened and what was learned. The agent writes it freely; it is never the source of truth. |
 
-Both are plain Markdown in an **external vault** (a folder outside this repo, often its own git repo). Co-locating them in one vault is for retrieval convenience; they remain distinct concerns. How the vault is stored or git-tracked is the user's choice — the harness only points at it and does not manage how it is stored or tracked.
+Both are plain Markdown in an **external vault** (a folder outside this repo). Co-locating them in one vault is for retrieval convenience; they remain distinct concerns.
 
 ## The pointer: `.cursor/harness.json`
 

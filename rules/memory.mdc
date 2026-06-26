@@ -10,7 +10,7 @@ Memory is the **agent's own running log** — what happened, what was tried, wha
 ## Ownership and treatment
 
 - **The agent owns memory.** Write to it freely, as work happens — no approval needed, no propose-then-apply.
-- **It is per-runtime thought, not a shared substrate.** If the user wants something durable and shared, that belongs in the **KB** — offer to record it there instead. How the vault is stored or git-tracked is the user's choice; the harness only points at it and doesn't manage it.
+- **It is per-runtime thought, not a shared substrate.** If the user wants something durable and shared, that belongs in the **KB** — offer to record it there instead.
 - **No promotion.** Memory never auto-flows into the KB. There is no `/distill`, no promotion contract. When a past memory note would help a future task, you find it with your normal search tools over the memory store.
 
 ## Layout

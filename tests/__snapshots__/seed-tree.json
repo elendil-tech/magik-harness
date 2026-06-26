@@ -1,10 +1,10 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "fileCount": 6,
   "entries": [
     {
       "path": ".cursor/harness.json",
-      "sha256": "61df147cfb9bce077c63e85fdc56b8d24320b733cac87edc13f0919f790982df"
+      "sha256": "39acd53526223da2006a316096c3bbc932a7eca9bd293ea5964019d89c051d06"
     },
     {
       "path": ".cursor/hooks.json",
@@ -16,7 +16,7 @@
     },
     {
       "path": "AGENTS.primer.md",
-      "sha256": "34592ffed18cc8cef4f85fb26655c699fbd2d74ea90af5c28506b6833af70903"
+      "sha256": "af90b94a9c23f5627ce22f2428475dded0c1cee1eb467d8b0b40244c5fcb3c4d"
     },
     {
       "path": "gitignore.harness",

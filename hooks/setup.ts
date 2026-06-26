@@ -4,11 +4,10 @@
  *
  * The repo is a normal code repo. Knowledge (the project's ground truth) and
  * memory (the agent's running log) live in an EXTERNAL vault and are resolved
- * through a tracked pointer at `.cursor/harness.json`. How the vault itself is
- * stored or git-tracked is the user's choice — the harness only points at it.
- * This hook performs the deterministic
- * file ops behind the interactive `/magik-repo-setup` command, given the answers the
- * agent collected (vault path + knowledge/memory mounts + access method):
+ * through a tracked pointer at `.cursor/harness.json`. This hook performs the
+ * deterministic file ops behind the interactive `/magik-repo-setup` command,
+ * given the answers the agent collected (vault path + knowledge/memory mounts +
+ * access method):
  *
  *   Repo side (the code repo):
  *     - .cursor/harness.json     : the vault pointer (skip if present)
@@ -19,10 +18,6 @@
  *   Vault side (the external store; only when accessVia=path):
  *     - <vault>/<knowledge-mount>/_index.md : orientation stub (skip if present)
  *     - <vault>/<memory-mount>/             : created if missing
- *
- * How the vault is stored or git-tracked is entirely the user's choice — the
- * harness only points at it. Setup never runs `git init` on the vault or writes
- * a vault `.gitignore`; it does not manage how the vault is stored or tracked.
  *
  * No knowledge/, memory/, workspace/, or codebase/ folders are created in the
  * code repo — those concepts are gone in v1.0. Full spec:
@@ -45,7 +40,7 @@ import { fileURLToPath } from "node:url";
 
 // --- Constants ---------------------------------------------------------------
 
-const PLUGIN_VERSION = "1.3.0";
+const PLUGIN_VERSION = "1.4.0";
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(HOOK_DIR);
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");
@@ -475,14 +470,6 @@ function buildPlan(args: CliArgs): PlanItem[] {
     } else {
       items.push({ kind: "skip", target: `${args.vault}/${args.memoryMount}/`, reason: "exists" });
     }
-
-    items.push({
-      kind: "notice",
-      target: `${args.vault}`,
-      reason:
-        "how the vault is stored and git-tracked is yours to manage — the harness only points at it. " +
-        "Setup does not run `git init` or write a vault `.gitignore`.",
-    });
   } else if (args.accessVia === "mcp") {
     items.push({
       kind: "notice",

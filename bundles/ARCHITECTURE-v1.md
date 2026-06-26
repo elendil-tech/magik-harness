@@ -6,7 +6,7 @@ Canonical design spec for `harness@1`. This supersedes the v0.x five-component, 
 
 v0.x turned the repo into a *project/business repo*: it imposed `knowledge/`, `memory/`, `workspace/`, and `codebase/` folders, five KB schemas, a domain-registry spine, a memory→KB promotion contract, and a trust/quarantine + propose-then-apply governance system. Two problems surfaced in real use:
 
-1. **Worktree fragmentation.** `memory/` (and `workspace/`) were gitignored, repo-local folders. A single operator running several git worktrees of one project got a *different* memory per worktree — state forked instead of accumulating.
+1. **Worktree fragmentation.** `memory/` (and `workspace/`) were repo-local folders. A single operator running several git worktrees of one project got a *different* memory per worktree — state forked instead of accumulating.
 2. **Over-imposition.** The harness recorded low-level code detail into the KB, enforced a heavy ontology, and gave the agent authoring control over the KB via promotion. For a single-founder workflow this was ceremony, not leverage.
 
 v1.0 resolves both by **separating the stores from the repo** and **stripping the ontology**.
@@ -20,10 +20,10 @@ The repo is a **normal code repo**. The harness adds two external services and a
 | Knowledge base | external vault | human | foundational project/business truth |
 | Memory | external vault | agent | running log of what happened / was learned |
 
-"Vault" is just a folder outside the repo (often its own git repo, e.g. an Obsidian vault). Knowledge and memory are co-located in it for retrieval convenience but remain distinct concerns. How the vault is stored or git-tracked is the user's choice — the harness only points at it and does not manage how it is stored or tracked.
+"Vault" is just a folder outside the repo (e.g. an Obsidian vault). Knowledge and memory are co-located in it for retrieval convenience but remain distinct concerns.
 
 ```
-code repo (this repo)                external vault (your storage, your tracking)
+code repo (this repo)                external vault (your storage)
 ├── <your code at root>             ├── <project>/knowledge/   ← ground truth
 ├── AGENTS.md   (primer block)      │   └── _index.md
 └── .cursor/                        └── <project>/memory/      ← the agent's log
@@ -81,7 +81,7 @@ No five schemas, no registry spine, no promotion, no trust/quarantine, no propos
 `/magik-repo-setup` is a short Q&A (vault path; user- vs project-level layout → mounts; path vs mcp; `knowledge.autonomy` → `open` default / `ask` / `readonly`), then the `hooks/setup.ts` hook performs deterministic writes:
 
 - **Repo side:** `.cursor/harness.json`, marker-bounded `AGENTS.md` primer, slim `.gitignore` secret block, `.cursor/hooks/session-start.js` + `.cursor/hooks.json`.
-- **Vault side (path):** `<vault>/<knowledge-mount>/_index.md` and `<vault>/<memory-mount>/`. The harness does not touch the vault's git tracking — no `git init`, no vault `.gitignore`; how the vault is stored or tracked is the user's choice.
+- **Vault side (path):** `<vault>/<knowledge-mount>/_index.md` and `<vault>/<memory-mount>/`.
 
 All writes are skip-if-exists; the `AGENTS.md` / `.gitignore` marker blocks upgrade in place on re-run.
 

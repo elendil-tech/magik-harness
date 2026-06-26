@@ -1,5 +1,19 @@
 # magik-repo
 
+## 1.4.0 — 2026-06-26
+
+Tracks `harness@1`. **Vault git-state is no longer mentioned at all.** `1.2.0` stopped the harness from *managing* vault git-tracking; this release removes the remaining "how the vault is stored or git-tracked is your choice" framing from every live surface. How the external vault is stored or versioned is simply outside the harness's scope and not the harness's concern to narrate — so the docs, rules, primer, command, manifest `_doc`, and setup hook no longer reference it. The manifest schema is unchanged; this is a docs/copy change plus removal of a no-op setup notice.
+
+### Changed
+
+- **Rules** — `harness` and `memory` drop the "how the vault is stored or git-tracked is the user's choice" sentences; `harness` also drops "often its own git repo" from the external-vault description.
+- **`seed-sources/AGENTS.primer.md`** — removes the "harness only points at the vault — how it's stored/git-tracked is the user's choice" bullet. Marker block upgrades in place on re-run.
+- **`seed-sources/.cursor/harness.json`** — `_doc` no longer mentions vault storage/git-tracking.
+- **`hooks/setup.ts`** — removes the path-access "vault git-tracking is yours to manage / no `git init`, no vault `.gitignore`" plan notice and the matching docblock prose. `PLUGIN_VERSION → 1.4.0` (primer / `.gitignore` marker blocks upgrade in place on re-run).
+- **Docs** — `README.md`, `bundles/ARCHITECTURE-v1.md`, and `commands/magik-repo-setup.md` drop the vault storage/tracking sentences, the "your tracking" wiring-diagram label, and "often its own git repo"; the worktree-fragmentation note now says `memory/`/`workspace/` were "repo-local folders" without the "gitignored" qualifier.
+- **`tests/setup.test.ts`** — the vault-git guard is retained (setup still must not create `.git`/`.gitignore` in the vault) but its prose is neutralized; the removed setup notice has no test dependency.
+- **Version** — `magik-repo@1.4.0`; still ships `harness@1` content (the manifest schema is unchanged).
+
 ## 1.3.0 — 2026-06-26
 
 Tracks `harness@1`. **Tunable KB autonomy.** The "don't silently restructure the KB" rule becomes a configurable posture instead of a fixed default-deny. A new `knowledge.autonomy` field in `.cursor/harness.json` tunes how freely the agent writes the KB on its own initiative — and the **default is now `open`**, so agents keep the knowledge base in sync with their work (adding/updating the entries a task touches) without stopping to ask. This addresses the common case where work on a feature has associated documentation that must not drift; the agent now maintains both together hands-free. Tighten to `ask` (write only on request/approval) or `readonly` (report only) per project. Purely additive and backward-compatible — the manifest schema is unchanged, and an absent/unrecognized value resolves to `open`.

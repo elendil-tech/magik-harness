@@ -6,10 +6,9 @@
  *     slim .gitignore secret block, .cursor/hooks/session-start.js + hooks.json
  *   - vault side (accessVia=path): <vault>/<km>/_index.md, <vault>/<mm>/
  *
- * The harness only points at the vault — it does NOT manage how the vault is
- * stored or git-tracked, so setup never runs `git init` or writes a vault
- * `.gitignore`. It also never creates knowledge/, memory/, workspace/, or
- * codebase/ folders in the code repo. Tests spawn the real CLI against tmp dirs.
+ * Setup creates no git artifacts in the vault, and never creates knowledge/,
+ * memory/, workspace/, or codebase/ folders in the code repo. Tests spawn the
+ * real CLI against tmp dirs.
  */
 
 import { spawnSync } from "node:child_process";
@@ -129,7 +128,7 @@ test("empty project — writes the repo-side pointer + primer + hook, not the ol
   }
 });
 
-test("empty project — scaffolds the vault content (knowledge index, memory dir) but never touches vault git", () => {
+test("empty project — scaffolds the vault content (knowledge index, memory dir) without creating git artifacts", () => {
   ensureBuilt();
   const root = makeTmpProject();
   const vault = makeTmpVault();
@@ -140,10 +139,9 @@ test("empty project — scaffolds the vault content (knowledge index, memory dir
     assert.ok(existsSync(join(vault, "knowledge", "_index.md")), "vault knowledge/_index.md missing");
     assert.ok(existsSync(join(vault, "memory")), "vault memory/ dir missing");
 
-    // The harness must NOT manage how the vault is stored or tracked: no git
-    // init, no vault .gitignore.
-    assert.ok(!existsSync(join(vault, ".gitignore")), "harness must NOT write a vault .gitignore");
-    assert.ok(!existsSync(join(vault, ".git")), "harness must NOT git init the vault");
+    // Setup creates no git artifacts in the vault.
+    assert.ok(!existsSync(join(vault, ".gitignore")), "setup must NOT write a vault .gitignore");
+    assert.ok(!existsSync(join(vault, ".git")), "setup must NOT git init the vault");
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(vault, { recursive: true, force: true });
