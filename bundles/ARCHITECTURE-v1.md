@@ -15,10 +15,10 @@ v1.0 resolves both by **separating the stores from the repo** and **stripping th
 
 The repo is a **normal code repo**. The harness adds two external services and a tracked pointer:
 
-| Service | Location | Owner | Role |
-| --- | --- | --- | --- |
-| Knowledge base | external vault | human | foundational project/business truth |
-| Memory | external vault | agent | running log of what happened / was learned |
+| Service | Location | Role |
+| --- | --- | --- |
+| Knowledge base | external vault | foundational project/business truth |
+| Memory | external vault | running log of what happened / was learned |
 
 "Vault" is just a folder outside the repo (e.g. an Obsidian vault). Knowledge and memory are co-located in it for retrieval convenience but remain distinct concerns.
 
@@ -56,8 +56,8 @@ It is the user's choice whether the vault is user-level (many projects) or proje
 Only the contract above plus three behaviors (full text in `rules/harness.mdc`):
 
 1. **Read the KB before substantive work** (the `kb-search` skill).
-2. **Keep the KB in sync — at the autonomy the manifest grants** — it's human-authored ground truth; `knowledge.autonomy` (default `open`) tunes how freely the agent maintains it on its own initiative (`open` / `ask` / `readonly`). Large or destructive restructurings are always surfaced first.
-3. **Memory is the agent's; the KB is the human's** — write memory freely, never auto-promote it into the KB; durable shared truth belongs in the KB.
+2. **Keep the KB in sync — at the autonomy the manifest grants** — it's ground truth; `knowledge.autonomy` (default `open`) tunes how freely the agent maintains it on its own initiative (`open` / `ask` / `readonly`). Large or destructive restructurings are always surfaced first.
+3. **Memory is for recency; the KB is for durable truth** — write memory freely, never auto-promote it into the KB; durable shared truth belongs in the KB.
 
 ## 5. Structure floor
 

@@ -5,7 +5,7 @@ updated: 2026-01-01
 
 # Knowledge base
 
-This is the project's **ground truth** — foundational decisions, policies, specifications, and durable context. It is human-authored; you (the human) own what it says. Agents read it before substantive work and keep it in sync with their work at the level `knowledge.autonomy` in `.cursor/harness.json` grants (default `open` — they maintain it as they go without asking, surfacing only large or destructive restructurings; tighten to `ask` or `readonly` if you want a hand on every edit).
+This is the project's **ground truth** — foundational decisions, policies, specifications, and durable context. The agent reads it before substantive work and keeps it in sync with its work at the level `knowledge.autonomy` in `.cursor/harness.json` grants (default `open` — maintained as work goes without asking, surfacing only large or destructive restructurings; tighten to `ask` or `readonly` to gate every edit).
 
 ## How this KB is organized
 

@@ -9,10 +9,10 @@ This repo is a **normal code repo**. The harness adds two external services and 
 
 ## The two services
 
-| Service | Lives in | Owner | Role |
-| --- | --- | --- | --- |
-| **Knowledge base** | the vault | human | Foundational project/business truth — decisions, policies, specs, context. You author it; the agent reads it and maintains it. |
-| **Memory** | the vault | the agent | A running log of what happened and what was learned. The agent writes it freely; it is never the source of truth. |
+| Service | Lives in | Role |
+| --- | --- | --- |
+| **Knowledge base** | the vault | Foundational project/business truth — decisions, policies, specs, context. Read before substantive work; maintained at the level `knowledge.autonomy` grants. |
+| **Memory** | the vault | A running log of what happened and what was learned. Written freely as work happens; it is never the source of truth. |
 
 Both are plain Markdown in an **external vault** (a folder outside this repo). Co-locating them in one vault is for retrieval convenience; they remain distinct concerns.
 
@@ -44,12 +44,12 @@ It is the user's choice whether the vault is user-level (many projects) or proje
 Almost nothing — that's the point. The rules are:
 
 1. **Read the KB before substantive work.** Before producing, modifying, or committing anything domain-relevant, search the knowledge base (the `kb-search` skill). Your training priors are not this project's ground truth. Skipping this because "I already know" is the one failure mode the harness exists to catch.
-2. **Keep the KB in sync — at the autonomy the manifest grants.** The KB is human-authored ground truth; how freely you maintain it on your own initiative is tuned by `knowledge.autonomy` in the manifest (default **`open`**):
-   - **`open`** (default) — keep the KB in step with your work *without asking*. When the work you're doing produces or changes durable knowledge (a decision made, a policy clarified, a spec that now matches the code, a fact the code contradicts), create or update the relevant entries as part of the same task, following `rules/knowledge-base.mdc` and `rules/kb-conventions.mdc`. The point is to stop documentation and code from drifting. You still **surface rather than silently perform** large or destructive moves: mass renames, folder reorganizations, deleting entries, or rewriting unrelated human-authored entries wholesale. Routine additive and in-sync edits need no permission.
+2. **Keep the KB in sync — at the autonomy the manifest grants.** The KB is ground truth; how freely you maintain it on your own initiative is tuned by `knowledge.autonomy` in the manifest (default **`open`**):
+   - **`open`** (default) — keep the KB in step with your work *without asking*. When the work you're doing produces or changes durable knowledge (a decision made, a policy clarified, a spec that now matches the code, a fact the code contradicts), create or update the relevant entries as part of the same task, following `rules/knowledge-base.mdc` and `rules/kb-conventions.mdc`. The point is to stop documentation and code from drifting. You still **surface rather than silently perform** large or destructive moves: mass renames, folder reorganizations, deleting entries, or rewriting unrelated entries wholesale. Routine additive and in-sync edits need no permission.
    - **`ask`** — read always; write or reshape the KB **only when the user asks**, or when they approve a `kb-sanitize` / `kb-code-sync` proposal. (You may still autonomously correct a *verified-wrong* fact.)
-   - **`readonly`** — never write the KB; report what you'd change and let the human apply it.
-   An explicit instruction always wins over the configured default for that action. Whatever the setting, never quietly reorganize the KB's structure or rewrite others' entries — surface that first.
-3. **Memory is yours; the KB is theirs.** Write observations and lessons to memory freely. Never auto-promote memory into the KB — when a past memory note is useful later, find it with your own search. Durable, shared truth belongs in the KB, not memory; if a memory note should become ground truth, offer to record it there instead.
+   - **`readonly`** — never write the KB; report what you'd change and leave the edit to be applied manually.
+   An explicit instruction always wins over the configured default for that action. Whatever the setting, never quietly reorganize the KB's structure or rewrite entries wholesale — surface that first.
+3. **Memory is for recency; the KB is for durable truth.** Write observations and lessons to memory freely. Never auto-promote memory into the KB — when a past memory note is useful later, find it with your own search. Durable, shared truth belongs in the KB, not memory; if a memory note should become ground truth, offer to record it there instead.
 
 ## Commands
 

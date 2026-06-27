@@ -1,21 +1,19 @@
 ---
-description: How to read and maintain the knowledge base — the human-authored vault of foundational project/business truth. Read this before writing to or reorganizing the KB.
+description: How to read and maintain the knowledge base — vault of foundational truth. Read this before writing to or reorganizing the KB.
 alwaysApply: false
 ---
 
 # Knowledge base
 
-The KB is the project's **ground truth**: foundational decisions, policies, specifications, requirements, and durable context. It lives in the external vault, resolved via `.cursor/harness.json` (`rules/harness.mdc`). It is **human-authored**; the agent reads it constantly and maintains it on request.
+The KB is the project's **ground truth**: foundational decisions, policies, specifications, requirements, and durable context. It lives in the external vault, resolved via `.cursor/harness.json` (`rules/harness.mdc`). The agent reads it before substantive work and maintains it at the level `knowledge.autonomy` grants.
 
-## Ownership
+## Autonomy
 
-- **You (human) own it.** You decide what is true and what the KB says; you can override the agent's edits at any time.
-- **The agent reads it** before substantive work (the `kb-search` skill), cites it, and respects active policies.
-- **The agent maintains it at the autonomy you grant.** `knowledge.autonomy` in `.cursor/harness.json` (default **`open`**) sets how freely the agent writes the KB on its own initiative:
-  - **`open`** (default) — the agent keeps the KB in sync with its work: as a task produces or changes durable knowledge, it adds or updates the relevant entries itself (following the conventions below), without asking. It still surfaces — rather than silently performs — large or destructive restructurings.
-  - **`ask`** — the agent writes or reshapes the KB only when you explicitly request it ("add a decision for X"), or when you approve a `kb-sanitize` / `kb-code-sync` proposal. (It may still autonomously correct a verified-wrong fact.)
-  - **`readonly`** — the agent never writes the KB; it reports what it would change and leaves the edit to you.
-- **Never** auto-populate the KB from the agent's own memory, and never reorganize structure or rewrite others' entries silently — surface those regardless of the autonomy setting.
+`knowledge.autonomy` in `.cursor/harness.json` (default **`open`**) sets how freely the agent writes the KB on its own initiative:
+
+- **`open`** (default) — the agent keeps the KB in sync with its work: as a task produces or changes durable knowledge, it adds or updates the relevant entries itself (following the conventions below), without asking. It still surfaces — rather than silently performs — large or destructive restructurings.
+- **`ask`** — the agent writes or reshapes the KB only when explicitly requested ("add a decision for X"), or when a `kb-sanitize` / `kb-code-sync` proposal is approved. (It may still autonomously correct a verified-wrong fact.)
+- **`readonly`** — the agent never writes the KB; it reports what it would change and leaves the edit to be applied manually.
 
 ## Structure floor
 

@@ -1,15 +1,15 @@
 ---
-description: How memory works in the light harness — the agent-owned running log in the external vault. Read this for the capture cadence and why memory never auto-promotes into the knowledge base.
+description: How memory works in the light harness — the running log in the external vault. Read this for the capture cadence and why memory never auto-promotes into the knowledge base.
 alwaysApply: false
 ---
 
 # Memory
 
-Memory is the **agent's own running log** — what happened, what was tried, what was learned. It lives in the external vault alongside the KB, resolved via `.cursor/harness.json` (`rules/harness.mdc`). It is recency context, not ground truth.
+Memory is the **running log** — what happened, what was tried, what was learned. It lives in the external vault alongside the KB, resolved via `.cursor/harness.json` (`rules/harness.mdc`). It is recency context, not ground truth.
 
-## Ownership and treatment
+## Treatment
 
-- **The agent owns memory.** Write to it freely, as work happens — no approval needed, no propose-then-apply.
+- **Write to memory freely**, as work happens — no approval needed, no propose-then-apply.
 - **It is per-runtime thought, not a shared substrate.** If the user wants something durable and shared, that belongs in the **KB** — offer to record it there instead.
 - **No promotion.** Memory never auto-flows into the KB. There is no `/distill`, no promotion contract. When a past memory note would help a future task, you find it with your normal search tools over the memory store.
 

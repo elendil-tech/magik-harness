@@ -1,5 +1,17 @@
 # magik-repo
 
+## 1.5.0 — 2026-06-27
+
+Tracks `harness@1`. **Ownership-neutral language.** Every live surface drops the "human-authored" qualifier and the per-service "Owner" framing — the harness no longer declares who owns what. The KB is described by its role (ground truth) and how it's maintained (`knowledge.autonomy`); memory is described by its role (running log) and the no-promotion contract. `knowledge.autonomy` already lets each project tune how freely the agent writes the KB, so the ownership claim was redundant as well as opinionated. The manifest schema is unchanged; this is a docs/copy change only.
+
+### Changed
+
+- **Rules** — `harness` drops the per-service "Owner" column from the services table; rule 2 drops "human-authored" from "ground truth"; rule 3 reframed from "Memory is yours; the KB is theirs" to "Memory is for recency; the KB is for durable truth"; the `readonly` posture now says "leave the edit to be applied manually" instead of "let the human apply it". `knowledge-base` drops "It is **human-authored**" from the opening and renames `## Ownership` to `## Autonomy` (the autonomy postures are the only thing that section actually specified). `memory` drops "agent-owned" from the description and "The agent owns memory" from the treatment section (renamed from "Ownership and treatment" to "Treatment").
+- **`seed-sources/AGENTS.primer.md`** — drops "human-authored" and "Agent-owned" from the wiring bullets; rule 3 reframed to the recency/durable-truth framing. Marker block upgrades in place on re-run.
+- **`seed-sources/vault/knowledge/_index.md`** — the KB orientation stub drops "It is human-authored; you (the human) own what it says" and now describes the KB by role + autonomy.
+- **Docs** — `README.md` drops "human-authored" from rule 2, the read-first feature bullet, and the rules-summary line; rule 3 reframed; "Agent-owned memory" feature bullet becomes "Daily memory log". `bundles/ARCHITECTURE-v1.md` drops the "Owner" column and reframes rules 2 and 3.
+- **Version** — `magik-repo@1.5.0`; still ships `harness@1` content (the manifest schema is unchanged).
+
 ## 1.4.0 — 2026-06-26
 
 Tracks `harness@1`. **Vault git-state is no longer mentioned at all.** `1.2.0` stopped the harness from *managing* vault git-tracking; this release removes the remaining "how the vault is stored or git-tracked is your choice" framing from every live surface. How the external vault is stored or versioned is simply outside the harness's scope and not the harness's concern to narrate — so the docs, rules, primer, command, manifest `_doc`, and setup hook no longer reference it. The manifest schema is unchanged; this is a docs/copy change plus removal of a no-op setup notice.
