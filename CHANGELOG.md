@@ -1,5 +1,23 @@
 # magik-repo
 
+## 1.6.0 — 2026-06-27
+
+Tracks `harness@1`. **Full-context pre-task gate + decision-vs-state maintenance.** Two related upgrades to how the harness reads and maintains the KB, both procedure/judgment only — no manifest schema change, no enforced KB structure (templating/initialization remains a deliberately separate, deferred layer; see `ROADMAP.md`).
+
+First, the pre-task gate stops being "search the KB." The KB is the *claimed* truth but can be stale, partial, or wrong, so a worker must **gather full context**: triangulate the KB against the **code** (what the system actually does) and the **live state of dependent services** (read-only probes where a safe path exists), then act on reality and surface drift. Rule 1 is reframed across every live surface from "Read the KB" to "Gather full context before substantive work — never satisfied by a KB search alone."
+
+Second, the KB now distinguishes **living state documents** from **immutable decision records**. `concept`/`specification`/`policy` are the living go-to surface (edited in place to stay current); `decision`/`fieldnote` are a dated ledger (corrected by superseding, never rewritten — the ADR discipline). The current value lives once on the surface; the rationale/history lives once in the ledger; the two are wired with `depends_on` (or an optional project-level `decided_by`/`decides`). Staleness scrutiny is aimed at the living surface; records are revisited only when a new decision supersedes them.
+
+### Changed
+
+- **`skills/kb-search/SKILL.md`** — broadened from a KB-only search into the **context-gather gate**: resolve → orient → read KB (claimed) → inspect code (actual, prefer code-intel over grep) → probe dependent services (live, strictly read-only) → reconcile drift → surface conflicts → degrade gracefully. New triangulation table and output brief (KB / Code / Services / Reconciliation / Conflicts / Coverage).
+- **`rules/kb-conventions.mdc`** — new **§4.6 Decision records vs. state documents** (living-vs-immutable by `type`, single-source/no-duplication, `depends_on` wiring, in-the-moment heuristic); §1.2 type table and §1.3 lifecycle annotated with the two maintenance lifecycles; §3.4 adds "capture the transition, not just the new conclusion" when superseding.
+- **`rules/knowledge-base.mdc`** — Reading reframed to full-context gather; Writing adds the inclusion test (durable + shared + not-already-captured), extend-before-you-create (anti-duplication), point-don't-duplicate canonical sources, and maintain-by-kind; Maintaining favors incremental healing and aims staleness at the living surface; new anti-patterns.
+- **`skills/kb-sanitize/SKILL.md`** — new **Duplicates** and **Records-vs-state** checks; stronger MOC/`_index` (Map-of-Content) orientation guidance; anti-patterns for rewriting records and over-merging topical neighbours.
+- **`skills/kb-code-sync/SKILL.md`** — staleness scrutiny aimed at the living surface; decision-vs-reality drift proposes a **successor decision**, not an edit to the original record.
+- **Rules / primer / docs** — `harness` rule 1 and `seed-sources/AGENTS.primer.md` rule 1 reframed to "Gather full context"; `seed-sources/vault/knowledge/_index.md` notes the living-surface-vs-ledger split and MOC framing; `README.md` (three rules, feature bullets, skills list) and `bundles/ARCHITECTURE-v1.md` (rule 1, structure floor) updated to match. Primer marker block upgrades in place on re-run.
+- **Version** — `magik-repo@1.6.0`; still ships `harness@1` content (the manifest schema is unchanged).
+
 ## 1.5.0 — 2026-06-27
 
 Tracks `harness@1`. **Ownership-neutral language.** Every live surface drops the "human-authored" qualifier and the per-service "Owner" framing — the harness no longer declares who owns what. The KB is described by its role (ground truth) and how it's maintained (`knowledge.autonomy`); memory is described by its role (running log) and the no-promotion contract. `knowledge.autonomy` already lets each project tune how freely the agent writes the KB, so the ownership claim was redundant as well as opinionated. The manifest schema is unchanged; this is a docs/copy change only.

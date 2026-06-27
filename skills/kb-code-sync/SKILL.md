@@ -15,7 +15,7 @@ Drift = the KB and the code disagreeing. This skill compares the project's docum
 ## Procedure
 
 1. **Resolve the KB.** Read `.cursor/harness.json`; the KB is at `join(vault, knowledge.mount)` (path) or behind MCP. The code is this repo.
-2. **Collect KB claims.** Read `active` entries that assert something checkable about the system — policies ("never write to the DB directly"), specifications (a feature's intended behavior), and decisions that name a technology, API, or path.
+2. **Collect KB claims.** Read `active` entries that assert something checkable about the system — policies ("never write to the DB directly"), specifications (a feature's intended behavior), and decisions that name a technology, API, or path. Aim the staleness scrutiny at the **living surface** (`concept`/`specification`/`policy`) — those are the entries that *can* drift. A `decision`/`fieldnote` is a dated record: if the code has moved away from what a decision named, the record isn't "wrong" — it has been **overtaken by reality**. Propose a **successor decision** (and an update to the living state document the decision shaped), not an edit to the original record (see `rules/kb-conventions.mdc` §4.6).
 3. **Inspect the code.** For each claim, look at the relevant code (search by symbol, path, dependency manifest, config). Use judgment about depth — this is a review, not a proof.
 4. **Classify each finding** (see table), assign severity, and propose a reconciliation.
 5. **Report, then reconcile per `knowledge.autonomy`.** Code changes are always the user's to approve; KB edits follow the autonomy setting (see "Reconciliations" below).

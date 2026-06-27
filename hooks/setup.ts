@@ -40,7 +40,7 @@ import { fileURLToPath } from "node:url";
 
 // --- Constants ---------------------------------------------------------------
 
-const PLUGIN_VERSION = "1.5.0";
+const PLUGIN_VERSION = "1.6.0";
 const HOOK_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(HOOK_DIR);
 const SEEDS_DIR = join(PLUGIN_ROOT, "seeds");

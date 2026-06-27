@@ -55,7 +55,7 @@ It is the user's choice whether the vault is user-level (many projects) or proje
 
 Only the contract above plus three behaviors (full text in `rules/harness.mdc`):
 
-1. **Read the KB before substantive work** (the `kb-search` skill).
+1. **Gather full context before substantive work** (the `kb-search` skill) — the KB is the *start* of context, corroborated against the code and the live state of dependent services; act on reality where they diverge. Never satisfied by a KB search alone.
 2. **Keep the KB in sync — at the autonomy the manifest grants** — it's ground truth; `knowledge.autonomy` (default `open`) tunes how freely the agent maintains it on its own initiative (`open` / `ask` / `readonly`). Large or destructive restructurings are always surfaced first.
 3. **Memory is for recency; the KB is for durable truth** — write memory freely, never auto-promote it into the KB; durable shared truth belongs in the KB.
 
@@ -66,6 +66,7 @@ Light, not zero — enough for the maintenance commands to reason, no schema sys
 - KB entries are free-form Markdown with light frontmatter (`status: active | deprecated`, `updated:`).
 - Relative links / wikilinks form the graph.
 - An optional `knowledge/_index.md` orients a fresh reader and replaces the old domain registry. It's a map, not a contract.
+- Entries split into two maintenance lifecycles — **living state documents** (edited in place) and **immutable decision records** (superseded, never rewritten). This is convention/judgment (`rules/kb-conventions.mdc` §4.6), not an enforced schema.
 
 No five schemas, no registry spine, no promotion, no trust/quarantine, no propose-then-apply ceremony.
 

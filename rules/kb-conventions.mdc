@@ -44,11 +44,15 @@ Every **entry** (a content `.md` file) carries YAML frontmatter. `_index.md` ori
 
 A project may extend this enum in its own `conventions.md`, but prefer reusing a generic kind over inventing a near-synonym.
 
+These types split into two maintenance lifecycles: `concept`/`specification`/`policy` are **living state documents** (edited in place to stay current); `decision`/`fieldnote` are **immutable records** (corrected by superseding, never rewritten). This distinction governs how you update them — see §4.6.
+
 ### 1.3 `status` lifecycle
 
 - `active` — current ground truth.
 - `deprecated` — no longer current. **MUST** carry `superseded_by` pointing at the successor entry **when a successor exists**. If the entry was obsoleted with no replacement, `superseded_by` may be omitted, but the body should say *why* it's gone.
 - `draft` — optional, pre-publication. Not part of the required floor; use it for entries not yet adopted, and promote to `active` (or delete) once settled.
+
+How an entry is *updated* depends on its kind: **living** entries (`concept`/`specification`/`policy`) are edited in place and keep `updated` current; **record** entries (`decision`/`fieldnote`) are an immutable ledger — corrected by **superseding**, never by rewriting the original reasoning. See §4.6.
 
 ### 1.4 Canonical field order
 
@@ -140,6 +144,7 @@ Relations form the KB's link graph. They live in **frontmatter** (the canonical 
 - A `deprecated` entry **MUST** carry `superseded_by → successor` when a successor exists; the successor carries `supersedes → this`.
 - `active` entries should point at the **current** successor, not a superseded entry. When healing, if a `related` target is now `deprecated` and has a `superseded_by`, repoint to the successor.
 - A `deprecated` entry with no successor keeps `status: deprecated` with no `superseded_by`; note *why* in the body.
+- **Capture the transition, not just the new conclusion.** When a successor supersedes a record, the successor's body should say *what changed and why* (e.g. "switched from Redis to Postgres because durability now outweighs latency"), not merely restate the new choice. The supersession chain is only readable history if each link records the turn it represents.
 
 ### 3.5 Canonical home: frontmatter
 
@@ -180,6 +185,25 @@ The schema above is the *grammar*; this section is the *taste*. Metadata is only
 ### 4.5 When unsure
 
 Convention serves coherence, not the other way around. If applying a field would force a dishonest value (a `type` that doesn't fit, a relation that overstates a link), **omit it and note the uncertainty** rather than inventing structure. During maintenance, surface the ambiguity as a proposal for the human to settle — never silently impose a guess (see `rules/knowledge-base.mdc`, `skills/kb-sanitize`).
+
+### 4.6 Decision records vs. state documents
+
+Two kinds of entry coexist in the KB and are maintained in **opposite** ways. The seam runs along `type`:
+
+- **State documents** (`concept`, `specification`, `policy`) are the **living surface** — the go-to for *what is true now*. Maintain them **in place**: edit the body to keep it current and bump `updated` on substantive change. They *can* go stale, so they are what the context gather (`skills/kb-search`) and `skills/kb-code-sync` scrutinize hardest.
+- **Records** (`decision`, `fieldnote`) are an **immutable ledger** — a dated snapshot of *what was chosen or observed, and why, at a point in time*. Do **not** rewrite a settled record to "keep it current"; that erases exactly the reasoning it exists to preserve. Correct it by **superseding**: write a new record, set the old one `status: deprecated` with `superseded_by → "[[new]]"`, and the new one `supersedes → "[[old]]"` (capturing the transition, §3.4). Fixing a typo or adding a forward link is fine — that's metadata, not rewriting the decision. A record never "goes stale"; only its *implications* do, which is what a superseding record captures.
+
+**Single source, no duplication.** The *current value* lives once, in the state document; the *rationale and history* live once, in the ledger. A record may quote a value as a point-in-time snapshot (fine — it's explicitly historical), but it is never the thing you edit when the value later changes.
+
+**Wiring the two.** A state document whose current shape was set by a decision should link to that decision, so the *why* is one hop away and maintenance knows what to revisit when the decision is superseded. The default, no-new-vocabulary wiring is `depends_on → "[[decision]]"` on the **state document** (semantically: *if that decision changes, revisit me*). A project that wants the relationship to be unambiguous may adopt an explicit reciprocal `decided_by`/`decides` pair in its `conventions.md` (§5). When you supersede the decision, repoint the state document's link to the successor **and** update its value in place.
+
+**Deciding in the moment:**
+
+1. **Settled a real choice among alternatives with lasting consequences?** → append a `decision` (immutable). If it wasn't a genuine, preservation-worthy choice, don't mint a record — over-recording is bloat (record only what's architecturally/strategically significant).
+2. **The current truth of how something is or works changed?** → edit the living state document in place; bump `updated`.
+3. **Both (the common case)?** → append the decision, update the state document, and link them.
+
+When **reading**, the go-to is always the living surface; you follow links into the ledger only when you need the *why*.
 
 ---
 

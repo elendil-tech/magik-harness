@@ -33,26 +33,36 @@ Deliberately thin — enough for a graph, not a schema system:
 
 ## Reading
 
-Before any domain-relevant task, run the `kb-search` skill: resolve the KB mount, navigate the `_index.md` and relevant entries, read every `active` policy/decision/spec that bears on the task. If an action would violate an active policy, stop and surface it.
+Before any domain-relevant task, run the `kb-search` skill to **gather full context** — the KB is the *start*, not the end. The KB states what *should* be true, but it can be stale, partial, or wrong, so corroborate it: resolve the KB mount, navigate the `_index.md` and relevant entries, read every `active` policy/decision/spec that bears on the task — then check it against the **code** (what the system actually does) and the **live state of dependent services** (read-only probes where a safe path exists). Where the KB disagrees with code or live state, the KB is the suspect: act on reality, surface the drift, and fix the stale entry per the autonomy you're granted (it's almost always a living state document that drifted, not a record — see `rules/kb-conventions.mdc` §4.6). If an action would violate an active policy, stop and surface it. Never let a worker satisfy the gate with a KB search alone.
 
 ## Writing
 
 Under `open` autonomy you write as part of your work; under `ask` you write on request or an approved proposal; under `readonly` you don't write at all. Whenever you do write:
 
-1. Confirm what belongs and where it goes — under `ask`, confirm with the user when the placement is unclear; under `open`, use the existing layout and don't invent new structure (surface a restructure rather than performing one).
-2. Write a Markdown file named `<id>.md` (filename basename == `id`, so `"[[id]]"` relations resolve — resolution is by filename, not alias; `rules/kb-conventions.mdc` §1.6) with the required floor (`status: active`, `updated: <today>`), then add the recommended metadata (`id`, `aliases`, `type`, `domain`, `title`, `summary`, `tags`) — applied with judgment, honest to the entry's actual content, never padded to fill fields.
-3. Link it to related entries via the frontmatter relation fields, choosing tags from the project's controlled vocabulary; if a deprecated entry is now superseded, set its `status: deprecated` and link forward (`superseded_by`).
-4. If the KB root has an `_index.md`, reflect the addition there.
+1. **Does it belong in the KB at all?** The KB holds **durable, shared truth that isn't already authoritative elsewhere**. Apply the inclusion test before creating anything: is it *durable* (still true next month, not a transient task detail)? Is it *shared* (others/future-you need it, not per-session thought)? Is it *not already captured* by the code, config, or another entry? If it fails the first two, it's **memory**, not the KB; if it fails the third, **point at the canonical source instead of copying it** (a copied fact is just future drift — see below).
+2. **Extend before you create.** Search for an existing entry on the same concept first and **update it in place** rather than spawning a near-duplicate under a slightly different name. Scattered notes on one concept (often under different names) are the main source of KB bloat — accumulation beats fragmentation. Only mint a new entry when the idea is genuinely distinct.
+3. Confirm what belongs and where it goes — under `ask`, confirm with the user when the placement is unclear; under `open`, use the existing layout and don't invent new structure (surface a restructure rather than performing one).
+4. Write a Markdown file named `<id>.md` (filename basename == `id`, so `"[[id]]"` relations resolve — resolution is by filename, not alias; `rules/kb-conventions.mdc` §1.6) with the required floor (`status: active`, `updated: <today>`), then add the recommended metadata (`id`, `aliases`, `type`, `domain`, `title`, `summary`, `tags`) — applied with judgment, honest to the entry's actual content, never padded to fill fields.
+5. **Maintain it by its kind** (`rules/kb-conventions.mdc` §4.6): a **living** entry (`concept`/`specification`/`policy`) is edited in place to stay current; a **record** (`decision`/`fieldnote`) is immutable — never rewrite a settled decision to update it; supersede it (new entry + `supersedes`/`superseded_by`, capturing the transition). Don't duplicate a mutable value into a record beyond a point-in-time snapshot.
+6. Link it to related entries via the frontmatter relation fields, choosing tags from the project's controlled vocabulary; if a deprecated entry is now superseded, set its `status: deprecated` and link forward (`superseded_by`). A state document set by a decision should link back to it (`depends_on`, §4.6) so the *why* is one hop away.
+7. If the KB root has an `_index.md`, reflect the addition there.
 
 ## Maintaining
 
-- `/magik-repo-kb-sanitize` — internal coherence: contradictory `active` entries, legacy/orphaned files, broken or obsolete links, stale `_index.md`, and conformance to the recommended metadata standard (`rules/kb-conventions.mdc`) — frontmatter shape, tag-vocabulary drift, relation reciprocity, dangling `[[id]]` refs, deprecated-without-forward-link.
-- `/magik-repo-kb-code-sync` — external coherence: documented policies/features vs. what the code actually does.
+Prefer **incremental healing in the flow of work** — fix the small thing in front of you as you pass through it — over big periodic reorganizations. The two commands below are the deliberate sweeps; the cleanest KB is mostly kept clean a paragraph at a time.
+
+- `/magik-repo-kb-sanitize` — internal coherence: contradictory `active` entries, **duplicate entries describing one concept under different names**, legacy/orphaned files, broken or obsolete links, stale `_index.md`, and conformance to the recommended metadata standard (`rules/kb-conventions.mdc`) — frontmatter shape, tag-vocabulary drift, relation reciprocity, dangling `[[id]]` refs, deprecated-without-forward-link, and records rewritten where they should have been superseded.
+- `/magik-repo-kb-code-sync` — external coherence: documented policies/features vs. what the code actually does. Aim the "is this still true?" scrutiny at the **living surface** (`concept`/`specification`/`policy`); records (`decision`/`fieldnote`) aren't restaked on a staleness sweep — they're revisited only when a new decision supersedes them.
 
 Both honor `knowledge.autonomy`: under `ask`/`readonly` they are proposal-first (apply only what the user approves; under `readonly`, report only); under `open` the agent may apply clearly-safe, additive/in-sync fixes directly and still surfaces judgment-call or destructive ones. Never silently reshape the KB's structure. Metadata is **recommended**, so propose conformance fixes — don't gate on them.
 
 ## Anti-patterns
 
+- **Satisfying the pre-task gate with a KB search alone** — not corroborating the KB against the code and live service state (see Reading).
+- Trusting a stale KB claim over the code or live state when they disagree, instead of acting on reality and surfacing the drift.
+- **Rewriting a settled `decision`/`fieldnote` to "keep it current"** instead of superseding it (§4.6) — this erases the history the record exists to preserve.
+- **Copying a fact that's already authoritative elsewhere** (in the code, config, or another entry) instead of pointing at the source — duplication becomes drift.
+- **Spawning a near-duplicate entry** for a concept that already has one, instead of extending the existing entry.
 - Auto-promoting memory or session chatter into the KB.
 - Inventing folders/taxonomy the user didn't ask for.
 - Reorganizing structure or rewriting others' entries silently — surface these regardless of the autonomy setting.

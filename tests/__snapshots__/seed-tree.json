@@ -1,5 +1,5 @@
 {
-  "version": "1.5.0",
+  "version": "1.6.0",
   "fileCount": 6,
   "entries": [
     {
@@ -16,7 +16,7 @@
     },
     {
       "path": "AGENTS.primer.md",
-      "sha256": "26b791775a4e924b2d0a7e66150f0f42e57e6ef8c03a2c0c6a8557715e6c1b11"
+      "sha256": "f6255997b7e85860e7bcd25662e3f26b012809a6dc082b30d2a311df2935b625"
     },
     {
       "path": "gitignore.harness",
@@ -24,7 +24,7 @@
     },
     {
       "path": "vault/knowledge/_index.md",
-      "sha256": "3086d021fd2395f9b261afe7e10fa963c07b81137da88d63981a3722e40c602f"
+      "sha256": "339f7c095bf68f4e3564c2e375d8b9fd65f6f8c744955eb583a0582c85f65501"
     }
   ]
 }

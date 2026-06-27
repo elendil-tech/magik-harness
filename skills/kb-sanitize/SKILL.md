@@ -27,6 +27,8 @@ The recommended metadata standard it checks against — frontmatter schema, tagg
 | Area | What to find |
 | --- | --- |
 | **Conflicts** | Two `active` entries that assert contradictory things. Propose a survivor (reconcile, or deprecate one and link forward). |
+| **Duplicates** | Two or more `active` entries describing the **same concept** under different names/`id`s (concept fragmentation — the main source of bloat). Distinct from Conflicts: these *agree* but should be **one** entry. Propose merging into the best home, repointing inbound `[[id]]`/relation refs, and deprecating the rest with a forward link. |
+| **Records vs. state** | A `decision`/`fieldnote` that was **edited in place to reflect a new state** instead of being superseded (its body now contradicts its own dated premise) — propose splitting the new truth into a successor record (`supersedes`/`superseded_by`) and restoring the original as the historical snapshot. A state document (`concept`/`specification`/`policy`) that **copies a value authoritative in code or another entry** — propose pointing at the source instead. (See `rules/kb-conventions.mdc` §4.6.) |
 | **Legacy** | Entries that read as superseded but are still `status: active`; very stale `updated` with no current relevance; orphaned files nothing links to and `_index.md` doesn't list. |
 | **Links** | Broken relative links / wikilinks; links pointing at `deprecated` entries (should point at the successor); missing reciprocal back-links between clearly related entries. |
 | **Metadata** | Missing required floor (`status`/`updated`); recommended fields a reader clearly needs but the entry lacks (`id`/`aliases`, `type`, `domain`, `summary`) — propose, don't gate; `type`/`domain` that disagree with the entry's actual content; empty placeholder relation fields. |
@@ -34,7 +36,7 @@ The recommended metadata standard it checks against — frontmatter schema, tagg
 | **Relations** | Non-reciprocal `related` (A→B but not B→A) and broken reciprocal pairs (`supersedes`↔`superseded_by`, `implements`↔`implemented_by`) where the pairing is clearly mutual; relation refs not in `"[[id]]"` form; self-references; **dangling/phantom `[[id]]`** refs that resolve to no entry's filename (`<id>.md`). |
 | **Filenames** | Entries whose **filename basename ≠ `id`** — this breaks `[[id]]` resolution (which is by filename, not alias; `rules/kb-conventions.mdc` §1.6). Propose renaming the file to `<id>.md` (and updating inbound `"[[id]]"` refs), or correcting the `id`. Also flag basename collisions between entries (ambiguous `[[id]]`). **Do not** flag an `id`-prefix that no longer matches the entry's folder — `id`s are opaque handles, and prefix↔folder drift is allowed by design (§1.7). |
 | **Deprecation** | A `deprecated` entry with a successor in the KB but no `superseded_by` forward link; `active` entries whose `related` points at a now-`deprecated` target that has a successor (repoint to the successor). |
-| **Orientation** | `_index.md` missing entries that exist, or listing entries that were removed/renamed. |
+| **Orientation** | `_index.md` missing entries that exist, or listing entries that were removed/renamed. It should read as a usable **map** (a Map of Content) — current links a fresh reader can navigate, so a newcomer sees a topic from above and knows where new entries belong — not a stale list. For a large domain, a nested area `_index.md` is fine. |
 
 For the metadata/tag/relation checks, apply the **judgment** in `rules/kb-conventions.mdc` §4: propose a relation/tag only when it is honest and high-signal, surface ambiguity for the human to settle, and never fabricate a link or coin a tag just to satisfy the schema.
 
@@ -92,5 +94,7 @@ Apply which? (e.g. "1,3,4" / "all" / "none")
 - Inventing new structure/taxonomy under the guise of cleanup.
 - Touching memory or code (that's out of scope — see `kb-code-sync`).
 - Deleting an entry outright when deprecate-and-link preserves history.
+- Proposing to *rewrite* a `decision`/`fieldnote` to update it — records are immutable; propose a supersession instead (§4.6).
+- Merging entries that merely **share a topic** — only merge genuine duplicates of *one* concept; topical neighbours stay separate and are linked.
 - Treating the recommended metadata standard as a gate — an entry with only `status` + `updated` is valid; propose enrichment, don't fail it.
 - Fabricating a relation or coining a tag to satisfy the schema instead of surfacing the ambiguity.

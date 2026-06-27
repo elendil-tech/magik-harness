@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-1.5.0-8A2BE2?style=for-the-badge" />
+    <img alt="Version" src="https://img.shields.io/badge/version-1.6.0-8A2BE2?style=for-the-badge" />
   </a>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge" />
@@ -59,7 +59,7 @@ code repo (your repo)                external vault (your storage)
 
 ## 🧭 The three rules
 
-1. **Read the KB before substantive work.** The agent resolves the KB and reads it before producing, modifying, or committing anything domain-relevant. If an active policy would be violated, it stops and surfaces it.
+1. **Gather full context before substantive work.** The agent reads the KB first — but the KB is the *start* of context, not the end. It corroborates the KB against the code (what the system actually does) and the live state of dependent services, and acts on reality where they diverge. If an active policy would be violated, it stops and surfaces it.
 2. **Keep the KB in sync — at the autonomy you grant.** It's ground truth; `knowledge.autonomy` tunes how freely the agent maintains it. Default `open` — it keeps the KB in step with its work *without asking*, surfacing only large or destructive restructurings. See [Tuning KB autonomy](#-tuning-kb-autonomy).
 3. **Memory is for recency; the KB is for durable truth.** The agent writes memory freely and never auto-promotes it into the KB. Durable, shared truth belongs in the KB, not memory.
 
@@ -67,7 +67,7 @@ code repo (your repo)                external vault (your storage)
 
 🪄 **One command to wire any repo** — `/magik-repo-setup` is a short Q&A (vault path, layout, access method) that writes the pointer, primer, and hook, and scaffolds the vault — idempotently, marker-aware, **never overwriting your content**.
 
-📚 **Read-first knowledge base** — a mandatory `kb-search` gate before substantive work, over your external KB. Light structure floor (frontmatter + links + optional `_index.md`), no enforced schemas.
+📚 **Context-first knowledge base** — a mandatory `kb-search` gate before substantive work that doesn't stop at the KB: it triangulates the KB (claimed truth) against the code and the live state of dependent services, then acts on reality and reconciles drift. Light structure floor (frontmatter + links + optional `_index.md`), no enforced schemas.
 
 🧠 **Daily memory log** — a daily log in the vault; the session-start hook injects today's notes. No promotion ceremony — past lessons are found with the agent's own search.
 
@@ -134,7 +134,7 @@ You:   /magik-repo-kb-code-sync   → reports where the code and the documented 
 
 📜 **4 agent-requestable rules** (`rules/*.mdc`) — `harness` (the operating model + manifest resolution + the three rules), `knowledge-base` (read/maintain the KB + structure floor), `memory` (the running log, no promotion), `kb-conventions` (the recommended metadata standard — frontmatter, tags, relations — + the judgment for it).
 
-🧪 **3 framework skills** — `kb-search` (read-first gate), `kb-sanitize` (internal KB coherence), `kb-code-sync` (KB ↔ code drift).
+🧪 **3 framework skills** — `kb-search` (full-context pre-task gate: KB + code + live service state), `kb-sanitize` (internal KB coherence), `kb-code-sync` (KB ↔ code drift).
 
 🎮 **3 slash commands** — `/magik-repo-setup`, `/magik-repo-kb-sanitize`, `/magik-repo-kb-code-sync`.
 
@@ -204,7 +204,7 @@ The plugin ships a deterministic `node:test` suite (`pnpm test`) covering the se
 
 ## 🏷️ Versioning
 
-`magik-repo@1.5.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
+`magik-repo@1.6.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
 ## 📄 License
 
