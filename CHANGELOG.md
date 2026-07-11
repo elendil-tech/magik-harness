@@ -1,5 +1,21 @@
 # magik-repo
 
+## 1.7.0 — 2026-07-11
+
+Tracks `harness@1`. **Agentic end-to-end work loop + human-in-the-loop for taste.** Adds harness **rule 4**: every substantive task closes (orient → strategize → implement → verify → conditional HITL → ship → clean up). Taste/creative work (design, copy, brand, front-end look) requires human approval — often with 2–3 drafts and back-and-forth. Programmatically verifiable work does not wait on a human. The loop is harness-wide (Cursor IDE, worktrees, orchestrators) — not tied to Orca or any single dispatcher.
+
+### Added
+
+- **`skills/agentic-e2e-loop/SKILL.md`** — procedure for the full loop, verification cadence, HITL gate, shipping/cleanup.
+- **`rules/agentic-work.mdc`** — requestable rule detailing when HITL fires and when it must not.
+
+### Changed
+
+- **`rules/harness.mdc`** — four rules; rule 4 points at `agentic-work` / `agentic-e2e-loop`.
+- **`seed-sources/AGENTS.primer.md`** — four rules; primer lists `agentic-work`. Marker block upgrades in place on re-run (`v=1.7.0`).
+- **`README.md`** — four rules + feature bullet for the E2E loop; version badge `1.7.0`.
+- **Version** — `magik-repo@1.7.0`; still ships `harness@1` content (manifest schema unchanged).
+
 ## 1.6.0 — 2026-06-27
 
 Tracks `harness@1`. **Full-context pre-task gate + decision-vs-state maintenance.** Two related upgrades to how the harness reads and maintains the KB, both procedure/judgment only — no manifest schema change, no enforced KB structure (templating/initialization remains a deliberately separate, deferred layer; see `ROADMAP.md`).

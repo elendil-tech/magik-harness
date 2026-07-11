@@ -41,7 +41,7 @@ It is the user's choice whether the vault is user-level (many projects) or proje
 
 ## What the harness enforces
 
-Almost nothing — that's the point. The rules are:
+Almost nothing — that's the point. The rules are (four):
 
 1. **Gather full context before substantive work.** Before producing, modifying, or committing anything domain-relevant, run the `kb-search` skill — but the KB is the *start* of context, not the end. The KB states what *should* be true; corroborate it against the **code** (what the system actually does) and the **live state of dependent services** (read-only probes where a safe path exists), and act on reality where they diverge. Your training priors are not this project's ground truth, and a stale KB isn't either. Skipping this because "I already know" — or stopping at a KB search alone — is the failure mode the harness exists to catch.
 2. **Keep the KB in sync — at the autonomy the manifest grants.** The KB is ground truth; how freely you maintain it on your own initiative is tuned by `knowledge.autonomy` in the manifest (default **`open`**):
@@ -50,6 +50,7 @@ Almost nothing — that's the point. The rules are:
    - **`readonly`** — never write the KB; report what you'd change and leave the edit to be applied manually.
    An explicit instruction always wins over the configured default for that action. Whatever the setting, never quietly reorganize the KB's structure or rewrite entries wholesale — surface that first.
 3. **Memory is for recency; the KB is for durable truth.** Write observations and lessons to memory freely. Never auto-promote memory into the KB — when a past memory note is useful later, find it with your own search. Durable, shared truth belongs in the KB, not memory; if a memory note should become ground truth, offer to record it there instead.
+4. **Close the agentic loop.** Substantive work follows orient → strategize → implement → **verify** → (HITL if taste) → ship → clean up. Completion means merged + tidy, not “code written.” Raise a human approval gate — with drafts when creative — for design, copy, brand, or front-end taste; do **not** block programmatically verifiable work on a human. Details: rule `agentic-work` and skill `agentic-e2e-loop`. Applies in every agent surface (IDE, worktrees, orchestrators).
 
 ## Commands
 

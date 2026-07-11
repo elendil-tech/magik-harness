@@ -1,5 +1,5 @@
 {
-  "version": "1.6.0",
+  "version": "1.7.0",
   "fileCount": 6,
   "entries": [
     {
@@ -16,7 +16,7 @@
     },
     {
       "path": "AGENTS.primer.md",
-      "sha256": "f6255997b7e85860e7bcd25662e3f26b012809a6dc082b30d2a311df2935b625"
+      "sha256": "2b6b385a3c16cd8feb7945de30db742aac9f8aef9848731fcce0f2c1a2d2f9d4"
     },
     {
       "path": "gitignore.harness",

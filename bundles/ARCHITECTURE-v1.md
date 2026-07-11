@@ -53,11 +53,12 @@ It is the user's choice whether the vault is user-level (many projects) or proje
 
 ## 4. What the harness enforces
 
-Only the contract above plus three behaviors (full text in `rules/harness.mdc`):
+Only the contract above plus four behaviors (full text in `rules/harness.mdc`):
 
 1. **Gather full context before substantive work** (the `kb-search` skill) — the KB is the *start* of context, corroborated against the code and the live state of dependent services; act on reality where they diverge. Never satisfied by a KB search alone.
 2. **Keep the KB in sync — at the autonomy the manifest grants** — it's ground truth; `knowledge.autonomy` (default `open`) tunes how freely the agent maintains it on its own initiative (`open` / `ask` / `readonly`). Large or destructive restructurings are always surfaced first.
 3. **Memory is for recency; the KB is for durable truth** — write memory freely, never auto-promote it into the KB; durable shared truth belongs in the KB.
+4. **Close the agentic loop** — orient → strategize → implement → verify → (HITL if taste) → ship → clean up. Taste/creative work requires human approval (often drafts); programmatically verifiable work does not. See `rules/agentic-work.mdc` / skill `agentic-e2e-loop`.
 
 ## 5. Structure floor
 
@@ -73,8 +74,8 @@ No five schemas, no registry spine, no promotion, no trust/quarantine, no propos
 ## 6. Components
 
 - **Commands (3):** `/magik-repo-setup` (interactive — point the repo at a vault, scaffold both sides), `/magik-repo-kb-sanitize` (heal KB internal coherence), `/magik-repo-kb-code-sync` (KB ↔ code drift).
-- **Rules (3):** `harness`, `knowledge-base`, `memory`.
-- **Skills (3):** `kb-search` (read-first gate), `kb-sanitize`, `kb-code-sync`.
+- **Rules (4):** `harness`, `knowledge-base`, `memory`, `agentic-work`.
+- **Skills (4):** `kb-search` (read-first gate), `kb-sanitize`, `kb-code-sync`, `agentic-e2e-loop`.
 - **Project hook:** `.cursor/hooks/session-start.js` resolves the manifest and injects today's memory daily note + a read-first reminder. Fail-open.
 
 ## 7. Setup flow

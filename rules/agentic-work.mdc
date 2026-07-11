@@ -1,0 +1,52 @@
+---
+description: >-
+  The agentic end-to-end work loop — orient, implement, verify, human-in-the-loop
+  for taste, ship, and clean up. Applies in every agent surface (IDE, worktrees,
+  orchestrators), not only parallel workers. Read when starting or closing
+  substantive work, or when deciding whether a human approval gate is required.
+alwaysApply: false
+---
+
+# Agentic work loop
+
+Harnessed agents do not stop at “implementation complete.” They close the loop.
+
+This is **rule 4** of the light harness (see `harness`). It is independent of any
+particular orchestrator (Orca, Cursor IDE chat, CI agent, etc.).
+
+## The loop
+
+1. **Orient** — run `kb-search` (KB + code + live services).
+2. **Strategize** — choose an approach that fits this project's context and sound practice.
+3. **Implement** — scoped change only.
+4. **Verify** — always. Large tasks may verify as they go; small ones may verify at the end. The agent decides cadence; skipping verification is not an option.
+5. **HITL gate (conditional)** — see below.
+6. **Ship** — commit → push → PR → merge → confirm CI green.
+7. **Clean up** — remove ephemeral worktrees, local stacks, and leftover branches.
+
+## Human-in-the-loop gate
+
+**Trigger** when the artifact requires taste or represents a human / brand:
+
+- design (visual, UX, Paper, etc.)
+- copywriting / messaging / voice
+- front-end look-and-feel decisions
+- brand or positioning choices
+
+**Behavior:** stay interactive; produce **2–3 drafts** when creative; explain differences; wait for explicit human approval or steering. A multi-turn draft loop is expected. Do **not** auto-merge on agent judgment alone.
+
+**Do not trigger** for work that is programmatically verifiable (tests, types, lint, deterministic refactors, infra that has objective checks). Those run autonomously.
+
+After creative approval, still run programmatic checks before shipping.
+
+## Orchestrator notes
+
+If a coordinator/worker tool is in use, signal completion with that tool's real API
+(e.g. Orca: `orchestration send --type worker_done`, not a fictional `worker-done`
+subcommand). The loop itself does not depend on Orca.
+
+## Related
+
+- Skill: `agentic-e2e-loop` (procedure detail)
+- Skill: `kb-search` (step 1)
+- Rule: `harness` (rules 1–3 + this as rule 4)

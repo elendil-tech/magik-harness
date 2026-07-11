@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-1.6.0-8A2BE2?style=for-the-badge" />
+    <img alt="Version" src="https://img.shields.io/badge/version-1.7.0-8A2BE2?style=for-the-badge" />
   </a>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge" />
@@ -57,11 +57,12 @@ code repo (your repo)                external vault (your storage)
 
 `accessVia` is `path` (local folder, default) or `mcp` (remote storage wired through your MCP config). `~` expands at resolve time. `knowledge.autonomy` tunes how freely the agent writes the KB (`open` default / `ask` / `readonly` — see [Tuning KB autonomy](#-tuning-kb-autonomy)). Whether the vault is user-level (many projects) or project-level (one) is **your** choice — the harness doesn't enforce it.
 
-## 🧭 The three rules
+## 🧭 The four rules
 
 1. **Gather full context before substantive work.** The agent reads the KB first — but the KB is the *start* of context, not the end. It corroborates the KB against the code (what the system actually does) and the live state of dependent services, and acts on reality where they diverge. If an active policy would be violated, it stops and surfaces it.
 2. **Keep the KB in sync — at the autonomy you grant.** It's ground truth; `knowledge.autonomy` tunes how freely the agent maintains it. Default `open` — it keeps the KB in step with its work *without asking*, surfacing only large or destructive restructurings. See [Tuning KB autonomy](#-tuning-kb-autonomy).
 3. **Memory is for recency; the KB is for durable truth.** The agent writes memory freely and never auto-promotes it into the KB. Durable, shared truth belongs in the KB, not memory.
+4. **Close the agentic loop.** Orient → strategize → implement → verify → (HITL if taste) → ship → clean up. Taste/creative work gets a human approval gate (often drafts); programmatically verifiable work does not. See skill `agentic-e2e-loop` / rule `agentic-work`.
 
 ## ✨ Features
 
@@ -76,6 +77,8 @@ code repo (your repo)                external vault (your storage)
 🎚️ **Tunable KB autonomy** — `knowledge.autonomy` in the manifest sets how hands-free the agent is with the KB: `open` (default — maintain it in sync with the work, no asking), `ask` (write only on request/approval), or `readonly` (report only). Chosen at setup; change it any time by editing the manifest.
 
 🏷️ **Recommended metadata standard** — a portable, project-agnostic convention (`kb-conventions`) for frontmatter, tagging, and relations, plus the judgment for applying it coherently. Additive only: the required floor stays `status` + `updated`; each project owns its tag vocabulary.
+
+🔁 **Agentic E2E loop** — every substantive task closes: verify locally, human-in-the-loop for taste/creative work (drafts + approval), ship only when CI is green, then clean up. Same loop in the IDE and in worktrees — not tied to a specific orchestrator.
 
 📦 **Pure additive install** — drops into existing repos with no migrations and no lock-in. The repo footprint is tiny: a pointer, a primer block, a `.gitignore` secret block, and one hook.
 
@@ -132,9 +135,9 @@ You:   /magik-repo-kb-code-sync   → reports where the code and the documented 
 
 ## 🧰 What ships
 
-📜 **4 agent-requestable rules** (`rules/*.mdc`) — `harness` (the operating model + manifest resolution + the three rules), `knowledge-base` (read/maintain the KB + structure floor), `memory` (the running log, no promotion), `kb-conventions` (the recommended metadata standard — frontmatter, tags, relations — + the judgment for it).
+📜 **5 agent-requestable rules** (`rules/*.mdc`) — `harness` (the operating model + manifest resolution + the four rules), `knowledge-base` (read/maintain the KB + structure floor), `memory` (the running log, no promotion), `agentic-work` (E2E loop + HITL for taste), `kb-conventions` (the recommended metadata standard — frontmatter, tags, relations — + the judgment for it).
 
-🧪 **3 framework skills** — `kb-search` (full-context pre-task gate: KB + code + live service state), `kb-sanitize` (internal KB coherence), `kb-code-sync` (KB ↔ code drift).
+🧪 **4 framework skills** — `kb-search` (full-context pre-task gate: KB + code + live service state), `kb-sanitize` (internal KB coherence), `kb-code-sync` (KB ↔ code drift), `agentic-e2e-loop` (verify → HITL if taste → ship → clean up).
 
 🎮 **3 slash commands** — `/magik-repo-setup`, `/magik-repo-kb-sanitize`, `/magik-repo-kb-code-sync`.
 
@@ -173,7 +176,7 @@ pnpm clean
 ├── assets/                        # banner, logo, social card
 ├── commands/*.md                  # /magik-repo-setup, /magik-repo-kb-sanitize, /magik-repo-kb-code-sync (authored)
 ├── rules/*.mdc                    # harness, knowledge-base, memory, kb-conventions (authored)
-├── skills/<name>/SKILL.md         # kb-search, kb-sanitize, kb-code-sync (authored)
+├── skills/<name>/SKILL.md         # kb-search, kb-sanitize, kb-code-sync, agentic-e2e-loop (authored)
 ├── hooks/setup.ts                 # the /magik-repo-setup hook (authored)
 ├── scripts/                       # build & install tooling (authored)
 ├── bundles/ARCHITECTURE-v1.md     # the light-harness design spec
@@ -204,7 +207,7 @@ The plugin ships a deterministic `node:test` suite (`pnpm test`) covering the se
 
 ## 🏷️ Versioning
 
-`magik-repo@1.6.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
+`magik-repo@1.7.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
 ## 📄 License
 
