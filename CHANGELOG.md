@@ -1,5 +1,14 @@
 # magik-repo
 
+## 1.7.1 — 2026-07-11
+
+Tracks `harness@1`. **KB sync is a required close-out step** of the agentic E2E loop (after ship, before cleanup): update durable knowledge/docs so the vault matches what landed, honor `knowledge.autonomy`, reconcile drift (`kb-code-sync` judgment when broad).
+
+### Changed
+
+- **`skills/agentic-e2e-loop/SKILL.md`**, **`rules/agentic-work.mdc`**, **`rules/harness.mdc`**, primer, README, architecture — loop is now 8 steps with explicit **KB sync**.
+- **Version** — `magik-repo@1.7.1`.
+
 ## 1.7.0 — 2026-07-11
 
 Tracks `harness@1`. **Agentic end-to-end work loop + human-in-the-loop for taste.** Adds harness **rule 4**: every substantive task closes (orient → strategize → implement → verify → conditional HITL → ship → clean up). Taste/creative work (design, copy, brand, front-end look) requires human approval — often with 2–3 drafts and back-and-forth. Programmatically verifiable work does not wait on a human. The loop is harness-wide (Cursor IDE, worktrees, orchestrators) — not tied to Orca or any single dispatcher.

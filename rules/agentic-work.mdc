@@ -1,9 +1,10 @@
 ---
 description: >-
   The agentic end-to-end work loop — orient, implement, verify, human-in-the-loop
-  for taste, ship, and clean up. Applies in every agent surface (IDE, worktrees,
-  orchestrators), not only parallel workers. Read when starting or closing
-  substantive work, or when deciding whether a human approval gate is required.
+  for taste, ship, sync the knowledge base, and clean up. Applies in every agent
+  surface (IDE, worktrees, orchestrators), not only parallel workers. Read when
+  starting or closing substantive work, or when deciding whether a human approval
+  gate is required.
 alwaysApply: false
 ---
 
@@ -22,7 +23,8 @@ particular orchestrator (Orca, Cursor IDE chat, CI agent, etc.).
 4. **Verify** — always. Large tasks may verify as they go; small ones may verify at the end. The agent decides cadence; skipping verification is not an option.
 5. **HITL gate (conditional)** — see below.
 6. **Ship** — commit → push → PR → merge → confirm CI green.
-7. **Clean up** — remove ephemeral worktrees, local stacks, and leftover branches.
+7. **KB sync** — update durable KB/docs so vault truth matches what landed (honor `knowledge.autonomy`; use `kb-code-sync` judgment when drift is broad).
+8. **Clean up** — remove ephemeral worktrees, local stacks, and leftover branches.
 
 ## Human-in-the-loop gate
 
@@ -39,6 +41,12 @@ particular orchestrator (Orca, Cursor IDE chat, CI agent, etc.).
 
 After creative approval, still run programmatic checks before shipping.
 
+## KB sync
+
+After merge, durable knowledge must not lag the code. Update or add the living entries
+this task affects; supersede decision records rather than rewriting them; reconcile
+code↔KB drift. Skip only when there is genuinely no durable-knowledge impact.
+
 ## Orchestrator notes
 
 If a coordinator/worker tool is in use, signal completion with that tool's real API
@@ -49,4 +57,6 @@ subcommand). The loop itself does not depend on Orca.
 
 - Skill: `agentic-e2e-loop` (procedure detail)
 - Skill: `kb-search` (step 1)
+- Skill: `kb-code-sync` (full drift pass when needed)
 - Rule: `harness` (rules 1–3 + this as rule 4)
+- Rule: `knowledge-base` (how to write the KB)
