@@ -3,17 +3,18 @@ name: agentic-e2e-loop
 description: >-
   Full end-to-end agentic work loop for harnessed repos: gather context (kb-search),
   strategize, implement, verify locally (programmatic or human-in-the-loop for taste),
-  ship (commit/push/merge/CI), sync the knowledge base, and clean up. Applies in
-  Cursor IDE, Orca worktrees, and any other agent surface — not tied to a specific
-  orchestrator. Use whenever starting or closing substantive work so the loop
-  always completes.
+  ship (commit/push/PR, CI watch + fix-forward, merge), sync the knowledge base, and
+  clean up (ephemeral worktree teardown or primary checkout reset to develop/main).
+  Applies in Cursor IDE, Orca worktrees, and any other agent surface — not tied to a
+  specific orchestrator. Use whenever starting or closing substantive work so the
+  loop always completes.
 ---
 
 # Agentic E2E loop (magik-repo)
 
-Completion means **merged + KB updated + cleaned up**, not “code written.” This loop
-applies whether you are in the primary Cursor IDE chat, an Orca worktree agent, or
-any other agent surface that uses this harness.
+Completion means **merged + CI/ship gates held + KB updated + workspace reset/tidy**,
+not “code written” or “PR opened.” This loop applies whether you are in the primary
+Cursor IDE chat, an Orca worktree agent, or any other agent surface that uses this harness.
 
 ## Loop
 
@@ -24,11 +25,13 @@ any other agent surface that uses this harness.
 4. Verify       always — cadence is the agent's call (as-you-go for large work;
                 end-loaded for small). See Verification below.
 5. HITL gate    only when taste/creative — raise approval; drafts + back-and-forth OK
-6. Ship         commit → push → PR → merge → confirm CI green
+6. Ship         commit → push → PR → watch CI → fix failures → merge → confirm
+                post-merge integration/deploy when the project has it
                 (resolve code merge conflicts as part of shipping — not afterthought)
 7. KB sync      update durable knowledge/docs so the vault matches what landed
                 (resolve vault/KB merge conflicts as part of sync — not afterthought)
-8. Clean up     worktrees, ephemeral stacks, temp branches — leave the workspace tidy
+8. Clean up     surface-dependent: tear down ephemeral worktrees, or reset the
+                primary checkout to the integration branch — leave the workspace tidy
 ```
 
 ## Verification
@@ -105,18 +108,62 @@ are ground truth) in line with what actually shipped:
 Skip only when the change truly has **no** durable-knowledge impact (e.g. pure typo in
 a comment with no behavioral or operational meaning). When in doubt, sync.
 
+## CI watch + fix-forward (part of Ship — not optional garnish)
+
+Watching CI and correcting failures is **in-loop**, not overkill. A merge button click
+without green checks (or a red post-merge deploy left unfixed) is an incomplete ship.
+Fold this into step 6 — do **not** invent a separate “step 9” that agents skip.
+
+### Before merge (PR / branch CI)
+
+1. After opening or updating the PR, **monitor** the project's required (or advisory-but-
+   discipline-enforced) checks until they finish.
+2. On failure: read the failing job logs, fix the root cause on the feature branch,
+   push, and **re-watch** until green. Repeat until green or a true external blocker
+   (infra outage, missing secret you cannot provision) — then surface the blocker;
+   do not declare the task done.
+3. Only then merge to the integration branch (per the project's merge discipline).
+
+### After merge (integration / deploy CI)
+
+When the project runs checks or deploys on the integration branch after merge:
+
+1. Confirm the merge landed and watch the post-merge pipeline (deploy, re-test, etc.).
+2. If it fails, **fix forward** on the integration branch (or a hotfix branch that
+   merges immediately) — same bar as PR CI. Do not walk away from a broken tip.
+3. Skip endless monitoring of unrelated workflows; scope to the pipelines this change
+   triggers.
+
+Repos/creative work still needs HITL before merge; CI watch applies after approval.
+
 ## Shipping & cleanup
 
 - Prefer merging to the project's integration branch (often `develop` or `main`) once
-  verification (+ HITL if required) passes and CI is green.
+  verification (+ HITL if required) passes and **PR CI is green**.
 - **Resolve code merge conflicts as part of shipping** (see above) — unfinished
   conflict state means ship is not done.
+- **CI watch + fix-forward** (see above) is part of shipping — PR green before merge;
+  post-merge integration/deploy healthy when the project has that gate.
 - Run **KB sync** after the merge is confirmed (so the KB describes what is actually on
   the integration branch), including vault conflict resolution when needed.
-- Tear down ephemeral environments and worktrees when the task is done.
+- **Clean up is surface-dependent** (see below) — do not leave the primary checkout on
+  a merged feature branch, and do not leave ephemeral worktrees behind.
 - If an orchestrator is in use (e.g. Orca), signal completion with that tool's
   completion message — do not invent a fake subcommand. Example pattern:
   `orca orchestration send --type worker_done …` then `task-update --status completed`.
+
+## Cleanup: primary checkout vs ephemeral worktree
+
+Same completion bar; different mechanic.
+
+| Surface | After merge + KB sync |
+| --- | --- |
+| **Ephemeral worktree** (Orca, `git worktree`, throwaway clone) | **Tear down** the worktree and its ephemeral stacks / sibling vault checkout. Do not “return” it to `develop` — remove it. |
+| **Primary / long-lived checkout** (main Cursor workspace, reused across tasks) | **Reset to the integration branch**: check out `develop`/`main`, pull so local matches remote, delete the local feature branch, prune stale remotes. The tree is reused, not destroyed. |
+
+During the task, staying on the feature branch is correct. After the branch is merged,
+leaving the primary still checked out on that feature branch is an **incomplete
+close-out**. Remote branch deletion on merge (when enabled) does not replace this step.
 
 ## Anti-patterns
 
@@ -126,4 +173,7 @@ a comment with no behavioral or operational meaning). When in doubt, sync.
 - Shipping without updating the KB when durable truth changed
 - Leaving merge conflicts in the code repo or vault for “later”
 - Force-pushing over peers to dodge KB or code conflict resolution
+- Declaring ship done when PR CI is red, or ignoring a failed post-merge deploy
 - Leaving worktrees / stacks / branches behind after merge
+- Leaving the **primary** checkout on a merged feature branch instead of resetting to
+  the integration branch

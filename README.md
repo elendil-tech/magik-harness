@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-1.7.2-8A2BE2?style=for-the-badge" />
+    <img alt="Version" src="https://img.shields.io/badge/version-1.7.3-8A2BE2?style=for-the-badge" />
   </a>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge" />
@@ -62,7 +62,7 @@ code repo (your repo)                external vault (your storage)
 1. **Gather full context before substantive work.** The agent reads the KB first — but the KB is the *start* of context, not the end. It corroborates the KB against the code (what the system actually does) and the live state of dependent services, and acts on reality where they diverge. If an active policy would be violated, it stops and surfaces it.
 2. **Keep the KB in sync — at the autonomy you grant.** It's ground truth; `knowledge.autonomy` tunes how freely the agent maintains it. Default `open` — it keeps the KB in step with its work *without asking*, surfacing only large or destructive restructurings. See [Tuning KB autonomy](#-tuning-kb-autonomy).
 3. **Memory is for recency; the KB is for durable truth.** The agent writes memory freely and never auto-promotes it into the KB. Durable, shared truth belongs in the KB, not memory.
-4. **Close the agentic loop.** Orient → strategize → implement → verify → (HITL if taste) → ship → **KB sync** → clean up. Taste/creative work gets a human approval gate (often drafts); programmatically verifiable work does not. After merge, sync durable KB entries. Resolve **code and vault/KB merge conflicts in-loop**. See skill `agentic-e2e-loop` / rule `agentic-work`.
+4. **Close the agentic loop.** Orient → strategize → implement → verify → (HITL if taste) → ship → **KB sync** → clean up. Taste/creative work gets a human approval gate (often drafts); programmatically verifiable work does not. Ship includes **CI watch + fix-forward**, then merge. After merge, sync durable KB entries. Resolve **code and vault/KB merge conflicts in-loop**. Cleanup: tear down ephemeral worktrees; reset the primary checkout to the integration branch. See skill `agentic-e2e-loop` / rule `agentic-work`.
 
 ## ✨ Features
 
@@ -78,7 +78,7 @@ code repo (your repo)                external vault (your storage)
 
 🏷️ **Recommended metadata standard** — a portable, project-agnostic convention (`kb-conventions`) for frontmatter, tagging, and relations, plus the judgment for applying it coherently. Additive only: the required floor stays `status` + `updated`; each project owns its tag vocabulary.
 
-🔁 **Agentic E2E loop** — every substantive task closes: verify locally, human-in-the-loop for taste/creative work (drafts + approval), ship when CI is green, **sync the knowledge base**, then clean up. Same loop in the IDE and in worktrees — not tied to a specific orchestrator.
+🔁 **Agentic E2E loop** — every substantive task closes: verify locally, human-in-the-loop for taste/creative work (drafts + approval), ship with **CI watch + fix-forward**, **sync the knowledge base**, then clean up (worktree teardown or primary reset to `develop`/`main`). Same loop in the IDE and in worktrees — not tied to a specific orchestrator.
 
 📦 **Pure additive install** — drops into existing repos with no migrations and no lock-in. The repo footprint is tiny: a pointer, a primer block, a `.gitignore` secret block, and one hook.
 
@@ -207,7 +207,7 @@ The plugin ships a deterministic `node:test` suite (`pnpm test`) covering the se
 
 ## 🏷️ Versioning
 
-`magik-repo@1.7.2` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
+`magik-repo@1.7.3` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
 ## 📄 License
 

@@ -1,5 +1,15 @@
 # magik-repo
 
+## 1.7.3 — 2026-07-12
+
+Tracks `harness@1`. **Cleanup is surface-dependent** (tear down ephemeral worktrees; reset the primary checkout to the integration branch after merge). **CI watch + fix-forward** is an explicit part of Ship — not a separate optional step and not overkill for accurate completion.
+
+### Changed
+
+- **`skills/agentic-e2e-loop/SKILL.md`** — completion bar includes ship/CI gates; new “CI watch + fix-forward” and “Cleanup: primary checkout vs ephemeral worktree” sections; loop step 6/8 and anti-patterns updated.
+- **`rules/agentic-work.mdc`**, **`rules/harness.mdc`**, primer, README — rule 4 / loop steps call out CI watch, fix-forward, and primary vs worktree cleanup.
+- **Version** — `magik-repo@1.7.3`.
+
 ## 1.7.2 — 2026-07-12
 
 Tracks `harness@1`. **Merge conflict resolution for code and KB is in-loop** during Ship and KB sync — not an afterthought. Parallel worktrees and independent vault checkouts make conflicts expected; agents finish them before declaring ship/sync complete.
