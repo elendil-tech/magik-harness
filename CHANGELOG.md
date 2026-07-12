@@ -1,5 +1,15 @@
 # magik-repo
 
+## 1.7.2 — 2026-07-12
+
+Tracks `harness@1`. **Merge conflict resolution for code and KB is in-loop** during Ship and KB sync — not an afterthought. Parallel worktrees and independent vault checkouts make conflicts expected; agents finish them before declaring ship/sync complete.
+
+### Changed
+
+- **`skills/agentic-e2e-loop/SKILL.md`** — new “Merge conflict resolution (code + KB)” section; Ship / KB sync / anti-patterns updated.
+- **`rules/agentic-work.mdc`**, **`rules/harness.mdc`**, primer, README — rule 4 / loop steps call out in-loop conflict resolution.
+- **Version** — `magik-repo@1.7.2`.
+
 ## 1.7.1 — 2026-07-11
 
 Tracks `harness@1`. **KB sync is a required close-out step** of the agentic E2E loop (after ship, before cleanup): update durable knowledge/docs so the vault matches what landed, honor `knowledge.autonomy`, reconcile drift (`kb-code-sync` judgment when broad).

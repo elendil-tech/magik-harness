@@ -22,8 +22,8 @@ particular orchestrator (Orca, Cursor IDE chat, CI agent, etc.).
 3. **Implement** — scoped change only.
 4. **Verify** — always. Large tasks may verify as they go; small ones may verify at the end. The agent decides cadence; skipping verification is not an option.
 5. **HITL gate (conditional)** — see below.
-6. **Ship** — commit → push → PR → merge → confirm CI green.
-7. **KB sync** — update durable KB/docs so vault truth matches what landed (honor `knowledge.autonomy`; use `kb-code-sync` judgment when drift is broad).
+6. **Ship** — commit → push → PR → merge → confirm CI green. **Resolve code merge conflicts as part of this step** (not a later chore).
+7. **KB sync** — update durable KB/docs so vault truth matches what landed (honor `knowledge.autonomy`; use `kb-code-sync` judgment when drift is broad). **Resolve vault/KB merge conflicts as part of this step.**
 8. **Clean up** — remove ephemeral worktrees, local stacks, and leftover branches.
 
 ## Human-in-the-loop gate
@@ -41,11 +41,26 @@ particular orchestrator (Orca, Cursor IDE chat, CI agent, etc.).
 
 After creative approval, still run programmatic checks before shipping.
 
+## Merge conflict resolution (code + KB)
+
+Conflicts are expected with parallel worktrees and independent vault checkouts.
+Resolving them is **in-loop**:
+
+- **Code** — during Ship: finish merge/rebase conflict resolution before calling the
+  ship done; re-verify after resolving.
+- **KB / vault** — during KB sync: when the vault is versioned, pull/rebase and
+  resolve entry conflicts before treating sync as complete. Do not force-push over
+  peers to dodge conflicts; do not leave conflict markers or an unfinished merge.
+
+Judgment-heavy product conflicts may be surfaced to a human; mechanical resolutions
+stay autonomous. Procedure detail: skill `agentic-e2e-loop`.
+
 ## KB sync
 
 After merge, durable knowledge must not lag the code. Update or add the living entries
 this task affects; supersede decision records rather than rewriting them; reconcile
-code↔KB drift. Skip only when there is genuinely no durable-knowledge impact.
+code↔KB drift; resolve vault merge conflicts when publishing. Skip only when there is
+genuinely no durable-knowledge impact.
 
 ## Orchestrator notes
 
