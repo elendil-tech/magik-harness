@@ -158,7 +158,8 @@ function getGitSyncContext(cwd) {
         ? "⚠️ **UNCOMMITTED CHANGES**: Remember to checkpoint/commit your work before context-switching."
         : null,
       "- Always push commits to origin so other machines/worktrees stay in sync.",
-      '- Do not use global `git stash` across worktrees; use WIP commits (`git commit -m "wip: ..."`) instead.',
+      '- Append `[skip ci]` to WIP commits (`git commit -m "wip: ... [skip ci]"`) to avoid burning GitHub Actions runner minutes on intermediate checkpoints.',
+      '- Do not use global `git stash` across worktrees; use WIP commits (`git commit -m "wip: ... [skip ci]"`) instead.',
     ].filter(Boolean);
 
     return lines.join("\n");

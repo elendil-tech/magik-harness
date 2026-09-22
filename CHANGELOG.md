@@ -2,12 +2,12 @@
 
 ## 1.8.0 — 2026-09-22
 
-Tracks `harness@1`. **Multi-machine & multi-worktree synchronicity (Git Orientation & Cloud-Save Protocol)**. Injects start-of-session git sync state (branch, clean/dirty, ahead/behind upstream, unpublished branch warning) and codifies cross-machine synchronization discipline across agent sessions and worktrees.
+Tracks `harness@1`. **Multi-machine & multi-worktree synchronicity (Git Orientation & Cloud-Save Protocol)**. Injects start-of-session git sync state (branch, clean/dirty, ahead/behind upstream, unpublished branch warning) and codifies cross-machine synchronization discipline across agent sessions and worktrees with `[skip ci]` runner minute safeguards.
 
 ### Added
 
-- **`seed-sources/.cursor/hooks/session-start.js`** — Non-blocking git sync state injection on `sessionStart`. Checks branch status, upstream tracking, ahead/behind count, and unpublished branches, providing actionable guidance to pull before editing or push before switching machines.
-- **`skills/agentic-e2e-loop/SKILL.md`** — New “Multi-machine & worktree synchronicity ritual” section with explicit shift-start (Orient) and shift-pause (Cloud-Save) procedures, plus stash-avoidance and worktree hygiene rules.
+- **`seed-sources/.cursor/hooks/session-start.js`** — Non-blocking git sync state injection on `sessionStart`. Checks branch status, upstream tracking, ahead/behind count, and unpublished branches, providing actionable guidance to pull before editing or push before switching machines with `[skip ci]` to save GitHub Actions runner minutes.
+- **`skills/agentic-e2e-loop/SKILL.md`** — New “Multi-machine & worktree synchronicity ritual” section with explicit shift-start (Orient) and shift-pause (Cloud-Save) procedures, `[skip ci]` commit discipline, plus stash-avoidance and worktree hygiene rules.
 
 ### Changed
 

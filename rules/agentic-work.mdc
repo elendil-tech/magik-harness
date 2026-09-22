@@ -83,8 +83,8 @@ genuinely no durable-knowledge impact.
 When working in environments that span multiple machines (e.g. MacBook and VPS) or multiple worktrees:
 - **GitHub (`origin`) is the central relay across machines.**
 - **Orient on start**: Check git state (`git status`, `git rev-parse --abbrev-ref HEAD`). Check whether the branch is tracking upstream (`git rev-parse --abbrev-ref @{u}`). If behind origin, run `git pull --ff-only` before modifying code.
-- **Cloud-save on pause / context switch**: Never leave unpushed commits or dirty state when pausing or switching machines. Checkpoint with a descriptive WIP commit (`git commit -m "wip: <checkpoint>"`) and push to origin (`git push`).
-- **No global stash across worktrees**: Git stash is repository-global (`.git/refs/stash`); never use `git stash` to transfer or park work across worktrees. Use WIP branch commits instead.
+- **Cloud-save on pause / context switch**: Never leave unpushed commits or dirty state when pausing or switching machines. Checkpoint with a descriptive WIP commit (`git commit -m "wip: <checkpoint> [skip ci]"`) and push to origin (`git push`). Always append `[skip ci]` to WIP commits to avoid burning GitHub Actions runner minutes on intermediate checkpoints.
+- **No global stash across worktrees**: Git stash is repository-global (`.git/refs/stash`); never use `git stash` to transfer or park work across worktrees. Use temporary WIP commits (`git commit -m "wip: ... [skip ci]"`) instead.
 - **Prune finished worktrees**: Delete local branches and tear down ephemeral worktrees when feature branches merge.
 
 ## Cleanup: primary vs ephemeral

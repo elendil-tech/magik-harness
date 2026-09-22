@@ -12,11 +12,11 @@
     },
     {
       "path": ".cursor/hooks/session-start.js",
-      "sha256": "f843d9d22d9d92041d74bd8167f1d4f84e93ff1a81f98bc879aa47f034c05793"
+      "sha256": "fe0eb0e0529c7b730f56b349fd5fc9d26369a6b010adeb532d64b7867bcc8d7e"
     },
     {
       "path": "AGENTS.primer.md",
-      "sha256": "cc3cc36d123f944aba51f6ec8a8708bd99ee151b22a07437b41f8d236de2beac"
+      "sha256": "620cb745c19b395ac18c8a48fc7ff63e486d8f3b3ac7b8e477136e6af53bafdd"
     },
     {
       "path": "gitignore.harness",
