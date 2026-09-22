@@ -190,3 +190,21 @@ test("session-start — malformed manifest: fail-open, still valid JSON", () => 
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("session-start — git worktree injects git sync context into additional_context", () => {
+  ensureBuilt();
+  const root = makeTmpProject();
+  try {
+    spawnSync("git", ["init", "-b", "main"], { cwd: root, stdio: "ignore" });
+    const { stdout, status } = runHook(root);
+    assert.equal(status, 0);
+    const parsed = JSON.parse(stdout) as { additional_context: string };
+    assert.ok(typeof parsed.additional_context === "string");
+    assert.match(parsed.additional_context, /Git Multi-Machine Sync State/);
+    assert.match(parsed.additional_context, /Branch/);
+    assert.match(parsed.additional_context, /kb-search/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+

@@ -1,5 +1,19 @@
 # magik-repo
 
+## 1.8.0 — 2026-09-22
+
+Tracks `harness@1`. **Multi-machine & multi-worktree synchronicity (Git Orientation & Cloud-Save Protocol)**. Injects start-of-session git sync state (branch, clean/dirty, ahead/behind upstream, unpublished branch warning) and codifies cross-machine synchronization discipline across agent sessions and worktrees.
+
+### Added
+
+- **`seed-sources/.cursor/hooks/session-start.js`** — Non-blocking git sync state injection on `sessionStart`. Checks branch status, upstream tracking, ahead/behind count, and unpublished branches, providing actionable guidance to pull before editing or push before switching machines.
+- **`skills/agentic-e2e-loop/SKILL.md`** — New “Multi-machine & worktree synchronicity ritual” section with explicit shift-start (Orient) and shift-pause (Cloud-Save) procedures, plus stash-avoidance and worktree hygiene rules.
+
+### Changed
+
+- **`rules/agentic-work.mdc`**, **`rules/harness.mdc`**, primer, README — Rule 4 updated with multi-machine and worktree synchronicity protocol.
+- **Version** — `magik-repo@1.8.0`.
+
 ## 1.7.3 — 2026-07-12
 
 Tracks `harness@1`. **Cleanup is surface-dependent** (tear down ephemeral worktrees; reset the primary checkout to the integration branch after merge). **CI watch + fix-forward** is an explicit part of Ship — not a separate optional step and not overkill for accurate completion.

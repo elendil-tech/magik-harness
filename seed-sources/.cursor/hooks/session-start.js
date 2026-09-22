@@ -8,7 +8,8 @@
  * `.cursor/harness.json` pointer. This hook reads that manifest, resolves the
  * memory mount under the vault, and injects:
  *   1. today's `<memory-mount>/daily/<YYYY-MM-DD>.md` (full body, if present).
- *   2. a one-line read-first reminder pointing at the KB / `kb-search`.
+ *   2. live git sync state (branch, clean/dirty, ahead/behind upstream) when in a git repo.
+ *   3. a one-line read-first reminder pointing at the KB / `kb-search`.
  *
  * Contract:
  *   - Project hooks run from the project root; `CURSOR_PROJECT_DIR` (and the
@@ -19,6 +20,7 @@
  *     we emit just the reminder (or `{}`) and exit 0 (fail-open).
  */
 
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
@@ -48,6 +50,123 @@ function resolveMemoryDir(projectRoot) {
   return join(base, mem.mount);
 }
 
+function getGitSyncContext(cwd) {
+  try {
+    const isGit = execFileSync("git", ["rev-parse", "--is-inside-work-tree"], {
+      cwd,
+      encoding: "utf-8",
+      timeout: 500,
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    if (isGit !== "true") return null;
+  } catch {
+    return null;
+  }
+
+  try {
+    let branch = "HEAD";
+    try {
+      branch = execFileSync("git", ["symbolic-ref", "--short", "HEAD"], {
+        cwd,
+        encoding: "utf-8",
+        timeout: 500,
+        stdio: ["ignore", "pipe", "ignore"],
+      }).trim();
+    } catch {
+      try {
+        branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+          cwd,
+          encoding: "utf-8",
+          timeout: 500,
+          stdio: ["ignore", "pipe", "ignore"],
+        }).trim();
+      } catch {
+        branch = "detached";
+      }
+    }
+
+    const statusOut = execFileSync("git", ["status", "--porcelain"], {
+      cwd,
+      encoding: "utf-8",
+      timeout: 800,
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    const dirtyCount = statusOut ? statusOut.split("\n").filter(Boolean).length : 0;
+
+    let upstreamInfo = "no upstream configured";
+    let pullNeeded = false;
+    let pushNeeded = false;
+    let hasUpstream = false;
+
+    try {
+      const upstream = execFileSync(
+        "git",
+        ["rev-parse", "--abbrev-ref", "@{u}"],
+        {
+          cwd,
+          encoding: "utf-8",
+          timeout: 500,
+          stdio: ["ignore", "pipe", "ignore"],
+        },
+      ).trim();
+      hasUpstream = true;
+
+      const ab = execFileSync(
+        "git",
+        ["rev-list", "--left-right", "--count", "HEAD...@{u}"],
+        {
+          cwd,
+          encoding: "utf-8",
+          timeout: 800,
+          stdio: ["ignore", "pipe", "ignore"],
+        },
+      ).trim();
+      const [ahead, behind] = ab.split(/\s+/).map(Number);
+      if (ahead === 0 && behind === 0) {
+        upstreamInfo = "synced with " + upstream;
+      } else if (ahead > 0 && behind === 0) {
+        upstreamInfo = `${ahead} commit(s) ahead of ${upstream} (UNPUSHED)`;
+        pushNeeded = true;
+      } else if (ahead === 0 && behind > 0) {
+        upstreamInfo = `${behind} commit(s) behind ${upstream} (PULL NEEDED)`;
+        pullNeeded = true;
+      } else {
+        upstreamInfo = `diverged (${ahead} ahead, ${behind} behind ${upstream})`;
+        pullNeeded = true;
+      }
+    } catch {
+      /* no upstream or detached */
+    }
+
+    const lines = [
+      "### 🌐 Git Multi-Machine Sync State",
+      `- **Branch**: \`${branch}\` (${dirtyCount === 0 ? "clean" : dirtyCount + " uncommitted file(s)"})`,
+      `- **Upstream**: ${upstreamInfo}`,
+      `- **Workspace**: \`${cwd}\``,
+      "",
+      "**Multi-Machine Protocol Guidance**:",
+      !hasUpstream && branch !== "HEAD"
+        ? `⚠️ **UNPUBLISHED BRANCH**: This branch has no upstream on origin. Push it (\`git push -u origin ${branch}\`) to publish it so other machines and worktrees can access it.`
+        : null,
+      pullNeeded
+        ? "⚠️ **PULL REQUIRED**: This worktree is behind origin. Run `git pull --ff-only` before modifying code."
+        : null,
+      pushNeeded
+        ? "🚀 **PUSH REQUIRED**: Unpushed commits detected. Remember to push to origin before pausing or switching machines."
+        : null,
+      dirtyCount > 0
+        ? "⚠️ **UNCOMMITTED CHANGES**: Remember to checkpoint/commit your work before context-switching."
+        : null,
+      "- Always push commits to origin so other machines/worktrees stay in sync.",
+      '- Do not use global `git stash` across worktrees; use WIP commits (`git commit -m "wip: ..."`) instead.',
+    ].filter(Boolean);
+
+    return lines.join("\n");
+  } catch {
+    return null;
+  }
+}
+
 function main() {
   // Drain stdin so Cursor's writer does not block; we don't use the payload.
   try {
@@ -75,6 +194,11 @@ function main() {
         );
       }
     }
+  }
+
+  const gitContext = getGitSyncContext(projectRoot);
+  if (gitContext) {
+    sections.push(gitContext);
   }
 
   sections.push(

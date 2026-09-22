@@ -1,5 +1,5 @@
 {
-  "version": "1.7.3",
+  "version": "1.8.0",
   "fileCount": 6,
   "entries": [
     {
@@ -12,11 +12,11 @@
     },
     {
       "path": ".cursor/hooks/session-start.js",
-      "sha256": "f8cde27e40f7defba84c5a7339da080ad94045008ec46072a2cec93426140416"
+      "sha256": "f843d9d22d9d92041d74bd8167f1d4f84e93ff1a81f98bc879aa47f034c05793"
     },
     {
       "path": "AGENTS.primer.md",
-      "sha256": "36de67cdfbb674c041e0b56a3b594514d45e152e6de2f9709571cd58546a997a"
+      "sha256": "cc3cc36d123f944aba51f6ec8a8708bd99ee151b22a07437b41f8d236de2beac"
     },
     {
       "path": "gitignore.harness",

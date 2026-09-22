@@ -165,6 +165,23 @@ During the task, staying on the feature branch is correct. After the branch is m
 leaving the primary still checked out on that feature branch is an **incomplete
 close-out**. Remote branch deletion on merge (when enabled) does not replace this step.
 
+## Multi-machine & worktree synchronicity ritual
+
+In setups where work alternates between local machines (e.g. MacBook), remote dev servers (VPS), or multiple worktrees:
+- **GitHub (`origin`) is the canonical relay across machines.**
+- **Shift start (Orient)**:
+  - Check current branch and dirty state: `git status`.
+  - Check upstream tracking: `git rev-parse --abbrev-ref @{u}`.
+  - If behind origin, run `git pull --ff-only` before editing. Never build features on top of a stale local branch.
+- **Shift handover / pause (Cloud-Save)**:
+  - Never leave uncommitted or unpushed work when pausing or switching machines.
+  - Commit progress with Conventional Commits or a descriptive WIP commit (`git commit -m "wip: <checkpoint>"`).
+  - Push to origin: `git push`. Unpushed commits cannot travel between your machines.
+- **Never `git stash` across worktrees**:
+  - The git stash stack is repository-global (`.git/refs/stash`). Stashing in one worktree and popping in another contaminates worktrees. Use temporary WIP commits instead.
+- **Worktree cleanup**:
+  - When a feature PR merges, delete the local feature branch and tear down ephemeral worktrees immediately.
+
 ## Anti-patterns
 
 - Declaring done without local verification
@@ -177,3 +194,6 @@ close-out**. Remote branch deletion on merge (when enabled) does not replace thi
 - Leaving worktrees / stacks / branches behind after merge
 - Leaving the **primary** checkout on a merged feature branch instead of resetting to
   the integration branch
+- Building changes on top of a stale branch without checking git state or pulling from origin
+- Pausing or context-switching machines without pushing WIP commits to origin
+- Using global `git stash` to transfer or park work across worktrees
