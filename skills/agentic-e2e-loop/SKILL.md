@@ -119,10 +119,42 @@ Fold this into step 6 — do **not** invent a separate “step 9” that agents 
 1. After opening or updating the PR, **monitor** the project's required (or advisory-but-
    discipline-enforced) checks until they finish.
 2. On failure: read the failing job logs, fix the root cause on the feature branch,
-   push, and **re-watch** until green. Repeat until green or a true external blocker
-   (infra outage, missing secret you cannot provision) — then surface the blocker;
-   do not declare the task done.
+   verify the fix locally, push once, and **re-watch**. Repeat until green or a true
+   external blocker (infra outage, missing secret you cannot provision) — then
+   surface the blocker; do not declare the task done. Stay inside the CI minutes
+   budget below: three consecutive red runs on one branch is a stop-and-report, not
+   another retry.
 3. Only then merge to the integration branch (per the project's merge discipline).
+
+### CI minutes budget (applies to every push, dispatch, and rerun)
+
+Hosted CI minutes are metered (GitHub Free: 2,000 a month shared by every private repo,
+and each job rounds up to a whole minute — a run of ten short jobs bills at least ten
+minutes). Treat a full CI run as a deliberate, milestone-level action — never as a
+debugger.
+
+1. **Verify locally first.** Before any push or dispatch whose purpose is "see if CI
+   passes", run the project's CI-equivalent commands locally (lint, typecheck, tests,
+   build — the project's CI skill or doc lists them). Trigger CI only once they pass.
+2. **Read the failure; do not re-run blind.** After a red run:
+   `gh run view <id> --log-failed`, reproduce that job's exact commands locally, fix,
+   verify locally, then push or dispatch **once**.
+3. **Rerun, don't re-dispatch.** For flaky or infra failures use
+   `gh run rerun <id> --failed` (re-runs only the failed jobs) instead of a new
+   dispatch or an empty commit.
+4. **One run per ref at a time.** Do not push or dispatch again while a run on the same
+   ref is still going. Superseded runs that get cancelled still bill the minutes they
+   used.
+5. **No CI-as-debugger.** No `workflow_dispatch` loops, empty commits, or throwaway
+   pushes to "see what happens". Trigger full CI at milestones (ready for review, ready
+   to merge). Intermediate checkpoints use `[skip ci]`.
+6. **Stop after three.** After three consecutive red runs on one branch, stop. Report
+   the failing job, what was tried, and roughly how many minutes were burned; continue
+   only when the user says so.
+
+Where CI is free (public repo, self-hosted runner) the cap relaxes, but steps 1–2 still
+save wall-clock time. A project's own CI doc may set tighter limits — follow the
+stricter one.
 
 ### After merge (integration / deploy CI)
 
@@ -198,3 +230,8 @@ In setups where work alternates between local machines (e.g. MacBook), remote de
 - Building changes on top of a stale branch without checking git state or pulling from origin
 - Pausing or context-switching machines without pushing WIP commits to origin
 - Using global `git stash` to transfer or park work across worktrees
+- Pushing or dispatching CI again after a red run without reading the logs and
+  reproducing the failure locally
+- Using `workflow_dispatch`, empty commits, or throwaway pushes as a debugger (CI
+  minutes are metered)
+- Continuing past three consecutive red runs on one branch instead of stopping to report

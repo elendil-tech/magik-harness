@@ -12,6 +12,7 @@ Tracks `harness@1`. **Multi-machine & multi-worktree synchronicity (Git Orientat
 ### Changed
 
 - **`rules/agentic-work.mdc`**, **`rules/harness.mdc`**, primer, README — Rule 4 updated with multi-machine and worktree synchronicity protocol.
+- **`rules/agentic-work.mdc`**, **`skills/agentic-e2e-loop/SKILL.md`** — **CI minutes are a budget**: verify locally first, one fix per run, `gh run rerun --failed` instead of re-dispatching, no `workflow_dispatch`/empty-commit "CI as a debugger", stop and report after three consecutive red runs. Replaces the unbounded "re-watch until green" wording. The rule description now also triggers on pushing, dispatching, rerunning or watching CI.
 - **Version** — `magik-repo@1.8.0`.
 
 ## 1.7.3 — 2026-07-12

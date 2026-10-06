@@ -1,11 +1,12 @@
 ---
 description: >-
   The agentic end-to-end work loop — orient, implement, verify, human-in-the-loop
-  for taste, ship (including CI watch + fix-forward), sync the knowledge base, and
-  clean up (primary reset vs worktree teardown). Applies in every agent surface
-  (IDE, worktrees, orchestrators), not only parallel workers. Read when starting
-  or closing substantive work, or when deciding whether a human approval gate is
-  required.
+  for taste, ship (including CI watch + fix-forward under a CI-minutes budget),
+  sync the knowledge base, and clean up (primary reset vs worktree teardown).
+  Applies in every agent surface (IDE, worktrees, orchestrators), not only
+  parallel workers. Read when starting or closing substantive work, when pushing,
+  dispatching, rerunning or watching CI, or when deciding whether a human approval
+  gate is required.
 alwaysApply: false
 ---
 
@@ -49,11 +50,32 @@ After creative approval, still run programmatic checks before shipping.
 Part of Ship — accurate completion, not overkill. Do not treat merge as done while
 PR checks are red, and do not abandon a failed post-merge deploy/integration run.
 
-- **Before merge:** monitor PR/branch CI; on failure, fix on the feature branch, push,
-  re-watch until green (or surface a true external blocker).
+- **Before merge:** monitor PR/branch CI; on failure, read the failing logs, fix on the
+  feature branch, verify locally, push once, and re-watch — inside the CI-minutes
+  budget below. Surface a true external blocker, or stop after three red runs, rather
+  than looping.
 - **After merge:** when the project runs integration/deploy pipelines on the tip,
   confirm they succeed; **fix forward** if they fail.
 - Scope monitoring to pipelines this change triggers — not every unrelated workflow.
+
+### CI minutes are a budget
+
+Hosted CI minutes are metered (GitHub Free: 2,000 a month, shared by every private
+repo, and each job rounds up to a whole minute). A full CI run is a deliberate
+action — never a debugger.
+
+- **Verify locally first.** Reproduce the failing job's exact commands (lint,
+  typecheck, tests, build) before pushing or dispatching again.
+- **One fix, one run.** After a red run read the logs (`gh run view <id> --log-failed`),
+  fix, verify locally, push once. Never stack pushes or dispatches on a ref whose run
+  is still going.
+- **Rerun, don't re-dispatch.** Flaky or infra failures: `gh run rerun <id> --failed`.
+- **No CI-as-debugger.** No `workflow_dispatch`, empty commits or throwaway pushes just
+  to "see what happens". Trigger full CI at milestones (ready for review / to merge).
+- **Stop after three.** After 3 consecutive red runs on one branch, stop and report the
+  failing job, what was tried, and the minutes burned. Continue only if the user says so.
+- Where CI is free (public repo, self-hosted runner) the cap relaxes; local-first still
+  applies. A project's own CI doc may set tighter limits — follow the stricter one.
 
 Procedure detail: skill `agentic-e2e-loop`.
 
