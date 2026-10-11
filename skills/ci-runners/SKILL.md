@@ -5,7 +5,9 @@ description: >-
   (GitHub's free hosted pool first, Ubicloud managed runners as overflow, never a
   paid GitHub plan): check pool status, convert a workflow to the router pattern,
   onboard a new private repo, diagnose "job was not started" / queued-forever /
-  disk-full failures, and prepare a macOS/Windows release. Use whenever you create
+  disk-full failures, audit a conversion diff for dropped checks, refire PRs whose CI
+  was refused, land conversion PRs without suppressing a deploy, and prepare a
+  macOS/Windows release. Use whenever you create
   or edit .github/workflows, pick `runs-on`, add a private repo, open or mark a PR
   ready, or see CI minutes, runners or queues mentioned. Policy text lives in rule
   `ci-runners`.
@@ -58,7 +60,17 @@ Read it like this:
    mistake there silently skips tests. Where `always()` is unavoidable use
    `!cancelled()` and test both the refused-router and skipped-router cases.
 6. Add `.github/actionlint.yaml` (rule `ci-runners`, Tools) and run `actionlint`.
-7. Verify with ONE run: open the PR as a draft, run local checks, `gh pr ready`, then
+7. Audit behaviour: a conversion changes where jobs run, not what they check.
+
+   ```sh
+   ~/.cursor/plugins/local/magik-repo/skills/ci-runners/scripts/workflow_diff_audit.sh origin/main HEAD
+   ```
+
+   Every removed line it lists must be an intended removal (aggregator/summary jobs, a
+   micro-job folded into another). It also shows data inside loops: a test script dropped
+   from a `for test in ...` list is invisible in a big diff and was missed once in review.
+   Re-read the new job for each folded check and confirm the command is still there.
+8. Verify with ONE run: open the PR as a draft, run local checks, `gh pr ready`, then
    read job labels and durations:
 
    ```sh
@@ -102,7 +114,47 @@ Read it like this:
 3. Tag-triggered release workflows only; never dispatch them as a test.
 4. After the release, run `ci_usage.py` again so the next release decision is informed.
 
-## 6. Monthly review (2 minutes)
+## 6. Unblock PRs whose CI was refused (after a conversion lands)
+
+Jobs refused while the pool was empty stay red, and `gh run rerun` replays the **old**
+workflow file (still pinned to hosted), so it fails the same way. A pull request needs a
+fresh event so GitHub builds a new merge ref with the converted workflows.
+
+1. Find candidates with `ci_usage.py` ("never got a runner") or per PR: a check that failed
+   within ~5 s. Skip drafts; the draft guard ignores them anyway.
+2. Check `gh pr view <n> --json mergeable,mergeStateStatus` first (`UNKNOWN` means GitHub is
+   still computing; ask again). A `CONFLICTING` PR gets **no** workflow run at all. If the
+   landed conversion caused the conflict, resolving it is the converter's job (merge the
+   base into the branch; never rebase or force-push someone's branch).
+3. Fire the event without touching the branch:
+   `gh pr ready <n> --undo && gh pr ready <n>` (`ready_for_review` is in the policy's
+   `types`). Do 3-4 at a time and watch that jobs start on `ubicloud-*` within seconds.
+   Dependabot-authored PRs: a human's ready cycle starts no run; comment
+   `@dependabot recreate` instead.
+4. Do not close/reopen to refire: a `closed` event can trip branch-cleanup workflows.
+
+## 7. Landing a conversion PR safely
+
+- **Never let `[skip ci]` reach a deploy branch.** GitHub copies branch commit messages
+  into the squash message; a `[skip ci]` there silently suppresses the production deploy
+  push. Pass an explicit `gh pr merge --squash --subject ... --body ...`. To skip a
+  redundant post-merge run on purpose (the same tree just passed in the PR, branch is not a
+  deploy branch), put `[skip ci]` in that explicit body only.
+- **Order by blast radius**: monitors and other no-deploy workflows first, repos with
+  deploys last. For a deploy workflow with a dry-run input, dispatch it once from the PR
+  branch (`gh workflow run deploy.yml --ref <branch> -f dry_run=true`) before merging.
+- **Squashed twice**: if a PR branch already contains an earlier PR that was squash-merged
+  separately, GitHub reports a conflict. When `git diff <that-branch-parent> origin/main`
+  is empty (identical trees), `git merge -s ours origin/main` clears it with no content
+  change; otherwise resolve for real.
+- **A router job that does a lookup** (for example "did CI already pass on this tree?")
+  loses its outputs when the router is refused; the gate then runs. That is the safe
+  direction (costs minutes, never skips a check). If it matters, run the lookup as its own
+  job on the chosen label.
+- After merging, read the first real run's job labels and steps (section 2, step 8) and
+  confirm it finished on the intended runners.
+
+## 8. Monthly review (2 minutes)
 
 On or after the 25th: `ci_usage.py` for the month. Compare per-repo minutes with the
 previous month; any repo that grew >50% gets a hygiene pass on its top workflow. Record

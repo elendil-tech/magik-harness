@@ -118,6 +118,14 @@ jobs:
 6. **Check the pool before releases or experiments that fan out** (matrix builds,
    re-running many PRs): `python3 <plugin>/skills/ci-runners/scripts/ci_usage.py`.
 7. Where a repo's own CI doc is stricter, follow the stricter rule.
+8. **`[skip ci]` belongs to WIP checkpoints on feature branches.** Never let it reach a
+   commit that merges into a deploy branch: squash messages copy branch commit messages
+   and the production deploy push would be silently skipped. Merge with an explicit
+   `gh pr merge --squash --subject ... --body ...` (skill `ci-runners`, section 7).
+9. **A conversion changes where jobs run, not what they check.** Run
+   `workflow_diff_audit.sh` on every workflow-conversion diff and confirm each removal.
+   After it lands, refire refused PRs with the ready cycle (skill section 6), never
+   `gh run rerun` (it replays the old workflow file).
 
 ## Tools
 
@@ -125,6 +133,9 @@ jobs:
 # pool status, Ubicloud overflow, stuck runs (read-only; needs only `gh auth`)
 python3 ~/.cursor/plugins/local/magik-repo/skills/ci-runners/scripts/ci_usage.py
 python3 .../ci_usage.py --month 2026-09 --repos FalconProxy,trading --json
+
+# what a workflow diff removes besides runner scaffolding (read-only)
+~/.cursor/plugins/local/magik-repo/skills/ci-runners/scripts/workflow_diff_audit.sh origin/main HEAD
 ```
 
 `.github/actionlint.yaml`:
