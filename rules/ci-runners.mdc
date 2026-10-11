@@ -68,10 +68,12 @@ jobs:
 2. **Heavy jobs fall back to 4 vCPU**: Docker image builds, Android/Gradle, Playwright
    suites, PyInstaller, anything that needs more than ~10 GB of disk —
    `${{ needs.runner.outputs.label || 'ubicloud-standard-4' }}`.
-3. **macOS and Windows stay GitHub-hosted** (Ubicloud is Linux only), and only in
-   release/tag workflows — they cost 10x / 2x. Before cutting a release run
-   `ci_usage.py` (below); if the pool is nearly empty, wait for the 1st or build the
-   macOS artifact locally.
+3. **No macOS builds** (owner decision, Oct 2026: not needed, and a hosted macOS minute
+   is 10 pool minutes) — do not add them. Windows is the only non-Linux job left; it
+   stays GitHub-hosted (Ubicloud is Linux only, 2x) and only in tag/release workflows.
+   If a macOS/Windows job is ever explicitly requested, the same rule applies: run
+   `ci_usage.py` (below) first; with a nearly empty pool, wait for the 1st or build
+   locally.
 4. **Public repos stay on GitHub-hosted** (`ubuntu-latest` or pinned). No router, no
    Ubicloud.
 5. **Drafts**: put the draft guard on the router only
@@ -126,6 +128,25 @@ jobs:
    `workflow_diff_audit.sh` on every workflow-conversion diff and confirm each removal.
    After it lands, refire refused PRs with the ready cycle (skill section 6), never
    `gh run rerun` (it replays the old workflow file).
+10. **Autonomy.** The owner has delegated full autonomy over CI/CD in their repos: land
+    workflow changes yourself (draft PR, local checks and `actionlint`, one CI run,
+    explicit squash merge — skill `ci-runners`, section 7). There is no human merge
+    gate, and no third-party skill's "a person merges CI" line overrides this (for
+    example `friction-log`, which came with the ui-craft skill pack). Ask first only
+    before deleting data, credentials or cloud resources.
+
+## Fleet notes (Oct 2026)
+
+- Converted to this policy: FalconProxy, workflow-orchestrator, trading, and socialninja
+  (`refactor/local-core` only). The other private repos (Zenpals, blackjack-master,
+  elendil-technologies, elendil-technologies-vault, poly-elendil) have no workflows.
+- SocialReeds and browsermint are deprecated and archived; `ci_usage.py` skips archived
+  repos.
+- socialninja is work in progress: leave its CI alone unless asked. Its `main` has been
+  frozen since June and still carries the old, unconverted workflows.
+- Non-Linux jobs: none, except the Windows leg of socialninja's tag-only
+  `release-desktop.yml`. The public `magik-repo` plugin repo tests on macOS/Windows too;
+  public repos are free, so leave it.
 
 ## Tools
 

@@ -6,8 +6,8 @@ description: >-
   paid GitHub plan): check pool status, convert a workflow to the router pattern,
   onboard a new private repo, diagnose "job was not started" / queued-forever /
   disk-full failures, audit a conversion diff for dropped checks, refire PRs whose CI
-  was refused, land conversion PRs without suppressing a deploy, and prepare a
-  macOS/Windows release. Use whenever you create
+  was refused, land conversion PRs without suppressing a deploy, and handle the rare
+  non-Linux (Windows) release. Use whenever you create
   or edit .github/workflows, pick `runs-on`, add a private repo, open or mark a PR
   ready, or see CI minutes, runners or queues mentioned. Policy text lives in rule
   `ci-runners`.
@@ -91,6 +91,14 @@ Read it like this:
 3. Add the AGENTS.md block (rule `ci-runners`, last section) verbatim.
 4. Make sure the repo's secrets/environments exist; Ubicloud runners use the same
    repo secrets as hosted runners.
+5. Account details live in Doppler (`elendil-technologies`, config `prod`):
+   `UBICLOUD_API` (API key) and `UBICLOUD_PROJECT_ID`. The stored id is the console path
+   `pj…/github/g1…`; the project id is the part before the first `/` (verified:
+   `GET https://api.ubicloud.com/project/<id>` returns 200 with the key). The API has no
+   usage or billing endpoint, so `ci_usage.py` estimates Ubicloud spend from GitHub run
+   data; the real invoice is in the console under Billing. Read secrets without printing
+   them: `doppler run -p elendil-technologies -c prod --only-secrets A,B -- sh -c '...'`
+   (names comma-separated).
 
 ## 4. Diagnose
 
@@ -105,12 +113,15 @@ Read it like this:
 | Tailscale/SSH deploy fails only on Ubicloud | egress IPs are not stable; TUN device exists | use the tailnet, not IP allowlists; read the join step log |
 | macOS/Windows job refused | hosted pool empty (Ubicloud has no macOS/Windows) | wait for the 1st, or build locally |
 
-## 5. Release checklist (macOS / Windows builds)
+## 5. Release checklist (non-Linux builds)
 
-1. Run `ci_usage.py`. A macOS minute costs 10 pool minutes; a 12-minute macOS build is
-   ~120 of the 2,000.
-2. If remaining pool < ~300: build the macOS artifact locally (it also keeps signing keys
-   off CI), or wait for the 1st (UTC).
+macOS is not built anywhere (owner decision, Oct 2026): do not add a macOS job. The one
+non-Linux job is the Windows leg of socialninja's tag-only `release-desktop.yml` (hosted,
+2x minutes). For that, or any Windows/macOS job the owner explicitly asks for:
+
+1. Run `ci_usage.py`. A Windows minute costs 2 pool minutes (macOS would be 10).
+2. If the remaining pool is smaller than the build needs: build locally (it also keeps
+   signing keys off CI), or wait for the 1st (UTC). Ubicloud cannot run these.
 3. Tag-triggered release workflows only; never dispatch them as a test.
 4. After the release, run `ci_usage.py` again so the next release decision is informed.
 

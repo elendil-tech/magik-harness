@@ -13,6 +13,7 @@ Tracks `harness@1`. **Multi-machine & multi-worktree synchronicity (Git Orientat
 
 ### Changed
 
+- **`rules/ci-runners.mdc`**, **`skills/ci-runners/SKILL.md`** — macOS is not built anywhere (owner decision): the release checklist now covers the single Windows leg; new agent-behaviour rule 10 (owner-delegated autonomy over CI/CD, no human merge gate, a third-party skill's "a person merges CI" line does not override it); "Fleet notes" (converted repos, archived SocialReeds/browsermint, socialninja WIP); Ubicloud account notes (Doppler variable names, project id is the first path segment, no usage/billing API, comma-separated `--only-secrets`).
 - **`rules/agentic-work.mdc`**, **`skills/agentic-e2e-loop/SKILL.md`** — CI-minutes budget now points at `ci-runners`: draft PRs until local checks pass (`gh pr ready` is the one CI run), re-run **all** jobs after a "job was not started" refusal, and managed runners (Ubicloud) are cheap, not free.
 - **`rules/agentic-work.mdc`**, **`rules/harness.mdc`**, primer, README — Rule 4 updated with multi-machine and worktree synchronicity protocol.
 - **`rules/agentic-work.mdc`**, **`skills/agentic-e2e-loop/SKILL.md`** — **CI minutes are a budget**: verify locally first, one fix per run, `gh run rerun --failed` instead of re-dispatching, no `workflow_dispatch`/empty-commit "CI as a debugger", stop and report after three consecutive red runs. Replaces the unbounded "re-watch until green" wording. The rule description now also triggers on pushing, dispatching, rerunning or watching CI.
