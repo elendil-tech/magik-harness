@@ -6,11 +6,14 @@ Tracks `harness@1`. **Multi-machine & multi-worktree synchronicity (Git Orientat
 
 ### Added
 
+- **`rules/ci-runners.mdc`** — CI runner routing and workflow-hygiene policy for private GitHub repos: GitHub's free hosted pool first via a `runner` router job (`continue-on-error`, falls back to `ubicloud-standard-2/-4` when the pool is empty — verified: refused hosted jobs fail in ~3 s unbilled and dependents still start), Ubicloud managed runners as overflow, never a paid GitHub plan. Covers the money model, routing rules (tiny workflows go direct, heavy jobs `-4`, macOS/Windows hosted for releases only, public repos untouched), hygiene (draft-gated PR CI, no push+PR doubles, concurrency, timeouts, no aggregator jobs, no deploy re-tests, Dependabot cadence), agent behaviour for every harness, and a copy-verbatim `AGENTS.md` block (`<!-- ci-policy:v1 -->`).
+- **`skills/ci-runners/`** — procedures (pool check, convert a workflow, onboard a private repo, diagnose refusals/queues/disk, release checklist, monthly review) plus `scripts/ci_usage.py`, a read-only stdlib tool that reports the month's hosted-pool usage (x1/x2/x10 weighting), Ubicloud overflow and estimated bill after the credit, jobs that never got a runner, and stuck runs with ready-to-run `gh run cancel` commands.
 - **`seed-sources/.cursor/hooks/session-start.js`** — Non-blocking git sync state injection on `sessionStart`. Checks branch status, upstream tracking, ahead/behind count, and unpublished branches, providing actionable guidance to pull before editing or push before switching machines with `[skip ci]` to save GitHub Actions runner minutes.
 - **`skills/agentic-e2e-loop/SKILL.md`** — New “Multi-machine & worktree synchronicity ritual” section with explicit shift-start (Orient) and shift-pause (Cloud-Save) procedures, `[skip ci]` commit discipline, plus stash-avoidance and worktree hygiene rules.
 
 ### Changed
 
+- **`rules/agentic-work.mdc`**, **`skills/agentic-e2e-loop/SKILL.md`** — CI-minutes budget now points at `ci-runners`: draft PRs until local checks pass (`gh pr ready` is the one CI run), re-run **all** jobs after a "job was not started" refusal, and managed runners (Ubicloud) are cheap, not free.
 - **`rules/agentic-work.mdc`**, **`rules/harness.mdc`**, primer, README — Rule 4 updated with multi-machine and worktree synchronicity protocol.
 - **`rules/agentic-work.mdc`**, **`skills/agentic-e2e-loop/SKILL.md`** — **CI minutes are a budget**: verify locally first, one fix per run, `gh run rerun --failed` instead of re-dispatching, no `workflow_dispatch`/empty-commit "CI as a debugger", stop and report after three consecutive red runs. Replaces the unbounded "re-watch until green" wording. The rule description now also triggers on pushing, dispatching, rerunning or watching CI.
 - **Version** — `magik-repo@1.8.0`.

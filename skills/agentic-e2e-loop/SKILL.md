@@ -130,8 +130,13 @@ Fold this into step 6 — do **not** invent a separate “step 9” that agents 
 
 Hosted CI minutes are metered (GitHub Free: 2,000 a month shared by every private repo,
 and each job rounds up to a whole minute — a run of ten short jobs bills at least ten
-minutes). Treat a full CI run as a deliberate, milestone-level action — never as a
-debugger.
+minutes); overflow runs on Ubicloud managed runners (free credit, then pennies; never a
+paid GitHub plan). Treat a full CI run as a deliberate, milestone-level action — never as
+a debugger. Runner routing, workflow hygiene and the pool check: rule and skill
+`ci-runners`.
+
+0. **Draft until ready.** Open PRs as drafts; checkpoints carry `[skip ci]`; mark the PR
+   ready (`gh pr ready`) once local checks pass — that is the one CI run.
 
 1. **Verify locally first.** Before any push or dispatch whose purpose is "see if CI
    passes", run the project's CI-equivalent commands locally (lint, typecheck, tests,
@@ -141,7 +146,9 @@ debugger.
    verify locally, then push or dispatch **once**.
 3. **Rerun, don't re-dispatch.** For flaky or infra failures use
    `gh run rerun <id> --failed` (re-runs only the failed jobs) instead of a new
-   dispatch or an empty commit.
+   dispatch or an empty commit. After a "job was not started because recent account
+   payments have failed" refusal re-run **all** jobs (`gh run rerun <id>`) so the router
+   re-evaluates; a partial re-run reuses its stale output.
 4. **One run per ref at a time.** Do not push or dispatch again while a run on the same
    ref is still going. Superseded runs that get cancelled still bill the minutes they
    used.
@@ -152,9 +159,9 @@ debugger.
    the failing job, what was tried, and roughly how many minutes were burned; continue
    only when the user says so.
 
-Where CI is free (public repo, self-hosted runner) the cap relaxes, but steps 1–2 still
-save wall-clock time. A project's own CI doc may set tighter limits — follow the
-stricter one.
+Where CI is free (public repo) the cap relaxes, but steps 1–2 still save wall-clock
+time; managed runners (Ubicloud) are cheap, not free. A project's own CI doc may set
+tighter limits — follow the stricter one.
 
 ### After merge (integration / deploy CI)
 

@@ -70,6 +70,8 @@ code repo (your repo)                external vault (your storage)
 
 🌐 **Multi-machine & worktree synchronicity** — built-in Git orientation and session-start upstream sync checks. Keeps agents and developers aligned when moving between local machines (e.g. MacBook) and remote dev servers (VPS) or working across parallel git worktrees. Prevents stale branch drift, warns on unpublished branches, and enforces cloud-saving on pauses with `[skip ci]` to prevent wasting GitHub Actions runner minutes.
 
+💸 **CI runner policy** — rule + skill `ci-runners` keep private-repo CI inside a budget: GitHub's free hosted pool first through a one-job router, Ubicloud managed runners as overflow, never a paid GitHub plan; draft-gated PR CI, no CI-as-debugger loops, no aggregator jobs, no deploy re-tests. Ships a copy-verbatim `AGENTS.md` block and `skills/ci-runners/scripts/ci_usage.py`, a read-only pool-status report (hosted minutes vs the free 2,000, Ubicloud overflow and estimated bill, stuck runs).
+
 📚 **Context-first knowledge base** — a mandatory `kb-search` gate before substantive work that doesn't stop at the KB: it triangulates the KB (claimed truth) against the code and the live state of dependent services, then acts on reality and reconciles drift. Light structure floor (frontmatter + links + optional `_index.md`), no enforced schemas.
 
 🧠 **Daily memory log** — a daily log in the vault; the session-start hook injects today's notes. No promotion ceremony — past lessons are found with the agent's own search.

@@ -61,21 +61,27 @@ PR checks are red, and do not abandon a failed post-merge deploy/integration run
 ### CI minutes are a budget
 
 Hosted CI minutes are metered (GitHub Free: 2,000 a month, shared by every private
-repo, and each job rounds up to a whole minute). A full CI run is a deliberate
-action — never a debugger.
+repo, and each job rounds up to a whole minute); overflow runs on Ubicloud managed
+runners (free credit, then pennies). Never propose a paid GitHub plan. A full CI run is a
+deliberate action — never a debugger. Runner routing, workflow hygiene and the pool
+check are in rule `ci-runners` (skill `ci-runners`).
 
+- **Draft until ready.** Open PRs as drafts, checkpoint with `[skip ci]`, and mark the PR
+  ready (`gh pr ready`) once local checks pass — that is the one CI run.
 - **Verify locally first.** Reproduce the failing job's exact commands (lint,
   typecheck, tests, build) before pushing or dispatching again.
 - **One fix, one run.** After a red run read the logs (`gh run view <id> --log-failed`),
   fix, verify locally, push once. Never stack pushes or dispatches on a ref whose run
   is still going.
-- **Rerun, don't re-dispatch.** Flaky or infra failures: `gh run rerun <id> --failed`.
+- **Rerun, don't re-dispatch.** Flaky or infra failures: `gh run rerun <id> --failed`
+  (all jobs after a "job was not started" refusal).
 - **No CI-as-debugger.** No `workflow_dispatch`, empty commits or throwaway pushes just
   to "see what happens". Trigger full CI at milestones (ready for review / to merge).
 - **Stop after three.** After 3 consecutive red runs on one branch, stop and report the
   failing job, what was tried, and the minutes burned. Continue only if the user says so.
-- Where CI is free (public repo, self-hosted runner) the cap relaxes; local-first still
-  applies. A project's own CI doc may set tighter limits — follow the stricter one.
+- Where CI is free (public repo) the cap relaxes; local-first still applies. Managed
+  runners (Ubicloud) are cheap, not free. A project's own CI doc may set tighter limits —
+  follow the stricter one.
 
 Procedure detail: skill `agentic-e2e-loop`.
 
