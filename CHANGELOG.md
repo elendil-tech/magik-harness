@@ -1,5 +1,19 @@
 # magik-repo
 
+## 1.9.1 — 2026-10-12
+
+Tracks `harness@1`. **worktree-audit: a squash-merged branch whose remote branch was deleted is `DONE`.**
+
+### Fixed
+
+- **`skills/worktree-audit/scripts/wt_audit.py`** — `UNPUSHED` was decided before the PR was looked at, so on a repo that deletes the head branch when a PR merges (the usual squash flow) a finished worktree read as "N commit(s) exist on no remote" and `remove` refused it. A PR merged at exactly the local HEAD now counts as landed: GitHub keeps that tip under `refs/pull/<n>/head`. Commits past the merged tip stay `UNPUSHED`. `remove` says why it proceeds (`PR #N merged this exact tip`) and the `branch -D` plan line names the same proof. Found by running the tool on its first real case (FalconProxy #167). It failed closed, so nothing was ever at risk; it just could not finish the job it was written for.
+
+### Changed
+
+- **`tests/worktree-audit.test.ts`** — 33 tests (+2): the deleted-remote-branch case, and its control (a commit made after the merge keeps the worktree `UNPUSHED`). Both mutation-checked: reverting the fix fails the first, dropping the tip comparison fails the second.
+- **`skills/worktree-audit/SKILL.md`** — verdict table, refusal list and `--delete-branch` rule state the exemption.
+- **Version** — `magik-repo@1.9.1`.
+
 ## 1.9.0 — 2026-10-12
 
 Tracks `harness@1`. **Worktree convention + audit.** Worktrees had spread across three default roots — Cursor's disposable `~/.cursor/worktrees`, Orca's `~/orca/workspaces`, and ad-hoc `<repo>-worktrees` siblings — and nobody owned the list. Cursor's janitor deletes by count and size, oldest first, so long-lived lanes were the first at risk. One durable root, a disposable Cursor root, and an audited teardown.

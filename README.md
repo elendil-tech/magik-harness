@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-1.9.0-8A2BE2?style=for-the-badge" />
+    <img alt="Version" src="https://img.shields.io/badge/version-1.9.1-8A2BE2?style=for-the-badge" />
   </a>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge" />
@@ -213,7 +213,7 @@ The plugin ships a deterministic `node:test` suite (`pnpm test`) covering the se
 
 ## 🏷️ Versioning
 
-`magik-repo@1.9.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
+`magik-repo@1.9.1` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
 ## 📄 License
 

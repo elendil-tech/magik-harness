@@ -13,6 +13,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   realpathSync,
   rmSync,
   symlinkSync,
@@ -601,4 +602,64 @@ test("inventory — WORKTREES_HOME: empty means unset, and a leading ~ is expand
   };
   assert.equal(durableOf({ ...baseEnv, WORKTREES_HOME: "" }), durable, "empty: ~/worktrees, not the cwd");
   assert.equal(durableOf({ ...baseEnv, WORKTREES_HOME: "~/worktrees" }), durable, "~ expands against HOME");
+});
+
+// ---------------------------------------------------------------- squash merge, remote branch deleted
+// The usual flow on a repo that deletes the head branch when a PR merges: the branch's own commits
+// then sit on no remote *branch* (git counts them as unpushed), yet the merged PR's tip is exactly
+// this HEAD and GitHub keeps it under refs/pull/<n>/head. That is finished work. Commits past that
+// tip are not. (What main received is irrelevant to the verdict: only the PR's tip proves it.)
+function mergedPrWithDeletedBranch(name: string, branch: string, number: number): string {
+  const dir = addWorktree(name, branch);
+  writeFileSync(join(dir, `${name}.txt`), `${name}\n`);
+  git(dir, "add", `${name}.txt`);
+  git(dir, "commit", "-m", `add ${name}`);
+  git(dir, "push", "origin", `${branch}:${branch}`);
+  const prs = JSON.parse(readFileSync(prFile, "utf8")) as object[];
+  prs.push({ number, state: "MERGED", isDraft: false, headRefName: branch, headRefOid: git(dir, "rev-parse", "HEAD") });
+  writeFileSync(prFile, JSON.stringify(prs));
+  git(dir, "push", "origin", "--delete", branch); // what "delete branch on merge" does
+  git(app, "fetch", "--prune", "origin");
+  return dir;
+}
+
+test("remove — a squash-merged branch whose remote branch was deleted is DONE, not UNPUSHED", opts, () => {
+  const prsBefore = readFileSync(prFile, "utf8");
+  const dir = mergedPrWithDeletedBranch("gone-remote", "feat/gone-remote", 21);
+  try {
+    assert.equal(git(dir, "rev-list", "--count", "HEAD", "--not", "--remotes"), "1", "git sees one commit on no remote");
+    assert.equal(inventory(prEnv, ["--prs"]).rows["gone-remote"].verdict, "DONE");
+    const dry = audit(["remove", dir, "--delete-branch"], prEnv);
+    assert.equal(dry.code, 0, dry.out);
+    assert.match(dry.out, /verdict=DONE/);
+    assert.match(dry.out, /PR #21 merged this exact tip/);
+    assert.match(dry.out, /branch -D feat\/gone-remote/);
+    assert.ok(existsSync(dir), "a dry run removes nothing");
+    const r = audit(["remove", dir, "--delete-branch", "--apply"], prEnv);
+    assert.equal(r.code, 0, r.out);
+    assert.ok(!existsSync(dir));
+    assert.equal(git(app, "branch", "--list", "feat/gone-remote"), "");
+  } finally {
+    writeFileSync(prFile, prsBefore);
+    dropWorktree(dir, "feat/gone-remote");
+  }
+});
+
+test("remove — commits past the merged PR's tip are still unpushed work: no exemption", opts, () => {
+  const prsBefore = readFileSync(prFile, "utf8");
+  const dir = mergedPrWithDeletedBranch("past-the-tip", "feat/past-the-tip", 22);
+  try {
+    writeFileSync(join(dir, "after-merge.txt"), "written after the PR merged\n");
+    git(dir, "add", "after-merge.txt");
+    git(dir, "commit", "-m", "work after the merge");
+    const r = audit(["remove", dir, "--delete-branch", "--apply"], prEnv);
+    assert.equal(r.code, 2, r.out);
+    assert.match(r.out, /verdict=UNPUSHED/);
+    assert.match(r.out, /commit\(s\) exist on no remote/);
+    assert.ok(existsSync(dir), "nothing was removed");
+    assert.notEqual(git(app, "branch", "--list", "feat/past-the-tip"), "", "and the branch is kept");
+  } finally {
+    writeFileSync(prFile, prsBefore);
+    dropWorktree(dir, "feat/past-the-tip");
+  }
 });

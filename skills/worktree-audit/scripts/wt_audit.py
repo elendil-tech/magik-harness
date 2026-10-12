@@ -404,14 +404,19 @@ def verdict(d: dict, protect: set[str], head_full: str) -> str:
         return "IN-USE"
     if d["tracked"] or d["untracked"]:
         return "DIRTY"
-    if d["unpushed"]:
-        return "UNPUSHED"
     pr = d["pr"]
+    # A PR merged at exactly this HEAD has landed, even when git counts its commits as unpushed:
+    # a squash or rebase merge leaves them on no branch of the base, and a repo that deletes the
+    # head branch on merge leaves them on no remote branch either. GitHub keeps the tip under
+    # refs/pull/<n>/head. Commits past that tip are not covered (the tip would not equal HEAD).
+    landed = bool(pr and pr["state"] == "MERGED" and pr["tip"] == head_full)
+    if d["unpushed"] and not landed:
+        return "UNPUSHED"
     if pr:
         if pr["state"] == "OPEN":
             return "OPEN-PR"
         if pr["state"] == "MERGED":
-            return "DONE" if (pr["tip"] == head_full or d["merged"]) else "REVIEW"
+            return "DONE" if (landed or d["merged"]) else "REVIEW"
         return "REVIEW"  # closed without merging
     if d["merged"]:
         # A branch with no commits of its own looks "merged" too: do not call a worktree
@@ -774,6 +779,10 @@ def cmd_remove(args) -> int:
         # verdict() reads "unknown" as "none", and nothing downstream re-checks pushed commits.
         blockers.append("cannot tell whether every commit exists on a remote (git rev-list "
                         "failed): fix the repository state and retry")
+    if v == "DONE" and d["unpushed"] and d["pr"]:
+        n = d["pr"]["number"]
+        notes.append(f"{d['unpushed']} commit(s) are on no remote branch, but PR #{n} merged this "
+                     f"exact tip (GitHub keeps it under refs/pull/{n}/head)")
     if prs is None:
         notes.append("PR state unknown (gh unavailable): merge status uses git ancestry only, "
                      "which squash merges defeat")
@@ -805,8 +814,10 @@ def cmd_remove(args) -> int:
         elif not done:
             notes.append(f"branch '{entry['branch']}' kept: the work is not merged yet")
         else:
+            proof = (f"PR #{d['pr']['number']} merged this exact tip" if d["unpushed"] and d["pr"]
+                     else "tip is on a remote and merged")
             plan.append(f"git -C {tilde(prim)} branch -D {entry['branch']}   "
-                        "(tip is on a remote and merged; safe for squash merges)")
+                        f"({proof}; safe for squash merges)")
     if args.vault and vpath.exists() and not blockers:
         plan.append(f"remove {tilde(vpath)}")
     print(f"worktree : {tilde(wt_path)}  [{d['branch']}  {d['head']}]  verdict={v}")

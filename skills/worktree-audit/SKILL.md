@@ -44,12 +44,12 @@ repo that lives elsewhere still shows up. Per worktree: branch, **WHERE** (`dura
 | `STANDING` | name in `WT_PROTECT` (default `dev,dev2,dev3`) | never touch; if it sits in the Cursor root, tell the owner |
 | `IN-USE` | a process has the directory open (editor, shell, dev server) | not now |
 | `DIRTY` | uncommitted or untracked files | commit and push, or decide with the owner |
-| `UNPUSHED` | commits that exist on no remote | push first (`wip: … [skip ci]`) |
+| `UNPUSHED` | commits that exist on no remote branch (a merged PR's exact tip is exempt, see `DONE`) | push first (`wip: … [skip ci]`) |
 | `OPEN-PR` | its PR is open | keep |
 | `ACTIVE` | pushed, not merged, no PR known | keep (run with `--prs` to learn more) |
 | `NEW` | no commits of its own yet, created within `WT_FRESH_DAYS` (2) | keep |
 | `REVIEW` | PR closed unmerged, or merged but the local tip differs | human decision |
-| `DONE` | clean; everything is on a remote and merged (ancestry **or** the PR's head commit) | remove (§3) |
+| `DONE` | clean; everything is on a remote and merged (ancestry **or** the PR's head commit; a PR merged at exactly this tip counts even when the head branch was deleted on merge) | remove (§3) |
 | `MISSING` | registered but the folder is gone | `git worktree prune` |
 | `LOCKED` | `git worktree lock` | leave |
 
@@ -91,7 +91,9 @@ It **refuses** (exit 2, nothing touched) when:
 - a process has it open (editors, shells, dev servers; file watchers are ignored);
 - there is any uncommitted or untracked file, or any commit that exists on no remote
   (checked per worktree HEAD, not repo-wide) — or git cannot answer that question: an
-  unknown push state is never read as "nothing unpushed";
+  unknown push state is never read as "nothing unpushed". The one exemption is a PR merged
+  at exactly the local HEAD (GitHub keeps that tip under `refs/pull/<n>/head`, so a deleted
+  head branch loses nothing); a commit made after the merge is still unpushed work;
 - the PR is still open (`--allow-open-pr`), or the work is not merged / is brand new
   (`--allow-unmerged`) — a merged PR counts only when its head commit equals the local tip;
 - ignored files exist that are not known-regenerable (`node_modules`, build output, the
@@ -103,8 +105,8 @@ It **refuses** (exit 2, nothing touched) when:
   ignored files (e.g. `memory/` notes — rescue them first), a live worktree beside it, a
   vault checkout that is itself a linked worktree, or a vault sibling that is a symlink.
 
-`--delete-branch` runs `git branch -D` only for `DONE` work (tip merged and on a remote), so
-squash merges are handled and nothing unpushed can be lost. It never pushes, deletes remote
+`--delete-branch` runs `git branch -D` only for `DONE` work (tip merged and on a remote, or
+the exact tip of a merged PR), so squash merges are handled and nothing unpushed can be lost. It never pushes, deletes remote
 branches, touches stashes, or uses `--force`.
 
 If the repo ships its own teardown (`worktree.sh rm`, `.cursor/worktree/teardown.sh`), prefer
