@@ -1,5 +1,23 @@
 # magik-repo
 
+## 1.9.0 — 2026-10-12
+
+Tracks `harness@1`. **Worktree convention + audit.** Worktrees had spread across three default roots — Cursor's disposable `~/.cursor/worktrees`, Orca's `~/orca/workspaces`, and ad-hoc `<repo>-worktrees` siblings — and nobody owned the list. Cursor's janitor deletes by count and size, oldest first, so long-lived lanes were the first at risk. One durable root, a disposable Cursor root, and an audited teardown.
+
+### Added
+
+- **`rules/worktrees.mdc`** — where worktrees live and how they end: the durable root `~/worktrees/<repo>/<name>` (`$WORKTREES_HOME`) with the `<name>.vault` checkout beside it; Cursor's root is disposable-only with a "promote or expire" rule (janitor facts, checked against Cursor 3.24's code and logs: the root is hard-coded and the only place it looks; it counts folders with a resolvable `.git`, not git registrations, so a symlink to a worktree counts twice; past `cursor.worktreeMaxCount` it removes the excess plus 4, idle worktrees first then oldest, with no dirty/unpushed check and no trash; only worktrees under 10 minutes old or with a running agent are spared; no links inside the root); Orca's Workspace Directory points at the durable root; never move a worktree that has a path-derived stack identity (falconproxy devstack `reap` would orphan it); standing lanes are the owner's; nothing lives only in a worktree; teardown order; squash merges need the PR's head commit, not ancestry.
+- **`skills/worktree-audit/`** — procedure plus `scripts/wt_audit.py` (stdlib Python, tested):
+  - `inventory` (read-only; `--prs`, `--sizes`, `--json`, `--only`): every worktree across repos with branch, root class, verdict (`DONE`, `ACTIVE`, `OPEN-PR`, `DIRTY`, `UNPUSHED`, `STANDING`, `IN-USE`, `NEW`, `REVIEW`, `MISSING`, `LOCKED`), commits that exist on no remote (per worktree HEAD, not repo-wide), PR state via `gh`, strays (orphan `.vault` clones, unregistered checkouts, unknown folders) and a Cursor-janitor line that counts what Cursor counts (folders with a resolvable `.git`, symlinked aliases included, empty or broken folders not) against the cap, names which are next to go, says how many the next cleanup would remove, and flags every `ALIAS`. Orca's workspace directory is read from Orca's live SQLite profile store (read-only, never leaves `-wal`/`-shm` files), not from the legacy `orca-data.json` that goes stale after Orca's migration. POSIX only (macOS, Linux).
+  - `remove` (dry run unless `--apply`, never `--force`): fails closed on primary/locked/standing/in-use paths, symlinked paths (git would delete the worktree behind the link), dirty trees, unpushed commits (and a push state git cannot determine, which is never read as "none"), open PRs, unfinished or brand-new work, non-regenerable ignored files, live devstack identities, and unsafe or symlinked vault siblings; deletes the branch with `-D` only after proving the tip is merged and on a remote (squash-merge safe); removes the `<name>.vault` sibling and orphan vault clones through the same guard.
+- **`tests/worktree-audit.test.ts`** — 31 sandboxed tests (redirected `HOME`, local bare "origin", fake `gh`, a git wrapper that fails one probe): verdicts, root classes, orphan vaults, squash-merge via PR tip, the janitor's count (aliases, empty and broken folders, excess + 4), Orca's live store (stopped, and running with its settings only in the `-wal` file), `WORKTREES_HOME` parsing (empty means unset, `~` expands), every refusal (including the symlink and unknown-push-state cases), and the `--apply` paths. Disabling any of the dirty / unpushed / standing guards, or any of the janitor and Orca-store behaviours, fails the suite. The file is skipped on Windows (the tool and its fixture are POSIX-only).
+
+### Changed
+
+- **`rules/agentic-work.mdc`**, **`skills/agentic-e2e-loop/SKILL.md`** — worktree cleanup points at rule `worktrees` and skill `worktree-audit`.
+- **README** — worktree feature bullet; rule/skill counts and lists corrected (they predated `ci-runners`: now 7 rules, 6 skills).
+- **Version** — `magik-repo@1.9.0`.
+
 ## 1.8.0 — 2026-09-22
 
 Tracks `harness@1`. **Multi-machine & multi-worktree synchronicity (Git Orientation & Cloud-Save Protocol)**. Injects start-of-session git sync state (branch, clean/dirty, ahead/behind upstream, unpublished branch warning) and codifies cross-machine synchronization discipline across agent sessions and worktrees with `[skip ci]` runner minute safeguards.

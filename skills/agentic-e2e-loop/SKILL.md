@@ -221,6 +221,7 @@ In setups where work alternates between local machines (e.g. MacBook), remote de
   - The git stash stack is repository-global (`.git/refs/stash`). Stashing in one worktree and popping in another contaminates worktrees. Use temporary WIP commits (`git commit -m "wip: ... [skip ci]"`) instead.
 - **Worktree cleanup**:
   - When a feature PR merges, delete the local feature branch and tear down ephemeral worktrees immediately.
+  - Create worktrees in the durable root and remove them through the guarded audit — location and lifecycle: rule `worktrees`; procedure: skill `worktree-audit`.
 
 ## Anti-patterns
 

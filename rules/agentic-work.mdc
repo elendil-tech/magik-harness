@@ -113,7 +113,7 @@ When working in environments that span multiple machines (e.g. MacBook and VPS) 
 - **Orient on start**: Check git state (`git status`, `git rev-parse --abbrev-ref HEAD`). Check whether the branch is tracking upstream (`git rev-parse --abbrev-ref @{u}`). If behind origin, run `git pull --ff-only` before modifying code.
 - **Cloud-save on pause / context switch**: Never leave unpushed commits or dirty state when pausing or switching machines. Checkpoint with a descriptive WIP commit (`git commit -m "wip: <checkpoint> [skip ci]"`) and push to origin (`git push`). Always append `[skip ci]` to WIP commits to avoid burning GitHub Actions runner minutes on intermediate checkpoints.
 - **No global stash across worktrees**: Git stash is repository-global (`.git/refs/stash`); never use `git stash` to transfer or park work across worktrees. Use temporary WIP commits (`git commit -m "wip: ... [skip ci]"`) instead.
-- **Prune finished worktrees**: Delete local branches and tear down ephemeral worktrees when feature branches merge.
+- **Prune finished worktrees**: Delete local branches and tear down ephemeral worktrees when feature branches merge. Where worktrees live and how to remove them safely: rule `worktrees`, skill `worktree-audit`.
 
 ## Cleanup: primary vs ephemeral
 
@@ -137,4 +137,5 @@ subcommand). The loop itself does not depend on Orca.
 - Skill: `kb-search` (step 1)
 - Skill: `kb-code-sync` (full drift pass when needed)
 - Rule: `harness` (rules 1–3 + this as rule 4)
+- Rule: `worktrees` (durable root, disposable Cursor root, audited teardown)
 - Rule: `knowledge-base` (how to write the KB)

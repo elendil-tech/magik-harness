@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-1.8.0-8A2BE2?style=for-the-badge" />
+    <img alt="Version" src="https://img.shields.io/badge/version-1.9.0-8A2BE2?style=for-the-badge" />
   </a>
   <a href="https://github.com/codeisalifestyle/magik-repo-plugin/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge" />
@@ -71,6 +71,8 @@ code repo (your repo)                external vault (your storage)
 🌐 **Multi-machine & worktree synchronicity** — built-in Git orientation and session-start upstream sync checks. Keeps agents and developers aligned when moving between local machines (e.g. MacBook) and remote dev servers (VPS) or working across parallel git worktrees. Prevents stale branch drift, warns on unpublished branches, and enforces cloud-saving on pauses with `[skip ci]` to prevent wasting GitHub Actions runner minutes.
 
 💸 **CI runner policy** — rule + skill `ci-runners` keep private-repo CI inside a budget: GitHub's free hosted pool first through a one-job router, Ubicloud managed runners as overflow, never a paid GitHub plan; draft-gated PR CI, no CI-as-debugger loops, no aggregator jobs, no deploy re-tests. Ships a copy-verbatim `AGENTS.md` block, `skills/ci-runners/scripts/ci_usage.py` (a read-only pool-status report: hosted minutes vs the free 2,000, Ubicloud overflow and estimated bill, stuck runs) and `workflow_diff_audit.sh` (what a workflow conversion removes besides runner scaffolding).
+
+🌳 **Worktree convention** — rule `worktrees` + skill `worktree-audit` stop worktrees from sprawling across tools: one durable root (`~/worktrees/<repo>/<name>`, with the `<name>.vault` checkout beside it), Cursor's `~/.cursor/worktrees` treated as disposable (its janitor deletes by count and size), Orca's workspace directory pointed at the durable root, standing lanes never moved. `skills/worktree-audit/scripts/wt_audit.py` is a read-only cross-repo inventory (verdict per worktree, stray `.vault` clones, Cursor-janitor warning) plus a fail-closed `remove` — dry run by default, never `--force`, squash-merge-aware, refuses dirty trees, unpushed commits, open PRs, in-use directories and unexpected ignored files.
 
 📚 **Context-first knowledge base** — a mandatory `kb-search` gate before substantive work that doesn't stop at the KB: it triangulates the KB (claimed truth) against the code and the live state of dependent services, then acts on reality and reconciles drift. Light structure floor (frontmatter + links + optional `_index.md`), no enforced schemas.
 
@@ -139,9 +141,9 @@ You:   /magik-repo-kb-code-sync   → reports where the code and the documented 
 
 ## 🧰 What ships
 
-📜 **5 agent-requestable rules** (`rules/*.mdc`) — `harness` (the operating model + manifest resolution + the four rules), `knowledge-base` (read/maintain the KB + structure floor), `memory` (the running log, no promotion), `agentic-work` (E2E loop + HITL for taste), `kb-conventions` (the recommended metadata standard — frontmatter, tags, relations — + the judgment for it).
+📜 **7 agent-requestable rules** (`rules/*.mdc`) — `harness` (the operating model + manifest resolution + the four rules), `knowledge-base` (read/maintain the KB + structure floor), `memory` (the running log, no promotion), `agentic-work` (E2E loop + HITL for taste), `kb-conventions` (the recommended metadata standard — frontmatter, tags, relations — + the judgment for it), `ci-runners` (CI runner routing + workflow hygiene for private repos), `worktrees` (where git worktrees live and how they end).
 
-🧪 **4 framework skills** — `kb-search` (full-context pre-task gate: KB + code + live service state), `kb-sanitize` (internal KB coherence), `kb-code-sync` (KB ↔ code drift), `agentic-e2e-loop` (verify → HITL if taste → ship → clean up).
+🧪 **6 framework skills** — `kb-search` (full-context pre-task gate: KB + code + live service state), `kb-sanitize` (internal KB coherence), `kb-code-sync` (KB ↔ code drift), `agentic-e2e-loop` (verify → HITL if taste → ship → clean up), `ci-runners` (runner pool, conversions, refusals), `worktree-audit` (cross-repo worktree inventory + guarded removal).
 
 🎮 **3 slash commands** — `/magik-repo-setup`, `/magik-repo-kb-sanitize`, `/magik-repo-kb-code-sync`.
 
@@ -179,8 +181,8 @@ pnpm clean
 ├── .cursor-plugin/plugin.json     # plugin manifest
 ├── assets/                        # banner, logo, social card
 ├── commands/*.md                  # /magik-repo-setup, /magik-repo-kb-sanitize, /magik-repo-kb-code-sync (authored)
-├── rules/*.mdc                    # harness, knowledge-base, memory, kb-conventions (authored)
-├── skills/<name>/SKILL.md         # kb-search, kb-sanitize, kb-code-sync, agentic-e2e-loop (authored)
+├── rules/*.mdc                    # harness, knowledge-base, memory, kb-conventions, agentic-work, ci-runners, worktrees (authored)
+├── skills/<name>/SKILL.md         # kb-search, kb-sanitize, kb-code-sync, agentic-e2e-loop, ci-runners, worktree-audit (authored)
 ├── hooks/setup.ts                 # the /magik-repo-setup hook (authored)
 ├── scripts/                       # build & install tooling (authored)
 ├── bundles/ARCHITECTURE-v1.md     # the light-harness design spec
@@ -192,7 +194,7 @@ pnpm clean
 │   │   ├── hooks.json             # sessionStart wiring
 │   │   └── hooks/session-start.js
 │   └── vault/                     # vault-side seeds (knowledge/_index.md)
-├── tests/                         # node:test suite (setup, hook, version, seed-tree, manifest)
+├── tests/                         # node:test suite (setup, hook, version, seed-tree, manifest, worktree-audit)
 ├── package.json / tsconfig.json
 ├── README.md / LICENSE / CHANGELOG.md
 │
@@ -205,13 +207,13 @@ pnpm clean
 
 ## 🧪 Testing
 
-The plugin ships a deterministic `node:test` suite (`pnpm test`) covering the setup hook's writes (manifest, primer/`.gitignore` markers, idempotency, dry-run, `accessVia=mcp`), the session-start hook's manifest resolution, version-stamp sync across `package.json` / manifest / hook, the plugin manifest's validity, and a seed-tree snapshot. It runs offline with no API keys and no cost.
+The plugin ships a deterministic `node:test` suite (`pnpm test`) covering the setup hook's writes (manifest, primer/`.gitignore` markers, idempotency, dry-run, `accessVia=mcp`), the session-start hook's manifest resolution, version-stamp sync across `package.json` / manifest / hook, the plugin manifest's validity, a seed-tree snapshot, and the `worktree-audit` tool (sandboxed git repos and a fake `gh`: verdicts, the janitor count, and every fail-closed refusal of `remove`). It runs offline with no API keys and no cost.
 
 ---
 
 ## 🏷️ Versioning
 
-`magik-repo@1.8.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
+`magik-repo@1.9.0` ships `harness@1` content. See [CHANGELOG.md](./CHANGELOG.md) for the full history.
 
 ## 📄 License
 
