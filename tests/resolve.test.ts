@@ -4,7 +4,7 @@
  * The resolver is the heart of the harness and the thing every other surface
  * (hook, doctor, `resolve`) shares, so its rules are pinned here: the
  * precedence between a project pointer and the machine-level convention, the
- * overlay, legacy 1.x files, worktrees, and, above all, that a configured but
+ * overlay, worktrees, and, above all, that a configured but
  * broken harness is LOUD (warnings) while "no harness at all" is silent.
  */
 
@@ -63,7 +63,6 @@ describe("project pointer", () => {
     const r = resolveHarness({ cwd: app, home, env: {} });
     assert.equal(r.active, true);
     assert.equal(r.source, "project");
-    assert.equal(r.pointerIsLegacy, false);
     assert.equal(r.projectName, "app");
     assert.equal(r.vaultDir, vault);
     assert.equal(r.knowledge?.dir, join(vault, "app", "knowledge"));
@@ -100,15 +99,14 @@ describe("project pointer", () => {
     assert.ok(r.notes.some((n) => /without a tracked pointer/.test(n)));
   });
 
-  it("still reads a 1.x pointer at .cursor/harness.json, and prefers .magik/ when both exist", () => {
+  it("only looks for the pointer at .magik/harness.json", () => {
     const { home, app } = setup();
-    pointer(app, { ...BASIC, schema: "magik-repo/harness@1" }, ".cursor/harness.json");
-    const legacy = resolveHarness({ cwd: app, home, env: {} });
-    assert.equal(legacy.active, true);
-    assert.equal(legacy.pointerIsLegacy, true);
-    assert.deepEqual(legacy.notes, [], "a known legacy schema is not a surprise");
+    pointer(app, BASIC, ".cursor/harness.json");
+    const elsewhere = resolveHarness({ cwd: app, home, env: {} });
+    assert.equal(elsewhere.active, false, "a pointer anywhere else is invisible");
+    assert.equal(elsewhere.pointerPath, null);
     pointer(app, BASIC);
-    assert.equal(resolveHarness({ cwd: app, home, env: {} }).pointerIsLegacy, false);
+    assert.equal(resolveHarness({ cwd: app, home, env: {} }).active, true);
   });
 
   it("notes an unknown schema but still reads the file", () => {

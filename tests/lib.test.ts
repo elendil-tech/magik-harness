@@ -60,15 +60,12 @@ describe("markers", () => {
     assert.ok(!/[^\r]\n/.test(r.text), "no bare LF in a CRLF file");
   });
 
-  it("recognises the 1.x marker names and replaces that block in place", () => {
-    const legacy = "<!-- harness:primer:start v=1.9.1 -->\nold primer\n<!-- harness:primer:end -->\n\n# My project\n";
-    const r = upsertBlock(legacy, { ...HTML, legacyNames: ["harness:primer"], body: "new primer" });
-    assert.equal(r.action, "update");
-    assert.equal(r.previous?.name, "harness:primer");
-    assert.equal(r.previous?.version, "1.9.1");
-    assert.ok(!r.text.includes("harness:primer:start v=1.9.1"));
-    assert.ok(r.text.includes("magik-harness:primer:start v=2.0.0"));
-    assert.ok(r.text.endsWith("# My project\n"));
+  it("leaves a block with another name alone, so the project's own text is never taken for ours", () => {
+    const other = "<!-- harness:primer:start v=1.9.1 -->\nsomeone else's block\n<!-- harness:primer:end -->\n\n# My project\n";
+    const r = upsertBlock(other, { ...HTML, body: "new primer" });
+    assert.equal(r.action, "insert");
+    assert.ok(r.text.includes("someone else's block"), "the block with a different name is untouched");
+    assert.equal(r.text.match(/magik-harness:primer:start/g)?.length, 1);
   });
 
   it("supports hash-style blocks for .gitignore", () => {
@@ -122,10 +119,9 @@ describe("hook registration files", () => {
     assert.deepEqual(r.doc.hooks.sessionStart, [{ command: CURSOR_CMD }]);
   });
 
-  it("drops the 1.x registration by default and keeps it on request", () => {
-    const v1 = { version: 1, hooks: { sessionStart: [{ command: "node .cursor/hooks/session-start.js" }] } };
-    assert.deepEqual(mergeCursorHooks(v1, { command: CURSOR_CMD }).doc.hooks.sessionStart, [{ command: CURSOR_CMD }]);
-    assert.deepEqual(mergeCursorHooks(v1, { command: CURSOR_CMD, dropLegacy: false }).doc.hooks.sessionStart, [
+  it("leaves a hook that is not ours alone, even one that is called session-start", () => {
+    const theirs = { version: 1, hooks: { sessionStart: [{ command: "node .cursor/hooks/session-start.js" }] } };
+    assert.deepEqual(mergeCursorHooks(theirs, { command: CURSOR_CMD }).doc.hooks.sessionStart, [
       { command: "node .cursor/hooks/session-start.js" },
       { command: CURSOR_CMD },
     ]);
@@ -144,11 +140,11 @@ describe("hook registration files", () => {
   it("merges into Claude settings without touching other keys, and removes cleanly", () => {
     const cmd = 'node "/home/u/.magik/runtime/session-start.mjs" --format claude';
     const settings = { model: "opus", hooks: { SessionStart: [{ matcher: "startup", hooks: [{ type: "command", command: "echo hi" }] }] } };
-    const a = mergeClaudeHooks(settings, { command: cmd, dropLegacy: false });
+    const a = mergeClaudeHooks(settings, { command: cmd });
     assert.equal(a.doc.model, "opus");
     assert.equal(a.doc.hooks.SessionStart.length, 2);
-    assert.equal(mergeClaudeHooks(a.doc, { command: cmd, dropLegacy: false }).changed, false);
-    const back = removeClaudeHooks(a.doc, { command: cmd, dropLegacy: false });
+    assert.equal(mergeClaudeHooks(a.doc, { command: cmd }).changed, false);
+    const back = removeClaudeHooks(a.doc, { command: cmd });
     assert.deepEqual(back.doc, settings);
     assert.equal(back.empty, false);
     assert.equal(removeClaudeHooks(mergeClaudeHooks({}, { command: cmd }).doc, { command: cmd }).empty, true);
@@ -164,7 +160,7 @@ describe("hook registration files", () => {
   it("recognises our hook commands and nobody else's", () => {
     assert.equal(looksLikeOurHook("node .magik/runtime/session-start.mjs --format cursor"), true);
     assert.equal(looksLikeOurHook('node "C:\\Users\\x\\.magik\\runtime\\session-start.mjs" --format cursor'), true);
-    assert.equal(looksLikeOurHook("node .cursor/hooks/session-start.js"), true);
+    assert.equal(looksLikeOurHook("node .cursor/hooks/session-start.js"), false, "a hook script that is not ours is never taken for ours");
     assert.equal(looksLikeOurHook("orca-hook start"), false);
     assert.equal(looksLikeOurHook("node scripts/session-start.mjs"), false);
     assert.equal(looksLikeOurHook(42), false);
@@ -338,20 +334,19 @@ describe("scope", () => {
 
 describe("catalog and profiles", () => {
   const catalog = loadCatalog();
-  const { profiles, globalOnly } = loadProfiles();
+  const { profiles } = loadProfiles();
 
   it("ships the core skills and the two opt-in packs", () => {
-    for (const name of ["harness", "harness-memory", "knowledge-base", "kb-conventions", "kb-search", "kb-sanitize", "kb-code-sync", "agentic-e2e-loop", "harness-setup"]) {
+    for (const name of ["harness", "harness-memory", "knowledge-base", "kb-conventions", "kb-search", "kb-sanitize", "kb-code-sync", "agentic-e2e-loop", "harness-fit"]) {
       assert.ok(catalog.all.has(name), `core skill ${name} is missing`);
     }
     assert.deepEqual(catalog.packs.map((p) => p.name).sort(), ["ci-runners", "worktrees"]);
   });
 
-  it("every profile and globalOnly entry names a skill that exists", () => {
+  it("every profile names skills that exist", () => {
     for (const [name, p] of Object.entries(profiles)) {
       for (const s of p.skills) assert.ok(catalog.all.has(s), `profile ${name} lists unknown skill ${s}`);
     }
-    for (const s of globalOnly) assert.ok(catalog.all.has(s), `globalOnly lists unknown skill ${s}`);
   });
 
   it("the minimal profile needs no vault and the knowledge profile does", () => {

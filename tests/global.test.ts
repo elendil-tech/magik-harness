@@ -18,8 +18,7 @@ import { PLUGIN_VERSION } from "./_version.ts";
 import { cli, contextOf, files, has, hook, machine, project, read, readJson, repo, vaultWith, write } from "./_helpers.ts";
 import type { Machine, Project } from "./_helpers.ts";
 
-const KNOWLEDGE_SKILLS = ["agentic-e2e-loop", "harness", "harness-memory", "kb-code-sync", "kb-conventions", "kb-sanitize", "kb-search", "knowledge-base"];
-const GLOBAL_SKILLS = [...KNOWLEDGE_SKILLS, "harness-setup"].sort();
+const KNOWLEDGE_SKILLS = ["agentic-e2e-loop", "harness", "harness-fit", "harness-memory", "kb-code-sync", "kb-conventions", "kb-sanitize", "kb-search", "knowledge-base"];
 const TODAY = "2026-03-04";
 const json = (v: unknown) => JSON.stringify(v, null, 2) + "\n";
 
@@ -79,8 +78,8 @@ describe("a global install", () => {
     ]) {
       assert.ok(has(join(b.home, f)), `${f} should exist`);
     }
-    assert.deepEqual(skillNames(b, ".agents/skills"), GLOBAL_SKILLS, "the shared skills folder (Cursor and Codex read it)");
-    assert.deepEqual(skillNames(b, ".claude/skills"), GLOBAL_SKILLS, "Claude Code reads its own folder");
+    assert.deepEqual(skillNames(b, ".agents/skills"), KNOWLEDGE_SKILLS, "the shared skills folder (Cursor and Codex read it)");
+    assert.deepEqual(skillNames(b, ".claude/skills"), KNOWLEDGE_SKILLS, "Claude Code reads its own folder");
     assert.deepEqual(files(b.proj2), ["README.md"], "no repository is touched");
     assert.deepEqual(files(b.proj3), ["README.md"]);
     // cursor-agent ignores rule files in ~/.cursor/rules (checked live), so none is written; the install says what to do instead
@@ -151,7 +150,7 @@ describe("a global install", () => {
     assert.equal(read(join(b.home, ".claude/settings.json")), b.original.claudeSettings);
     assert.equal(read(join(b.home, ".codex/AGENTS.md")), b.original.codexAgents);
     assert.ok(has(GLOBAL_RUNTIME(b)));
-    assert.deepEqual(skillNames(b, ".agents/skills"), GLOBAL_SKILLS);
+    assert.deepEqual(skillNames(b, ".agents/skills"), KNOWLEDGE_SKILLS);
   });
 
   it("a knowledge install without a vault is a usage error; minimal needs none", async () => {
@@ -166,7 +165,7 @@ describe("a global install", () => {
     const config = readJson(join(b.home, ".magik/config.json"));
     assert.equal(config.vault, null);
     assert.equal(config.git, "always");
-    assert.deepEqual(skillNames(b, ".agents/skills"), ["agentic-e2e-loop", "harness", "harness-setup"]);
+    assert.deepEqual(skillNames(b, ".agents/skills"), ["agentic-e2e-loop", "harness", "harness-fit"]);
   });
 });
 
@@ -303,10 +302,10 @@ describe("upgrade and uninstall", () => {
   it("upgrade restores what was deleted and keeps the tools it was installed for", async () => {
     const b = box();
     await installGlobal(b);
-    rmSync(join(b.home, ".agents/skills/harness-setup/SKILL.md"));
+    rmSync(join(b.home, ".agents/skills/harness-fit/SKILL.md"));
     const r = await g(b, ["upgrade", "--scope", "global", "--yes"]);
     assert.equal(r.code, 0, r.err);
-    assert.ok(has(join(b.home, ".agents/skills/harness-setup/SKILL.md")));
+    assert.ok(has(join(b.home, ".agents/skills/harness-fit/SKILL.md")));
     assert.ok(has(join(b.home, ".claude/CLAUDE.md")), "claude was part of the install, so it stays");
     assert.equal((await g(b, ["doctor", "--scope", "global"])).code, 0);
   });

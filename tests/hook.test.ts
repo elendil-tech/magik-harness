@@ -141,12 +141,6 @@ describe("silence and loudness", () => {
     assert.match(contextOf(r.stdout), /WARNING: Harness pointer .* is not valid JSON/);
   });
 
-  it("flags a 1.x pointer location so it gets migrated", () => {
-    const w = world({ pointer: false });
-    write(join(w.app, ".cursor", "harness.json"), JSON.stringify({ schema: "magik-repo/harness@1", vault: "~/vault", knowledge: { mount: "app/knowledge" }, memory: { mount: "app/memory" } }));
-    assert.match(contextOf(run(w).stdout), /legacy 1\.x location/);
-  });
-
   it("never fails the session, whatever arrives on stdin", () => {
     const w = world();
     for (const raw of ["", "{{{", "null", "42", '"a string"', "[]", "\u0000\u0001"]) {

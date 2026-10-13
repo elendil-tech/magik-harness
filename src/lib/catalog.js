@@ -123,14 +123,12 @@ export function packProblems(pack, opts = {}) {
 }
 
 /**
- * @returns {{ profiles: Record<string, Profile>, globalOnly: string[] }}
+ * @returns {{ profiles: Record<string, Profile> }}
  */
 export function loadProfiles() {
   const text = readText(join(PKG_ROOT, "content", "profiles.json"));
   if (text === null) throw new Error("content/profiles.json is missing from the package");
-  const raw = JSON.parse(text);
-  const { globalOnly = [], ...profiles } = raw;
-  return { profiles, globalOnly };
+  return { profiles: JSON.parse(text) };
 }
 
 /**

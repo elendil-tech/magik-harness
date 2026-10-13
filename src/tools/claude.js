@@ -30,7 +30,6 @@ export const claude = {
         abs: join(scope.root, ".claude", "settings.json"),
         flavor: "claude",
         command: scope.hookCommand("claude"),
-        dropLegacy: false,
       },
     ];
 

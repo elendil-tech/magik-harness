@@ -4,9 +4,7 @@
  * (AGENTS.md, CLAUDE.md, .gitignore, ~/.codex/AGENTS.md).
  *
  * A block is the region between a start and an end marker line. The installer
- * owns only that region; text outside it is never touched. Legacy 1.x markers
- * (`harness:primer`, `harness:gitignore`) are recognised so an upgrade replaces
- * them in place.
+ * owns only that region; text outside it is never touched.
  *
  *   html style:  <!-- NAME:start v=2.0.0 -->  ...  <!-- NAME:end -->
  *   hash style:  # NAME:start v=2.0.0         ...  # NAME:end
@@ -51,7 +49,7 @@ function endRe(style, name) {
  * @typedef {Object} FoundBlock
  * @property {number} startLine   index into the line array
  * @property {number} endLine     index (inclusive)
- * @property {string} name        which marker name matched (current or legacy)
+ * @property {string} name        the marker name that matched
  * @property {string|null} version
  * @property {string} body        text between the markers, LF-normalised, no trailing newline
  */
@@ -59,7 +57,7 @@ function endRe(style, name) {
 /**
  * @param {string} text
  * @param {BlockStyle} style
- * @param {string[]} names   current name first, then legacy names
+ * @param {string[]} names   marker names to look for, in order
  * @returns {FoundBlock|null}
  */
 export function findBlock(text, style, names) {
@@ -98,7 +96,6 @@ export function bodyHash(body) {
  * @param {Object} o
  * @param {BlockStyle} o.style
  * @param {string} o.name
- * @param {string[]} [o.legacyNames]
  * @param {string} o.version
  * @param {string} o.body      block body without markers
  * @param {"top"|"bottom"} [o.position]
@@ -106,10 +103,9 @@ export function bodyHash(body) {
  */
 export function upsertBlock(text, o) {
   const eol = detectEol(text || "\n");
-  const names = [o.name, ...(o.legacyNames ?? [])];
   const bodyLines = toLf(o.body).replace(/\s+$/g, "").split("\n");
   const block = [startMarker(o.style, o.name, o.version), ...bodyLines, endMarker(o.style, o.name)];
-  const found = text ? findBlock(text, o.style, names) : null;
+  const found = text ? findBlock(text, o.style, [o.name]) : null;
 
   if (found) {
     const lines = text.split(/\r?\n/);

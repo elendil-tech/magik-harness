@@ -1,11 +1,9 @@
 {
-  "globalOnly": [
-    "harness-setup"
-  ],
   "minimal": {
     "description": "The delivery loop and git protocol only. No vault, no knowledge base.",
     "skills": [
       "harness",
+      "harness-fit",
       "agentic-e2e-loop"
     ],
     "primer": "primer.minimal.md",
@@ -15,6 +13,7 @@
     "description": "Everything: a knowledge base and memory in a vault, the KB maintenance skills, and the delivery loop. Needs a vault.",
     "skills": [
       "harness",
+      "harness-fit",
       "harness-memory",
       "knowledge-base",
       "kb-conventions",

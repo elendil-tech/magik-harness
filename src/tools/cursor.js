@@ -37,7 +37,6 @@ export const cursor = {
         abs: join(scope.root, ".cursor", "hooks.json"),
         flavor: "cursor",
         command: scope.hookCommand("cursor"),
-        dropLegacy: scope.kind === "project" && ctx.dropLegacyHook,
       },
     ];
     if (scope.kind === "global") {

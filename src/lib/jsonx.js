@@ -50,24 +50,17 @@ const isObj = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 // ownership of hook entries
 // ---------------------------------------------------------------------------
 
-/** Heuristic for hook commands we (or magik-repo 1.x) installed. @param {unknown} command */
+/** Heuristic for hook commands we installed. @param {unknown} command */
 export function looksLikeOurHook(command) {
   if (typeof command !== "string") return false;
   const c = command.replace(/\\/g, "/");
-  if (/session-start\.mjs/.test(c) && /(\.magik|magik-harness|magik)/i.test(c)) return true;
-  return /(^|\s|")\.cursor\/hooks\/session-start\.js\b/.test(c);
-}
-
-/** @param {unknown} command */
-export function isLegacyHookCommand(command) {
-  return typeof command === "string" && /(^|\s|")\.cursor\/hooks\/session-start\.js\b/.test(command.replace(/\\/g, "/"));
+  return /session-start\.mjs/.test(c) && /(\.magik|magik-harness|magik)/i.test(c);
 }
 
 /**
  * @typedef {Object} MergeOptions
  * @property {string} command            the command to register
  * @property {string[]} [known]          extra commands recorded in the lock (ours for sure)
- * @property {boolean} [dropLegacy]      also remove the 1.x registration (default true)
  */
 
 /** @param {MergeOptions} o @returns {(cmd: unknown) => boolean} */
@@ -76,7 +69,6 @@ function ownedPredicate(o) {
   return (cmd) => {
     if (typeof cmd !== "string") return false;
     if (known.has(cmd) || cmd === o.command) return true;
-    if (isLegacyHookCommand(cmd)) return o.dropLegacy !== false;
     return looksLikeOurHook(cmd);
   };
 }

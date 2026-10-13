@@ -42,30 +42,20 @@ import { bodyHash, removeBlock, upsertBlock } from "./markers.js";
  * @property {string} id
  * @property {"html"|"hash"} style
  * @property {string} name
- * @property {string[]} [legacyNames]
  * @property {string} body
  * @property {"top"|"bottom"} [position]
- * @property {boolean} [keepLegacyRemainder]   gitignore: keep non-harness lines of a legacy block
  *
  * @typedef {Object} DesiredJson
  * @property {"json"} type
  * @property {string} abs
  * @property {"cursor"|"claude"} flavor
  * @property {string} command
- * @property {boolean} dropLegacy
  *
  * @typedef {Object} DesiredSeed
  * @property {"seed"} type
  * @property {string} abs
  * @property {string} key
  * @property {string} content
- *
- * @typedef {Object} DesiredRemoval
- * @property {"remove"} type
- * @property {string} abs
- * @property {string} reason
- * @property {(text: string) => boolean} [onlyIf]    delete only when this holds
- * @property {string} [keepReason]                    reason shown when onlyIf fails
  *
  * @typedef {Object} DesiredDir
  * @property {"dir"} type
@@ -76,7 +66,7 @@ import { bodyHash, removeBlock, upsertBlock } from "./markers.js";
  * @property {"info"|"warn"} level
  * @property {string} message
  *
- * @typedef {DesiredFile|DesiredBlock|DesiredJson|DesiredSeed|DesiredRemoval|DesiredDir|DesiredNotice} Desired
+ * @typedef {DesiredFile|DesiredBlock|DesiredJson|DesiredSeed|DesiredDir|DesiredNotice} Desired
  */
 
 /**
@@ -148,23 +138,6 @@ function planSeed(d) {
 }
 
 /**
- * Lines of a legacy gitignore block that the rest of the file does not already
- * say, kept as a user-owned section so migration never silently drops an ignore
- * rule and never repeats one either. A negation (`!rule`) is always kept: where
- * it sits decides what it re-includes.
- * @param {string} legacyBody
- * @param {string} fileText   the file as it will be once the new block has replaced the legacy one
- */
-function legacyRemainder(legacyBody, fileText) {
-  const have = new Set(fileText.split(/\r?\n/).map((l) => l.trim()));
-  const kept = legacyBody
-    .split("\n")
-    .map((l) => l.replace(/\s+$/g, ""))
-    .filter((l) => l.trim() && !l.trim().startsWith("#") && (l.trim().startsWith("!") || !have.has(l.trim())));
-  return kept;
-}
-
-/**
  * @param {DesiredBlock} d
  * @param {PlanContext} ctx
  * @returns {PlanItem}
@@ -174,28 +147,18 @@ function planBlock(d, ctx) {
   const text = current ?? "";
   const key = blockKey(ctx, d.abs, d.id);
   const newHash = bodyHash(d.body);
-  const r = upsertBlock(text, { style: d.style, name: d.name, legacyNames: d.legacyNames, version: ctx.version, body: d.body, position: d.position });
+  const r = upsertBlock(text, { style: d.style, name: d.name, version: ctx.version, body: d.body, position: d.position });
   /** @type {PlanItem} */
   const base = { type: "block", action: "create", abs: d.abs, key, reason: "new", blockId: d.id, markerName: d.name, blockStyle: d.style, hash: newHash, newText: r.text };
 
   if (r.action === "unchanged") return { ...base, action: "unchanged", reason: "current" };
   if (r.previous) {
-    const legacy = r.previous.name !== d.name;
-    let newText = r.text;
-    if (legacy && d.keepLegacyRemainder) {
-      const kept = legacyRemainder(r.previous.body, r.text);
-      if (kept.length > 0) {
-        const eol = text.includes("\r\n") ? "\r\n" : "\n";
-        const section = ["", "# Kept from magik-repo 1.x (not managed; edit or delete freely):", ...kept].join(eol);
-        newText = newText.replace(/\s+$/g, "") + eol + section + eol;
-      }
-    }
     const prevHash = bodyHash(r.previous.body);
     const lockedHash = ctx.prior?.blocks[key]?.hash;
-    if (!legacy && !ctx.force && lockedHash && prevHash !== lockedHash && prevHash !== newHash) {
+    if (!ctx.force && lockedHash && prevHash !== lockedHash && prevHash !== newHash) {
       return { ...base, action: "keep", reason: "block edited locally; kept (use --force to refresh)", hash: lockedHash, newText: text };
     }
-    return { ...base, newText, action: "update", backup: ctx.force && !legacy && Boolean(lockedHash) && prevHash !== lockedHash, reason: legacy ? "replaces the 1.x block" : "managed block refreshed" };
+    return { ...base, action: "update", backup: ctx.force && Boolean(lockedHash) && prevHash !== lockedHash, reason: "managed block refreshed" };
   }
   return { ...base, action: current === null ? "create" : "insert", reason: current === null ? "new file" : "block added to existing file", backup: current !== null };
 }
@@ -219,7 +182,7 @@ function planJson(d, ctx) {
     };
   }
   const known = ctx.prior?.json[key]?.commands ?? [];
-  const opts = { command: d.command, known, dropLegacy: d.dropLegacy };
+  const opts = { command: d.command, known };
   const merged = d.flavor === "cursor" ? mergeCursorHooks(f.value, opts) : mergeClaudeHooks(f.value, opts);
   const createdByUs = !f.exists || Boolean(ctx.prior?.json[key]?.created);
   /** @type {PlanItem} */
@@ -228,22 +191,6 @@ function planJson(d, ctx) {
   return f.exists
     ? { ...base, action: "merge", reason: "hook entry added/updated; other entries untouched", backup: true }
     : { ...base, action: "create", reason: "new file" };
-}
-
-/**
- * @param {DesiredRemoval} d
- * @param {PlanContext} ctx
- * @returns {PlanItem|null}
- */
-function planRemoval(d, ctx) {
-  const buf = readBuffer(d.abs);
-  if (!buf) return null;
-  const key = ctx.scope.key(d.abs);
-  if (d.onlyIf && !d.onlyIf(buf.toString("utf8"))) {
-    return { type: "remove", action: "keep", abs: d.abs, key, reason: d.keepReason ?? "has local edits; left in place" };
-  }
-  // what we delete is always 1.x leftovers a person may have edited: keep a copy
-  return { type: "remove", action: "remove", abs: d.abs, key, reason: d.reason, backup: true };
 }
 
 /**
@@ -280,10 +227,7 @@ export function planDesired(desired, ctx) {
       if (!existsSync(d.abs)) items.push({ type: "dir", action: "create", abs: d.abs, key: ctx.scope.key(d.abs), reason: "new folder" });
     } else if (d.type === "block") items.push(planBlock(d, ctx));
     else if (d.type === "json") items.push(planJson(d, ctx));
-    else if (d.type === "remove") {
-      const it = planRemoval(d, ctx);
-      if (it) items.push(it);
-    } else notices.push({ type: "notice", action: "notice", abs: "", key: "", level: d.level, reason: d.message });
+    else notices.push({ type: "notice", action: "notice", abs: "", key: "", level: d.level, reason: d.message });
   }
 
   if (ctx.prior) {
@@ -422,7 +366,7 @@ export function planUninstall(lock, o) {
     const f = readJsonFile(abs);
     if (!f.exists || !f.valid) continue;
     const flavor = key.includes("settings.json") ? "claude" : "cursor";
-    const opts = { command: info.commands[0] ?? "", known: info.commands, dropLegacy: scope.kind === "project" };
+    const opts = { command: info.commands[0] ?? "", known: info.commands };
     const r = flavor === "claude" ? removeClaudeHooks(f.value, opts) : removeCursorHooks(f.value, opts);
     if (!r.changed) continue;
     if (r.empty && info.created) items.push({ type: "json", action: "remove", abs, key, reason: "file created by magik-harness and now empty" });

@@ -47,7 +47,7 @@ describe("a healthy install", () => {
     assert.match(r.out, /managed files present/);
     assert.match(r.out, /hook registered in \.cursor\/hooks\.json/);
     assert.match(r.out, /session hook runs/);
-    assert.match(r.out, /8 skill folder\(s\) checked, all valid/);
+    assert.match(r.out, /9 skill folder\(s\) checked, all valid/);
     assert.match(r.out, /primer present in AGENTS\.md/);
     assert.match(r.out, /no managed path is git-ignored/);
     assert.match(r.out, /up to date with this CLI/);
@@ -64,7 +64,7 @@ describe("a healthy install", () => {
     assert.equal(doc.warnings, 0);
     assert.ok(doc.checks.length >= 8);
     for (const c of doc.checks) {
-      assert.ok(["resolution", "project install", "global install", "legacy", "summary"].includes(c.area), `unexpected area ${c.area}`);
+      assert.ok(["resolution", "project install", "global install", "summary"].includes(c.area), `unexpected area ${c.area}`);
       assert.ok(["ok", "info", "warn", "fail"].includes(c.level));
       assert.equal(typeof c.message, "string");
     }

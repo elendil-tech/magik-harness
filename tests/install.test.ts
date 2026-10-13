@@ -16,8 +16,8 @@ import { PLUGIN_VERSION } from "./_version.ts";
 import { cli, files, git, has, hook, project as proj, read, readJson, write } from "./_helpers.ts";
 import type { Project as P } from "./_helpers.ts";
 
-const KNOWLEDGE_SKILLS = ["agentic-e2e-loop", "harness", "harness-memory", "kb-code-sync", "kb-conventions", "kb-sanitize", "kb-search", "knowledge-base"];
-const MINIMAL_SKILLS = ["agentic-e2e-loop", "harness"];
+const KNOWLEDGE_SKILLS = ["agentic-e2e-loop", "harness", "harness-fit", "harness-memory", "kb-code-sync", "kb-conventions", "kb-sanitize", "kb-search", "knowledge-base"];
+const MINIMAL_SKILLS = ["agentic-e2e-loop", "harness", "harness-fit"];
 const CURSOR_CMD = "node .magik/runtime/session-start.mjs --format cursor";
 
 const run = (p: P, args: string[]) => cli(args, { cwd: p.app, home: p.home });
@@ -35,7 +35,6 @@ describe("a fresh knowledge install", () => {
       assert.ok(has(join(p.app, f)), `${f} should exist`);
     }
     assert.deepEqual(skillDirs(p), KNOWLEDGE_SKILLS);
-    assert.ok(!has(join(p.app, ".agents/skills/harness-setup")), "harness-setup is for a machine-level install only");
     assert.ok(!has(join(p.app, ".claude")), "only the detected/default tool is configured");
 
     const pointer = readJson(join(p.app, ".magik/harness.json"));

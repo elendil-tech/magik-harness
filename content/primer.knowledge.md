@@ -1,4 +1,4 @@
-> **Harness primer.** Managed by [magik-harness](https://github.com/codeisalifestyle/magik-repo-plugin); it is replaced in place on upgrade, so keep your own notes outside the markers.
+> **Harness primer.** Managed by [magik-harness](https://github.com/codeisalifestyle/magik-harness); it is replaced in place on upgrade, so keep your own notes outside the markers.
 > This is a normal code repo with two external services behind it: a **knowledge base** (the project's ground truth) and **memory** (the running log of what happened). Both are plain Markdown in a vault outside the repo, found through {{POINTER}}.
 
 At session start a hook prints the resolved paths, today's memory and the git sync state under the heading `magik-harness session context`. If that heading is missing, run `node {{RUNTIME}} --format text` (or `magik-harness resolve`) yourself. If a store is unreachable, say so and carry on; never block on it.
@@ -12,4 +12,4 @@ At session start a hook prints the resolved paths, today's memory and the git sy
 
 ## Skills to load on demand
 
-Folder `{{SKILLS_DIR}}/`: `harness` (the operating model), `kb-search`, `knowledge-base`, `kb-conventions`, `kb-sanitize`, `kb-code-sync`, `harness-memory`, `agentic-e2e-loop`.
+Folder `{{SKILLS_DIR}}/`: `harness` (the operating model), `harness-fit` (install, upgrade and re-align this project with the harness), `kb-search`, `knowledge-base`, `kb-conventions`, `kb-sanitize`, `kb-code-sync`, `harness-memory`, `agentic-e2e-loop`.

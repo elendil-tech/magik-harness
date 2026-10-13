@@ -59,7 +59,7 @@ Both are plain Markdown in a **vault**, a folder outside the repo (often its own
 
 ## How a project resolves
 
-1. `.magik/harness.local.json` merged over `.magik/harness.json` (the 1.x paths `.cursor/harness*.json` are still read).
+1. `.magik/harness.local.json` merged over `.magik/harness.json`.
 2. Otherwise the global `~/.magik/config.json`: stores are `<vault>/<project>/knowledge` and `<vault>/<project>/memory`, active only if that project folder exists in the vault.
 3. Otherwise the repo is not harnessed. That is not an error; nothing is printed.
 
@@ -100,4 +100,4 @@ The KB is free-form Markdown with a thin convention so the maintenance skills ha
 | `magik-harness upgrade` | Re-apply the install with newer content; your edits are kept |
 | `magik-harness init` | Create the vault folders for this project |
 
-If the command is not installed, `npx magik-harness <command>` runs it. To install or repair the harness, use the `harness-setup` skill (available where the global profile or the Cursor plugin is installed) or run `magik-harness install --help`.
+If the command is not installed, `npx magik-harness <command>` runs it. To install, upgrade or repair the harness, or to bring a project's own files in line with it (an older layout, a hand-made setup, drift), use the `harness-fit` skill.

@@ -15,7 +15,6 @@ import { expandPath, projectInfo, readJson } from "../../runtime/resolve.mjs";
 import { parseFlags, toList, UsageError } from "../lib/args.js";
 import { loadCatalog, loadProfiles, packProblems } from "../lib/catalog.js";
 import { exists, realish, toPosix } from "../lib/fsx.js";
-import { detectLegacy, legacyHookRelease } from "../lib/legacy.js";
 import { readLock, writeLock } from "../lib/lock.js";
 import { applyPlan, computeLock, planDesired } from "../lib/plan.js";
 import { createPrompter } from "../lib/prompt.js";
@@ -29,7 +28,7 @@ import { PKG_ROOT, VERSION } from "../version.js";
 import { today } from "../../runtime/session-start.mjs";
 
 export const INSTALL_FLAGS = {
-  boolean: ["dry-run", "force", "yes", "json", "keep-legacy-pointer", "drop-legacy-hook", "help"],
+  boolean: ["dry-run", "force", "yes", "json", "help"],
   string: [
     "scope",
     "project-root",
@@ -80,8 +79,6 @@ Safety
   --force                    overwrite files you modified (a backup is made first)
   --yes                      no prompts
   --json                     machine-readable output
-  --keep-legacy-pointer      1.x projects: keep .cursor/harness.json where it is
-  --drop-legacy-hook         1.x projects: also remove a locally modified 1.x hook script
 `;
 
 /**
@@ -141,17 +138,6 @@ export function portableVault(v, cwd, home) {
   return { value: toPosix(abs), portable: false };
 }
 
-/** @param {any} doc */
-function migratePointer(doc) {
-  /** @type {Record<string, any>} */
-  const out = {
-    schema: "magik-harness/harness@2",
-    _doc: "Vault pointer. Tracked, so every worktree and clone resolves the same vault. Per-machine overrides go in .magik/harness.local.json (gitignored). Secrets never go here. Spec: docs/ARCHITECTURE.md in magik-harness.",
-  };
-  for (const [k, v] of Object.entries(doc)) if (k !== "schema" && k !== "_doc") out[k] = v;
-  return JSON.stringify(out, null, 2) + "\n";
-}
-
 /**
  * @typedef {Object} InstallOptions
  * @property {"install"|"upgrade"} mode
@@ -172,8 +158,6 @@ function migratePointer(doc) {
  * @property {boolean} force
  * @property {boolean} yes
  * @property {boolean} json
- * @property {boolean} keepLegacyPointer
- * @property {boolean} dropLegacyHook
  */
 
 /**
@@ -214,8 +198,6 @@ export function parseInstallOptions(argv, mode, io) {
     force: flags.force === true,
     yes: flags.yes === true,
     json: flags.json === true,
-    keepLegacyPointer: flags["keep-legacy-pointer"] === true,
-    dropLegacyHook: flags["drop-legacy-hook"] === true,
   };
 }
 
@@ -240,7 +222,7 @@ export function buildInstall(o, io) {
   // --- settings -----------------------------------------------------------
   const savedPackDirs = (prior?.packDirs ?? []).map((d) => expandPath(d, home, baseScope.root));
   const catalog = loadCatalog({ packDirs: [...new Set([...savedPackDirs, ...o.packDirs])] });
-  const { profiles, globalOnly } = loadProfiles();
+  const { profiles } = loadProfiles();
   /** @type {string[]} */
   const notes = [];
 
@@ -267,17 +249,13 @@ export function buildInstall(o, io) {
   if (toolSel.how === "default") notes.push("no tool configuration detected; defaulting to cursor (pass --tools to change)");
 
   const projectRoot = baseScope.root;
-  const pointerNew = join(projectRoot, ".magik", "harness.json");
-  const pointerLegacy = join(projectRoot, ".cursor", "harness.json");
-  const overlayNew = join(projectRoot, ".magik", "harness.local.json");
-  const overlayLegacy = join(projectRoot, ".cursor", "harness.local.json");
-  const legacy = o.scope === "project" ? detectLegacy(projectRoot) : null;
+  const pointerPath = join(projectRoot, ".magik", "harness.json");
 
   /** @type {any} */
   let existingVault = null;
   /** @type {string|null} a pointer file that exists but cannot be read */
   let brokenPointer = null;
-  const pointerSrc = o.scope === "project" ? (exists(pointerNew) ? pointerNew : exists(pointerLegacy) ? pointerLegacy : null) : exists(baseScope.pointerPath) ? baseScope.pointerPath : null;
+  const pointerSrc = o.scope === "project" ? (exists(pointerPath) ? pointerPath : null) : exists(baseScope.pointerPath) ? baseScope.pointerPath : null;
   if (pointerSrc) {
     const r = readJson(pointerSrc);
     if (r.ok && r.value && typeof r.value === "object" && !Array.isArray(r.value)) existingVault = r.value.vault ?? null;
@@ -310,7 +288,6 @@ export function buildInstall(o, io) {
   // skills
   const skillNames = new Set(profile.skills);
   for (const p of packNames) for (const s of catalog.packs.find((x) => x.name === p)?.skills ?? []) skillNames.add(s);
-  if (o.scope === "global") for (const s of globalOnly) skillNames.add(s);
   const skills = [...skillNames].sort().map((n) => {
     const s = catalog.all.get(n);
     if (!s) throw new Error(`profile or pack references skill "${n}" that is not in the package`);
@@ -345,34 +322,17 @@ export function buildInstall(o, io) {
   let scaffold = false;
 
   if (o.scope === "project") {
-    if (profile.vault && !exists(pointerNew)) {
-      if (exists(pointerLegacy) && !o.keepLegacyPointer) {
-        const r = readJson(pointerLegacy);
-        if (r.ok && r.value && typeof r.value === "object" && !Array.isArray(r.value)) {
-          desired.push({ type: "seed", abs: pointerNew, key: scope.key(pointerNew), content: migratePointer(r.value) });
-          desired.push({ type: "remove", abs: pointerLegacy, reason: "moved to .magik/harness.json" });
-        } else {
-          desired.push({ type: "notice", level: "warn", message: `.cursor/harness.json is unreadable; fix it, then re-run install to migrate it.` });
-        }
-      } else if (!exists(pointerLegacy)) {
-        if (!o.vault && o.accessVia === "path") {
-          throw new UsageError("the knowledge profile needs a vault: pass --vault <dir> (or --profile minimal for no knowledge base)");
-        }
-        desired.push({
-          type: "seed",
-          abs: pointerNew,
-          key: scope.key(pointerNew),
-          content: pointerJson({ vault: vaultArg?.value ?? null, knowledgeMount, memoryMount, accessVia: o.accessVia, autonomy: o.autonomy }),
-        });
-        scaffold = o.accessVia === "path" && Boolean(o.vault);
+    if (profile.vault && !exists(pointerPath)) {
+      if (!o.vault && o.accessVia === "path") {
+        throw new UsageError("the knowledge profile needs a vault: pass --vault <dir> (or --profile minimal for no knowledge base)");
       }
-    }
-    if (legacy?.overlayPath && !exists(overlayNew) && !o.keepLegacyPointer) {
-      const text = readText(legacy.overlayPath);
-      if (text !== null) {
-        desired.push({ type: "seed", abs: overlayNew, key: scope.key(overlayNew), content: text });
-        desired.push({ type: "remove", abs: overlayLegacy, reason: "moved to .magik/harness.local.json" });
-      }
+      desired.push({
+        type: "seed",
+        abs: pointerPath,
+        key: scope.key(pointerPath),
+        content: pointerJson({ vault: vaultArg?.value ?? null, knowledgeMount, memoryMount, accessVia: o.accessVia, autonomy: o.autonomy }),
+      });
+      scaffold = o.accessVia === "path" && Boolean(o.vault);
     }
   } else {
     if (!exists(baseScope.pointerPath)) {
@@ -408,7 +368,6 @@ export function buildInstall(o, io) {
       id: "primer",
       style: "html",
       name: "magik-harness:primer",
-      legacyNames: ["harness:primer"],
       body: primerBody,
       position: "top",
     });
@@ -418,34 +377,9 @@ export function buildInstall(o, io) {
       id: "gitignore",
       style: "hash",
       name: "magik-harness:gitignore",
-      legacyNames: ["harness:gitignore"],
       body: gitignoreBody({ cursor: tools.includes("cursor") }),
       position: "bottom",
-      keepLegacyRemainder: true,
     });
-  }
-
-  // legacy 1.x hook script + registration
-  let dropLegacyHook = false;
-  if (legacy?.hookPath) {
-    const release = legacyHookRelease(readText(legacy.hookPath));
-    dropLegacyHook = release !== null || o.dropLegacyHook;
-    desired.push({
-      type: "remove",
-      abs: legacy.hookPath,
-      reason: release ? `1.x hook (release ${release}) replaced by .magik/runtime/session-start.mjs` : "locally modified 1.x hook removed (--drop-legacy-hook)",
-      onlyIf: (text) => legacyHookRelease(text) !== null || o.dropLegacyHook,
-      keepReason: "locally modified 1.x hook kept; its registration is kept too (use --drop-legacy-hook to remove it)",
-    });
-    if (release === null && !o.dropLegacyHook) {
-      desired.push({
-        type: "notice",
-        level: "warn",
-        message: "the old 1.x hook .cursor/hooks/session-start.js was edited, so it was kept and is still registered next to the new hook: every session start injects context twice. Port your edits, then re-run with --drop-legacy-hook (or delete the old hook and its entry yourself).",
-      });
-    }
-  } else if (legacy?.hookRegistered) {
-    dropLegacyHook = true;
   }
 
   for (const w of packWarnings) desired.push({ type: "notice", level: "warn", message: w });
@@ -453,9 +387,9 @@ export function buildInstall(o, io) {
   // tools
   for (const id of tools) {
     const adapter = TOOLS[id];
-    desired.push(...adapter.artifacts({ scope, primerBody, skills, dropLegacyHook }).desired);
+    desired.push(...adapter.artifacts({ scope, primerBody, skills }).desired);
   }
-  if (o.scope === "global") desired.push(...TOOLS.generic.artifacts({ scope, primerBody, skills, dropLegacyHook }).desired);
+  if (o.scope === "global") desired.push(...TOOLS.generic.artifacts({ scope, primerBody, skills }).desired);
 
   const settings = {
     version: VERSION,
@@ -467,7 +401,7 @@ export function buildInstall(o, io) {
     packDirs: [...new Set([...(prior?.packDirs ?? []), ...o.packDirs.map((d) => portableVault(d, io.cwd, home).value)])],
     skillsDir: skillsChoice.dir,
   };
-  return { scope, prior, desired, settings, notes, catalog, skills, profileName, tools, toolHow: toolSel.how, legacy, scaffold };
+  return { scope, prior, desired, settings, notes, catalog, skills, profileName, tools, toolHow: toolSel.how, scaffold };
 }
 
 /**
@@ -573,9 +507,9 @@ export async function runInstall(argv, io, mode = "install") {
     // A re-run that changed nothing does not repeat the "what to do next" advice.
     const changed = items.some((i) => ["create", "insert", "update", "merge", "remove"].includes(i.action));
     if (changed && o.scope === "project") {
-      io.out("\nNext: review `git status`, then commit .magik/, the skills folder, AGENTS.md, .gitignore and the tool config files so every clone and worktree has the harness.\n");
+      io.out("\nNext: review `git status`, then commit .magik/, the skills folder, AGENTS.md, .gitignore and the tool config files so every clone and worktree has the harness. If the project already had its own agent setup (an older harness, hand-made hooks, instructions, scripts), ask your agent to run the `harness-fit` skill to bring those in line.\n");
     } else if (changed) {
-      io.out("\nNext: start a new agent session. Per project, run `magik-harness init` (creates the vault folders) or add a .magik/harness.json.\n");
+      io.out("\nNext: start a new agent session. Per project, run `magik-harness init` (creates the vault folders) or add a .magik/harness.json. In a project with a setup of its own, ask your agent to run the `harness-fit` skill.\n");
     }
     io.out(`${changed ? "" : "\n"}Check anytime with: magik-harness doctor${o.scope === "global" ? " --scope global" : ""}\n`);
   }

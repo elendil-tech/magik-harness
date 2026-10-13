@@ -20,7 +20,6 @@ import { PLUGIN_ROOT_DIR } from "./_version.ts";
 
 export const ROOT: string = PLUGIN_ROOT_DIR;
 export const HOOK: string = join(ROOT, "runtime", "session-start.mjs");
-export const FIXTURES: string = join(ROOT, "tests", "fixtures");
 
 const made: string[] = [];
 
@@ -177,16 +176,6 @@ export function contextOf(stdout: string): string {
   } catch {
     return t;
   }
-}
-
-/** Lay down a genuine magik-repo 1.9.1 install (produced by the real v1 installer) in `dir`. */
-export function installV1Fixture(dir: string): void {
-  const f = join(FIXTURES, "v1-install");
-  write(join(dir, ".cursor", "harness.json"), read(join(f, "harness.json")));
-  write(join(dir, ".cursor", "hooks.json"), read(join(f, "hooks.json")));
-  write(join(dir, ".cursor", "hooks", "session-start.js"), read(join(f, "session-start.js.txt")));
-  write(join(dir, "AGENTS.md"), read(join(f, "AGENTS.md.txt")));
-  write(join(dir, ".gitignore"), read(join(f, "gitignore.txt")));
 }
 
 /** A vault with the folders a project install scaffolds, for tests that need one up front. */

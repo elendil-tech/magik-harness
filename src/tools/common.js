@@ -12,7 +12,6 @@ import { readSkillFile } from "../lib/catalog.js";
  * @property {import("../lib/scope.js").Scope} scope
  * @property {string} primerBody                 rendered primer for this scope/profile
  * @property {import("../lib/catalog.js").Skill[]} skills   skills selected for this install
- * @property {boolean} dropLegacyHook            project scope: also remove the 1.x hook registration
  */
 
 /**

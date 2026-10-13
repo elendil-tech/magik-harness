@@ -15,7 +15,6 @@ import { parseFlags, UsageError } from "../lib/args.js";
 import { exists, isDirectory, readBuffer, readText, sha256 } from "../lib/fsx.js";
 import { loadCatalog, packProblems } from "../lib/catalog.js";
 import { readJsonFile } from "../lib/jsonx.js";
-import { detectLegacy } from "../lib/legacy.js";
 import { readLock } from "../lib/lock.js";
 import { findBlock } from "../lib/markers.js";
 import { keyToAbs, planDesired } from "../lib/plan.js";
@@ -111,7 +110,7 @@ function checkInstall(kind, io, cwd, out) {
   // pending changes against this CLI version
   try {
     const b = buildInstall(
-      { mode: "upgrade", scope: kind, projectRoot: info?.projectRoot, tools: [], profile: undefined, packs: undefined, packDirs: [], skillsDir: undefined, vault: undefined, layout: "multi", knowledgeMount: undefined, memoryMount: undefined, accessVia: "path", autonomy: "open", dryRun: true, force: false, yes: true, json: false, keepLegacyPointer: false, dropLegacyHook: false },
+      { mode: "upgrade", scope: kind, projectRoot: info?.projectRoot, tools: [], profile: undefined, packs: undefined, packDirs: [], skillsDir: undefined, vault: undefined, layout: "multi", knowledgeMount: undefined, memoryMount: undefined, accessVia: "path", autonomy: "open", dryRun: true, force: false, yes: true, json: false },
       io,
     );
     const items = planDesired(b.desired, { scope: b.scope, prior: b.prior, version: VERSION, force: false });
@@ -226,18 +225,17 @@ export async function runDoctor(argv, io) {
     out.push({ area: "resolution", level: "ok", message: `project ${res.projectName}${res.isLinkedWorktree ? " (linked worktree)" : ""}: harness active via ${res.source}` });
     out.push({ area: "resolution", level: res.vaultExists || !res.vault ? "ok" : "fail", message: `vault ${res.vaultDir ?? "(remote, via MCP)"}${res.vault && !res.vaultExists ? " does not exist" : ""}` });
     for (const w of res.warnings) out.push({ area: "resolution", level: "fail", message: w });
-    if (res.pointerIsLegacy) out.push({ area: "resolution", level: "warn", message: "pointer is at the 1.x path .cursor/harness.json", fix: "magik-harness install   (migrates it to .magik/harness.json)" });
     if (res.pointerPath && res.source === "project") {
       // A tracked pointer that spells the vault as an absolute home path only works for its author; `~/...` works for everyone.
       const raw = readJsonFile(res.pointerPath);
       const named = raw.exists && raw.valid ? /** @type {any} */ (raw.value)?.vault : null;
       if (typeof named === "string" && isAbsolute(named) && isUnder(named, io.home)) {
-        const rel = res.pointerIsLegacy ? ".cursor/harness.json" : ".magik/harness.json";
+        const rel = ".magik/harness.json";
         out.push({ area: "resolution", level: "warn", message: `${rel} names the vault by an absolute path under your home directory (${named}), so a clone on another machine or user account will not find it`, fix: `edit ${rel}: "vault": "~/${relative(resolve(io.home), resolve(named)).split(sep).join("/")}"` });
       }
     }
     if (res.isLinkedWorktree && res.pointerPath && res.source === "project") {
-      const rel = res.pointerIsLegacy ? ".cursor/harness.json" : ".magik/harness.json";
+      const rel = ".magik/harness.json";
       if (!isTracked(res.projectRoot, rel)) out.push({ area: "resolution", level: "warn", message: `${rel} is not tracked by git, so other worktrees and clones will not find the vault`, fix: `git add ${rel}` });
     }
   } else {
@@ -249,14 +247,6 @@ export async function runDoctor(argv, io) {
   if (which === "project" || which === "all") anyInstall = checkInstall("project", io, cwd, out) || anyInstall;
   if (which === "global" || which === "all") anyInstall = checkInstall("global", io, cwd, out) || anyInstall;
 
-  // --- legacy ---------------------------------------------------------------
-  if (which !== "global") {
-    const legacy = detectLegacy(res.projectRoot);
-    if (legacy.any) {
-      const parts = [legacy.pointerPath && ".cursor/harness.json", legacy.overlayPath && ".cursor/harness.local.json", legacy.hookPath && ".cursor/hooks/session-start.js", legacy.hookRegistered && "1.x hook registration"].filter(Boolean);
-      out.push({ area: "legacy", level: "warn", message: `1.x leftovers: ${parts.join(", ")}${legacy.hookRegistered ? " (while the old hook stays registered, session context is injected twice)" : ""}`, fix: "magik-harness install   (add --drop-legacy-hook if you edited the old hook)" });
-    }
-  }
   if (!anyInstall && !res.active) out.push({ area: "summary", level: "info", message: "the harness is not installed in this project or on this machine", fix: "magik-harness install --vault <dir>" });
 
   const fails = out.filter((c) => c.level === "fail").length;
@@ -278,6 +268,9 @@ export async function runDoctor(argv, io) {
     if (c.fix) io.out(`       fix: ${c.fix}\n`);
   }
   io.out(`\n${failed ? "Not healthy" : "Healthy"}: ${fails} failure(s), ${warns} warning(s).\n`);
+  if (fails + warns > 0 || !anyInstall) {
+    io.out("The CLI checks the files it owns. For the rest (an older or hand-made setup, scripts and docs that name old paths, duplicate instructions), ask your agent to run the `harness-fit` skill.\n");
+  }
   return failed ? 1 : 0;
 }
 

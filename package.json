@@ -1,18 +1,17 @@
 {
   "name": "magik-harness",
   "version": "2.0.0",
-  "private": true,
   "type": "module",
   "description": "A harness for AI coding agents: a repo, a vault of knowledge and memory, and a few rules. One CLI installs it per project or per machine; works with Cursor, Claude Code, Codex and any agent that reads AGENTS.md.",
   "license": "MIT",
   "author": "LaLi",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/codeisalifestyle/magik-repo-plugin.git"
+    "url": "git+https://github.com/codeisalifestyle/magik-harness.git"
   },
-  "homepage": "https://github.com/codeisalifestyle/magik-repo-plugin#readme",
+  "homepage": "https://github.com/codeisalifestyle/magik-harness#readme",
   "bugs": {
-    "url": "https://github.com/codeisalifestyle/magik-repo-plugin/issues"
+    "url": "https://github.com/codeisalifestyle/magik-harness/issues"
   },
   "keywords": [
     "agents",
@@ -47,6 +46,9 @@
   ],
   "engines": {
     "node": ">=18.18"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

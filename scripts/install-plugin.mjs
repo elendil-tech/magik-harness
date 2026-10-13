@@ -9,8 +9,7 @@
  *   node scripts/install-plugin.mjs --uninstall     remove it
  *
  * The plugin is a convenience: skills and commands for Cursor users. The CLI is
- * the product; this folder never touches ~/.cursor/plugins/local/magik-repo
- * (the 1.x plugin) so both can be installed side by side while you migrate.
+ * the product.
  */
 
 import { cpSync, existsSync, lstatSync, mkdirSync, rmSync, unlinkSync } from "node:fs";

@@ -40,14 +40,13 @@ export async function runList(argv, io) {
     return 0;
   }
   const catalog = loadCatalog({ packDirs: typeof flags["pack-dir"] === "string" ? [resolve(io.cwd, flags["pack-dir"])] : [] });
-  const { profiles, globalOnly } = loadProfiles();
+  const { profiles } = loadProfiles();
   if (flags.json) {
     io.out(
       JSON.stringify(
         {
           version: VERSION,
           profiles,
-          globalOnly,
           skills: catalog.core.map((s) => ({ name: s.name, description: s.description })),
           packs: catalog.packs.map((p) => ({ name: p.name, description: p.description, skills: p.skills, requires: p.requires })),
           tools: TOOL_IDS.map((id) => ({ id, label: TOOLS[id].label, status: TOOLS[id].status })),

@@ -9,8 +9,8 @@
  * (`.magik/runtime/` or `~/.magik/runtime/`), so it must stay self-contained.
  *
  * Resolution order (docs/ARCHITECTURE.md section 5.2):
- *   1. project pointer  `.magik/harness.json`  (legacy: `.cursor/harness.json`)
- *      deep-merged with `.magik/harness.local.json` (legacy: `.cursor/harness.local.json`)
+ *   1. project pointer  `.magik/harness.json`
+ *      deep-merged with `.magik/harness.local.json`
  *   2. global config    `~/.magik/config.json` (`$MAGIK_HOME`), per-project layout
  *   3. nothing -> the repo is not harnessed (no error)
  *
@@ -28,18 +28,13 @@ export const RUNTIME_VERSION = "2.0.0";
 
 export const POINTER_SCHEMA = "magik-harness/harness@2";
 export const CONFIG_SCHEMA = "magik-harness/config@1";
-export const KNOWN_POINTER_SCHEMAS = [
-  "magik-harness/harness@2",
-  "magik-harness/harness@1",
-  "magik-repo/harness@1",
-];
 
 export const DEFAULT_MEMORY_MAX_BYTES = 4000;
 const AUTONOMY = ["open", "ask", "readonly"];
 
-/** Relative pointer locations, new first. */
-export const POINTER_PATHS = [".magik/harness.json", ".cursor/harness.json"];
-export const OVERLAY_PATHS = [".magik/harness.local.json", ".cursor/harness.local.json"];
+/** Where a project keeps its pointer and the per-machine overlay, relative to the project root. */
+export const POINTER_PATH = ".magik/harness.json";
+export const OVERLAY_PATH = ".magik/harness.local.json";
 
 /**
  * @typedef {Object} Store
@@ -61,7 +56,6 @@ export const OVERLAY_PATHS = [".magik/harness.local.json", ".cursor/harness.loca
  * @property {string} projectName
  * @property {boolean} isLinkedWorktree
  * @property {string|null} pointerPath
- * @property {boolean} pointerIsLegacy
  * @property {string|null} overlayPath
  * @property {string|null} schema
  * @property {string|null} vault              as written (before expansion)
@@ -237,13 +231,10 @@ function buildStore(role, name, raw, vaultDir) {
   return store;
 }
 
-/** @param {string} root @param {string[]} rels */
-function firstExisting(root, rels) {
-  for (const rel of rels) {
-    const p = join(root, rel);
-    if (existsSync(p)) return { rel, path: p };
-  }
-  return null;
+/** @param {string} root @param {string} rel */
+function existingAt(root, rel) {
+  const path = join(root, rel);
+  return existsSync(path) ? { path } : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -273,7 +264,6 @@ export function resolveHarness(opts = {}) {
     projectName: info.projectName,
     isLinkedWorktree: info.isLinkedWorktree,
     pointerPath: null,
-    pointerIsLegacy: false,
     overlayPath: null,
     schema: null,
     vault: null,
@@ -309,13 +299,12 @@ export function resolveHarness(opts = {}) {
   }
 
   // 1. project pointer (+ overlay)
-  const found = firstExisting(info.projectRoot, POINTER_PATHS);
-  const overlay = firstExisting(info.projectRoot, OVERLAY_PATHS);
+  const found = existingAt(info.projectRoot, POINTER_PATH);
+  const overlay = existingAt(info.projectRoot, OVERLAY_PATH);
   /** @type {any} */
   let pointer = null;
   if (found) {
     res.pointerPath = found.path;
-    res.pointerIsLegacy = found.rel.startsWith(".cursor/");
     const read = readJson(found.path);
     if (!read.ok) {
       res.warnings.push(`Harness pointer ${found.path} is not valid JSON: ${read.error}`);
@@ -346,7 +335,7 @@ export function resolveHarness(opts = {}) {
     res.active = true;
     res.source = "project";
     res.schema = typeof pointer.schema === "string" ? pointer.schema : null;
-    if (res.schema && !KNOWN_POINTER_SCHEMAS.includes(res.schema)) {
+    if (res.schema && res.schema !== POINTER_SCHEMA) {
       res.notes.push(`Pointer schema "${res.schema}" is not recognised; reading it as ${POINTER_SCHEMA}.`);
     }
     res.vault = typeof pointer.vault === "string" && pointer.vault ? pointer.vault : null;
@@ -438,7 +427,7 @@ export function formatResolution(r) {
   const lines = [];
   lines.push(`project:   ${r.projectName}  (${r.projectRoot}${r.isLinkedWorktree ? `; linked worktree of ${r.primaryRoot}` : ""})`);
   lines.push(`harness:   ${r.active ? `active (source: ${r.source})` : "not harnessed"}`);
-  if (r.pointerPath) lines.push(`pointer:   ${r.pointerPath}${r.pointerIsLegacy ? "  [legacy 1.x location]" : ""}`);
+  if (r.pointerPath) lines.push(`pointer:   ${r.pointerPath}`);
   if (r.overlayPath) lines.push(`overlay:   ${r.overlayPath}`);
   if (r.configPath) lines.push(`config:    ${r.configPath}`);
   if (r.vaultDir) lines.push(`vault:     ${r.vaultDir}  ${r.vaultExists ? "" : "(MISSING)"}`.trimEnd());

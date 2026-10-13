@@ -18,7 +18,7 @@ import { lintSkillDir, parseSkillMd } from "../src/lib/skillmd.js";
 import { cli, ROOT, tmp } from "./_helpers.ts";
 
 const catalog = loadCatalog({ packDirs: [] });
-const { profiles, globalOnly } = loadProfiles();
+const { profiles } = loadProfiles();
 const everySkill = [...catalog.all.values()];
 const KNOWN = new Set(everySkill.map((s) => s.name));
 
@@ -99,21 +99,19 @@ describe("skills", () => {
 
 describe("profiles and packs", () => {
   it("every skill a profile names exists, and every core skill is reachable from some profile", () => {
-    const reachable = new Set<string>(globalOnly);
+    const reachable = new Set<string>();
     for (const [name, profile] of Object.entries(profiles)) {
       for (const s of profile.skills) {
         assert.ok(KNOWN.has(s), `profile ${name} names skill ${s}, which is not in the package`);
         reachable.add(s);
       }
     }
-    for (const s of globalOnly) assert.ok(KNOWN.has(s), `global-only skill ${s} is not in the package`);
     for (const s of catalog.core) assert.ok(reachable.has(s.name), `core skill ${s.name} is in no profile, so nothing would ever install it`);
   });
 
   it("every profile has a primer file and a description", () => {
     const raw = JSON.parse(readFileSync(join(ROOT, "content", "profiles.json"), "utf8"));
     for (const [name, profile] of Object.entries(raw)) {
-      if (name === "globalOnly") continue;
       const p = profile as { description?: string; primer?: string; skills?: string[]; vault?: boolean };
       assert.ok(p.description && p.description.length > 20, `${name} needs a description`);
       assert.ok(p.primer && existsSync(join(ROOT, "content", p.primer)), `${name} primer file exists`);
@@ -150,7 +148,7 @@ describe("primers", () => {
 
       it("only points at skills its profile installs", async () => {
         const text = await primer();
-        const allowed = new Set([...profiles[name].skills, "harness-setup"]);
+        const allowed = new Set(profiles[name].skills);
         const stray: string[] = [];
         for (const m of text.matchAll(/`([a-z][a-z0-9-]+)`/g)) if (KNOWN.has(m[1]) && !allowed.has(m[1])) stray.push(m[1]);
         assert.deepEqual([...new Set(stray)], [], "a primer must not mention a skill that is not installed");
@@ -245,7 +243,6 @@ describe("a public package", () => {
     for (const root of roots) {
       for (const f of walk(root)) {
         const rel = relative(ROOT, f).replace(/\\/g, "/");
-        if (rel.startsWith("docs/history/")) continue;
         if (!/\.(md|mjs|js|json|py|sh|txt|ya?ml)$/.test(rel)) continue;
         const text = readFileSync(f, "utf8");
         for (const [re, why] of DENY) {

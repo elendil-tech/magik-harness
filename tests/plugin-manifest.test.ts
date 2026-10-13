@@ -117,10 +117,4 @@ describe("packaging", () => {
     assert.ok(!has(target));
     assert.equal(run("--uninstall", "--target", target).status, 0, "removing twice is fine");
   });
-
-  it("never targets the 1.x plugin folder by default", () => {
-    const src = read(join(ROOT, "scripts", "install-plugin.mjs"));
-    assert.ok(src.includes('"magik-harness"'), "installs to .../plugins/local/magik-harness");
-    assert.ok(!/plugins["',\s]+local["',\s]+magik-repo/.test(src), "must not overwrite the 1.x plugin");
-  });
 });

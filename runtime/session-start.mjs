@@ -199,7 +199,6 @@ export function buildContext(opts = {}) {
     if (res.memory) lines.push(storeLine(res.memory, "Memory"));
     for (const m of res.mounts) lines.push(storeLine(m, `Mount \`${m.name}\``));
     if (res.overlayPath) lines.push(`- Local overlay applied: \`${display(res.overlayPath, res.projectRoot, home)}\``);
-    if (res.pointerIsLegacy) lines.push("- NOTE: the pointer is at the legacy 1.x location (.cursor/harness.json). Run `magik-harness install` to migrate.");
     for (const w of res.warnings) lines.push(`- WARNING: ${w}`);
     parts.push(lines.join("\n"));
   } else {
