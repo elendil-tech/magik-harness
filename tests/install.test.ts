@@ -226,6 +226,8 @@ describe("profiles", () => {
     assert.ok(!/kb-search/.test(read(join(p.app, "AGENTS.md"))));
     const h = hook(["--format", "text"], { cwd: p.app, home: p.home, script: join(p.app, ".magik/runtime/session-start.mjs") });
     assert.match(h.stdout, /no vault configured/);
+    assert.match(r.out, /hook self-test: ok \(emits the session context\)/, "the self-test sees what a session would see, not silence");
+    assert.match((await run(p, ["doctor", "--scope", "project"])).out, /session hook runs: emits the session context/);
   });
 
   it("defaults to minimal when there is nothing to point at, and to knowledge when there is", async () => {

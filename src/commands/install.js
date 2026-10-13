@@ -460,7 +460,7 @@ export function buildInstall(o, io) {
 export function selfTestHook(scope) {
   const script = join(scope.runtimeDir, "session-start.mjs");
   if (!exists(script)) return { ok: false, detail: `${scope.display(script)} is missing` };
-  const r = spawnSync(process.execPath, [script, "--format", "text", "--no-git"], {
+  const r = spawnSync(process.execPath, [script, "--format", "text"], {
     cwd: scope.kind === "project" ? scope.root : scope.home,
     env: { ...process.env, MAGIK_PROJECT_DIR: scope.kind === "project" ? scope.root : scope.home, MAGIK_HOME: scope.harnessDir },
     input: "",
