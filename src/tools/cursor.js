@@ -27,6 +27,7 @@ export const cursor = {
   label: "Cursor (IDE and cursor-agent)",
   status: "verified",
   detect: (scope) => isDirectory(join(scope.root, ".cursor")),
+  shared: () => [".cursor/hooks.json"],
   artifacts(ctx) {
     const { scope } = ctx;
     /** @type {import("../lib/plan.js").Desired[]} */

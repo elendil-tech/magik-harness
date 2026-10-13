@@ -245,8 +245,26 @@ export function buildInstall(o, io) {
   const notes = [];
 
   const toolSel = selectTools(o.tools.length > 0 ? o.tools : prior ? prior.tools : [], baseScope);
+  let tools = toolSel.tools;
+  if (baseScope.kind === "project") {
+    // A tool whose hook registration git ignores cannot be shared: clones and worktrees would never get it
+    // (e.g. a repo that git-ignores a generated .claude/). Detection alone must not create such an install.
+    for (const id of toolSel.tools) {
+      const ignored = (TOOLS[id].shared?.(baseScope) ?? []).filter((rel) => isGitIgnored(baseScope.root, rel));
+      if (ignored.length === 0) continue;
+      if (toolSel.how === "detected") {
+        tools = tools.filter((t) => t !== id);
+        notes.push(`skipping ${id}: ${ignored[0]} is git-ignored in this repo, so clones and worktrees would not get it (pass --tools ${id} to install it anyway)`);
+      } else {
+        notes.push(`${id}: ${ignored[0]} is git-ignored in this repo, so clones and worktrees will not get it`);
+      }
+    }
+    if (toolSel.how === "detected" && tools.length === 0) {
+      tools = ["cursor"];
+      notes.push("no usable tool configuration detected; defaulting to cursor (pass --tools to change)");
+    }
+  }
   if (toolSel.how === "default") notes.push("no tool configuration detected; defaulting to cursor (pass --tools to change)");
-  const tools = toolSel.tools;
 
   const projectRoot = baseScope.root;
   const pointerNew = join(projectRoot, ".magik", "harness.json");

@@ -20,6 +20,7 @@ export const claude = {
   label: "Claude Code",
   status: "experimental",
   detect: (scope) => isDirectory(join(scope.root, ".claude")) || (scope.kind === "project" && isFile(join(scope.root, "CLAUDE.md"))),
+  shared: () => [".claude/settings.json"],
   artifacts(ctx) {
     const { scope } = ctx;
     /** @type {import("../lib/plan.js").Desired[]} */

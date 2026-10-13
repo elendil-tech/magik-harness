@@ -289,7 +289,7 @@ Status vocabulary: **verified** = observed in a live session during v2 developme
 | User-level primer | **none as a file**: `~/.cursor/rules/*.mdc` is not read by `cursor-agent` (verified negative); user rules live in Settings | `~/.claude/CLAUDE.md` (experimental) | `~/.codex/AGENTS.md` (experimental) | |
 | User-level hook | `~/.cursor/hooks.json` (**verified**) | `~/.claude/settings.json` (experimental) | none | |
 
-`--tools` accepts `auto` (default: detect `.cursor/`, `.claude/`, `CLAUDE.md`, `.codex/` in the project, or the matching folders in home), a comma list of `cursor,claude,codex,generic`, or `none`. `generic` is always implied: `AGENTS.md` + `.agents/skills`.
+`--tools` accepts `auto` (default: detect `.cursor/`, `.claude/`, `CLAUDE.md`, `.codex/` in the project, or the matching folders in home), a comma list of `cursor,claude,codex,generic`, or `none`. A project-scope tool that is only auto-detected is skipped, with a note, when git ignores its hook file (for example a generated, git-ignored `.claude/`): clones and worktrees would never get the registration. Naming the tool installs it and warns. `generic` is always implied: `AGENTS.md` + `.agents/skills`.
 
 Cursor-specific facts the design relies on, each verified against `cursor-agent` with workspace trust:
 
@@ -352,7 +352,7 @@ Anything the installer replaces, merges into or removes, other than files it jus
 
 | Area | Checks |
 | --- | --- |
-| Resolution | which source produced the result; the vault exists (**fail** if not: a repo cloned without its vault); resolver warnings (invalid pointer JSON) are failures; a pointer still at the 1.x path; in a linked worktree, that the pointer is tracked by git |
+| Resolution | which source produced the result; the vault exists (**fail** if not: a repo cloned without its vault); resolver warnings (invalid pointer JSON) are failures; a pointer still at the 1.x path; a tracked pointer that names the vault by an absolute path under your home directory (**warn**: it only works for you; `~/...` works everywhere); in a linked worktree, that the pointer is tracked by git |
 | Install | lock present and readable; installed version vs CLI version; every managed file present (**fail**) and edited ones noted; the plan this CLI would apply right now is empty ("up to date") |
 | Registrations | for each tool in the lock, the hook entry is present in the tool's file; a missing, invalid or unregistered file is a **fail** |
 | Runtime | `session-start.mjs` is run with a synthetic payload and its output must parse in the registered format |

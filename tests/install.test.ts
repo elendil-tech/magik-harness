@@ -358,6 +358,38 @@ describe("tools", () => {
   });
 });
 
+describe("tools whose config git ignores", () => {
+  // Windmill-style repos git-ignore a generated .claude/; a hook registered there is never shared.
+  const ignoredClaude = { "README.md": "# app\n", "CLAUDE.md": "Instructions are in @AGENTS.md\n", ".gitignore": ".claude/\n", ".cursor/keep": "" };
+
+  it("does not pick up a detected tool whose hook file would be git-ignored", async () => {
+    const p = proj({ files: ignoredClaude });
+    const r = await install(p, ["--vault", p.vault]);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /skipping claude: \.claude\/settings\.json is git-ignored/);
+    assert.deepEqual(readJson(join(p.app, ".magik", "lock.json")).tools, ["cursor"]);
+    assert.ok(!has(join(p.app, ".claude")), "nothing is written into the ignored directory");
+    assert.equal(read(join(p.app, "CLAUDE.md")), ignoredClaude["CLAUDE.md"], "CLAUDE.md is untouched");
+    assert.match((await run(p, ["doctor"])).out, /no managed path is git-ignored/);
+  });
+
+  it("warns, but installs, when the tool is asked for by name", async () => {
+    const p = proj({ files: ignoredClaude });
+    const r = await install(p, ["--vault", p.vault, "--tools", "cursor,claude"]);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /claude: \.claude\/settings\.json is git-ignored in this repo, so clones and worktrees will not get it/);
+    assert.ok(has(join(p.app, ".claude", "settings.json")));
+  });
+
+  it("falls back to cursor when every detected tool is unusable", async () => {
+    const p = proj({ files: { "README.md": "# app\n", "CLAUDE.md": "x\n", ".gitignore": ".claude/\n" } });
+    const r = await install(p, ["--vault", p.vault]);
+    assert.equal(r.code, 0, r.err);
+    assert.match(r.out, /no usable tool configuration detected; defaulting to cursor/);
+    assert.deepEqual(readJson(join(p.app, ".magik", "lock.json")).tools, ["cursor"]);
+  });
+});
+
 describe("packs", () => {
   it("installs the opt-in packs with their scripts executable, and removes them on uninstall", async () => {
     const p = proj();

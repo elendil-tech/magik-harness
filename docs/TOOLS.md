@@ -120,6 +120,7 @@ This is exactly how the *verified* rows above were established, including the ne
 | The context appears twice | a 1.x hook is still registered next to the new one | `magik-harness doctor` lists `1.x leftovers`; `magik-harness install` removes the old registration (`--drop-legacy-hook` if you edited the old script) |
 | Skills are not offered | `.agents/skills` is git-ignored in this repo, or the tool reads another folder | `doctor` reports a git-ignored managed path; reinstall with `--skills-dir .cursor/skills`, or add `--tools claude` for Claude Code, which reads `.claude/skills` |
 | `node: command not found` from the hook | the tool launches hooks with a `PATH` that lacks Node (common for GUI apps and version managers) | make `node` resolvable from a non-interactive shell (a system-wide install, or a symlink in `/usr/local/bin`) |
+| A tool you use is missing from `install`'s tool list | its project config is git-ignored in this repo (for example a generated `.claude/`), so auto-detection skipped it and printed `skipping <tool>` | un-ignore the hook file (`.claude/settings.json`, `.cursor/hooks.json`), or force it with `--tools <tool>` knowing clones will not get it |
 | A global install does nothing in one repo | that repo has no folder in the vault; the hook is deliberately silent in unrelated repos | `magik-harness init` in the repo, or set `"git": "always"` in `~/.magik/config.json` to get git state everywhere |
 
 ## Adding a tool

@@ -26,6 +26,10 @@ import { readSkillFile } from "../lib/catalog.js";
  * @property {string} label
  * @property {"verified"|"documented"|"experimental"} status
  * @property {(scope: import("../lib/scope.js").Scope) => boolean} detect
+ * @property {(scope: import("../lib/scope.js").Scope) => string[]} [shared]
+ *           repo-relative files a PROJECT install must be able to commit for clones and worktrees to get this
+ *           tool's wiring (its hook registration). If git ignores one, `install` skips the adapter when it was
+ *           only auto-detected, and warns when it was asked for by name.
  * @property {(ctx: ToolContext) => ToolArtifacts} artifacts
  */
 

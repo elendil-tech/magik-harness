@@ -8,7 +8,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 import { expandPath, projectInfo, resolveHarness } from "../../runtime/resolve.mjs";
 import { parseFlags, UsageError } from "../lib/args.js";
@@ -62,6 +62,12 @@ function gitIgnoredSubset(cwd, paths) {
   const r = spawnSync("git", ["check-ignore", "--stdin", "-z"], { cwd, input: paths.join("\0"), encoding: "utf8", windowsHide: true });
   if (r.status !== 0 && r.status !== 1) return [];
   return (r.stdout || "").split("\0").filter(Boolean);
+}
+
+/** @param {string} p an absolute path @param {string} home @returns {boolean} true when `p` is inside `home` */
+function isUnder(p, home) {
+  const rel = relative(resolve(home), resolve(p));
+  return rel !== "" && !rel.startsWith("..") && !isAbsolute(rel);
 }
 
 /** @param {string} cwd @param {string} rel */
@@ -221,6 +227,15 @@ export async function runDoctor(argv, io) {
     out.push({ area: "resolution", level: res.vaultExists || !res.vault ? "ok" : "fail", message: `vault ${res.vaultDir ?? "(remote, via MCP)"}${res.vault && !res.vaultExists ? " does not exist" : ""}` });
     for (const w of res.warnings) out.push({ area: "resolution", level: "fail", message: w });
     if (res.pointerIsLegacy) out.push({ area: "resolution", level: "warn", message: "pointer is at the 1.x path .cursor/harness.json", fix: "magik-harness install   (migrates it to .magik/harness.json)" });
+    if (res.pointerPath && res.source === "project") {
+      // A tracked pointer that spells the vault as an absolute home path only works for its author; `~/...` works for everyone.
+      const raw = readJsonFile(res.pointerPath);
+      const named = raw.exists && raw.valid ? /** @type {any} */ (raw.value)?.vault : null;
+      if (typeof named === "string" && isAbsolute(named) && isUnder(named, io.home)) {
+        const rel = res.pointerIsLegacy ? ".cursor/harness.json" : ".magik/harness.json";
+        out.push({ area: "resolution", level: "warn", message: `${rel} names the vault by an absolute path under your home directory (${named}), so a clone on another machine or user account will not find it`, fix: `edit ${rel}: "vault": "~/${relative(resolve(io.home), resolve(named)).split(sep).join("/")}"` });
+      }
+    }
     if (res.isLinkedWorktree && res.pointerPath && res.source === "project") {
       const rel = res.pointerIsLegacy ? ".cursor/harness.json" : ".magik/harness.json";
       if (!isTracked(res.projectRoot, rel)) out.push({ area: "resolution", level: "warn", message: `${rel} is not tracked by git, so other worktrees and clones will not find the vault`, fix: `git add ${rel}` });

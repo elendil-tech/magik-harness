@@ -127,6 +127,23 @@ describe("what makes it fail", () => {
     assert.match(r.out, /FAIL vault .*vault does not exist/);
   });
 
+  it("a tracked pointer that names the vault by an absolute path under the home directory", async () => {
+    const p = await installed();
+    const pointer = join(p.app, ".magik", "harness.json");
+    const doc = readJson(pointer);
+    doc.vault = p.vault; // /<home>/vault: correct here, wrong on every other machine
+    write(pointer, JSON.stringify(doc, null, 2) + "\n");
+    const { doc: d, code } = await checks(p);
+    assert.equal(code, 0, "a warning, not a failure");
+    const w = d.checks.find((c) => c.level === "warn" && /absolute path under your home directory/.test(c.message));
+    assert.ok(w, JSON.stringify(d.checks));
+    assert.equal(w.fix, 'edit .magik/harness.json: "vault": "~/vault"');
+    // and the portable spelling is clean
+    doc.vault = "~/vault";
+    write(pointer, JSON.stringify(doc, null, 2) + "\n");
+    assert.ok(!(await checks(p)).doc.checks.some((c) => /absolute path under your home/.test(c.message)));
+  });
+
   it("a primer block that was removed from AGENTS.md", async () => {
     const p = await installed();
     write(join(p.app, "AGENTS.md"), "# just mine\n");
