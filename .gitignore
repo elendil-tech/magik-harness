@@ -11,4 +11,3 @@ dist/
 # keep its per-machine outputs out of the source tree.
 /.magik/
 /.agents/
-.cursor/harness.local.json

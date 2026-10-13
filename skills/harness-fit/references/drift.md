@@ -14,9 +14,9 @@ Each entry below says what you may find, why it matters and what to do. Work thr
 
 ## Pointer in an old place or shape
 
-- **Look for.** `.cursor/harness.json` or `.cursor/harness.local.json`, or a pointer anywhere but `.magik/`; a `schema` of `magik-repo/harness@1` or `magik-harness/harness@1`; a long `_doc`; a `vault` written as an absolute path under the home directory; a tracked overlay.
+- **Look for.** `.cursor/harness.json` or `.cursor/harness.local.json`, or a pointer anywhere but `.magik/`; a `schema` of `magik-repo/harness@1` or `magik-harness/harness@1`; a `_doc` much longer than the one-line note `install` writes; a `vault` written as an absolute path under the home directory; a tracked overlay.
 - **Why.** The runtime reads only `.magik/harness.json` and `.magik/harness.local.json`. Anywhere else, the harness looks absent and sessions start without the vault.
-- **Do.** `git mv` the pointer (and the overlay) into `.magik/`. Set `schema` to `magik-harness/harness@2`, drop `_doc`, write the vault as `~/...`, and keep every other field (mounts, autonomy, `inject`). If the overlay was tracked, `git rm --cached` it. Do this before `install`: it never overwrites a pointer, and it reads the vault from it. If `install` ran first and seeded `.magik/harness.json` from its defaults (the lock lists it under `seeds` and the file is unchanged), the older pointer is the project's decision: put its content in the seeded file's place and tell the user. `install` may also have created empty store folders in the vault for the seeded pointer; leave the vault alone and name the unused folders in the report.
+- **Do.** `git mv` the pointer (and the overlay) into `.magik/`. Set `schema` to `magik-harness/harness@2`, shorten `_doc` to the note `install` writes (or drop it), write the vault as `~/...`, and keep every other field (mounts, autonomy, `inject`). If the overlay was tracked, `git rm --cached` it. Do this before `install`: it never overwrites a pointer, and it reads the vault from it. If `install` ran first and seeded `.magik/harness.json` from its defaults (the lock lists it under `seeds` and the file is unchanged), the older pointer is the project's decision: put its content in the seeded file's place and tell the user. `install` may also have created empty store folders in the vault for the seeded pointer; leave the vault alone and name the unused folders in the report.
 
 ## A session hook from an older install
 
@@ -28,7 +28,7 @@ Each entry below says what you may find, why it matters and what to do. Work thr
 
 - **Look for.** In `AGENTS.md`, a block between `<!-- harness:primer:start ... -->` and `<!-- harness:primer:end -->`; in `.gitignore`, one between `# harness:gitignore:start` and `# harness:gitignore:end`. The marker lacks the `magik-harness:` prefix.
 - **Why.** `install` manages only blocks with the current markers, so the old ones stay behind: the always-on text appears twice and the ignore rules are doubled.
-- **Do.** After `install` has added the current blocks, delete the old ones. From the old `.gitignore` block, keep as plain lines any rule the project still needs that the current block does not repeat (the current block ignores `.magik/harness.local.json` and `.magik/backups/`).
+- **Do.** After `install` has added the current blocks, delete the old ones. From the old `.gitignore` block, keep as plain lines only the rules something in the project still writes or reads and the current block does not repeat (it ignores `.magik/harness.local.json`, `.magik/backups/` and `.cursor/**/*.local.*`). Drop the lines for paths nothing uses any more (`.cursor/harness.local.json`, `.cursor/telemetry/`, `.cursor/.cache/`), and do not label what you keep with the old version's name.
 
 ## Instructions that duplicate the harness
 

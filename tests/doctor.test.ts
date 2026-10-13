@@ -152,6 +152,15 @@ describe("what makes it fail", () => {
     assert.match(r.out, /AGENTS\.md has no harness primer block/);
   });
 
+  it("a primer block from an older setup is not taken for the current one", async () => {
+    const p = await installed();
+    write(join(p.app, "AGENTS.md"), "<!-- harness:primer:start v=1.9.1 -->\nan older primer\n<!-- harness:primer:end -->\n");
+    const r = await run(p, ["doctor"]);
+    assert.equal(r.code, 1);
+    assert.match(r.out, /AGENTS\.md has no harness primer block/);
+    assert.match(r.out, /`harness-fit` skill/, "and the way out is the fit skill");
+  });
+
   it("managed paths that git ignores, because clones and worktrees would not get them", async () => {
     const p = await installed();
     write(join(p.app, ".gitignore"), read(join(p.app, ".gitignore")) + "\n.agents/\n");

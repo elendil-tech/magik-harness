@@ -181,10 +181,10 @@ function checkInstall(kind, io, cwd, out) {
     // primer
     const agents = join(scope.root, "AGENTS.md");
     const text = readText(agents);
-    const blk = text ? findBlock(text, "html", ["magik-harness:primer", "harness:primer"]) : null;
+    const blk = text ? findBlock(text, "html", ["magik-harness:primer"]) : null;
     if (!blk) out.push({ area, level: "fail", message: "AGENTS.md has no harness primer block", fix: upgradeCmd });
     else {
-      out.push({ area, level: blk.name === "magik-harness:primer" ? "ok" : "warn", message: `primer present in AGENTS.md (${Buffer.byteLength(blk.body)} bytes)`, fix: blk.name === "magik-harness:primer" ? undefined : upgradeCmd });
+      out.push({ area, level: "ok", message: `primer present in AGENTS.md (${Buffer.byteLength(blk.body)} bytes)` });
       if (Buffer.byteLength(blk.body) > 5000) out.push({ area, level: "warn", message: "primer block is over 5 KB; every session pays for it" });
     }
     // git-ignored managed paths

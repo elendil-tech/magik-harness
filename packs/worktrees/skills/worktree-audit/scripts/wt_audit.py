@@ -49,7 +49,7 @@ REGENERABLE_PARTS = {
     ".venv", "venv", ".cache", ".gradle", ".DS_Store", ".idea", ".parcel-cache",
     ".eslintcache",
 }
-REGENERABLE_PATHS = {".magik/harness.local.json", ".cursor/harness.local.json", ".orca-vault-checkout"}
+REGENERABLE_PATHS = {".magik/harness.local.json", ".orca-vault-checkout"}
 # Files whose presence means the worktree has a running stack (compose project, dev containers)
 # that must be torn down before the worktree goes. Override with WT_STACK_MARKERS (comma-separated).
 STACK_MARKERS = [m.strip() for m in os.environ.get("WT_STACK_MARKERS", ".devstack.local").split(",") if m.strip()]
