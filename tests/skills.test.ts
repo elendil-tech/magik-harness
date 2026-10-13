@@ -188,6 +188,47 @@ describe("primers", () => {
   });
 });
 
+describe("files that land in other people's repositories", () => {
+  // Repositories run hygiene hooks (pre-commit's trailing-whitespace, end-of-file-fixer and mixed-line-ending are
+  // the usual three). A hook that rewrites a managed file makes it look hand-edited, so `doctor` and `upgrade`
+  // would then treat the project's own formatter as a local change. The content must already be what the hooks
+  // would leave: LF only, no trailing whitespace, exactly one final newline.
+  const roots = ["skills", "packs", "content", "runtime"].map((r) => join(ROOT, r)).filter(existsSync);
+  const TEXT = /\.(md|mjs|js|json|py|sh|txt|ya?ml)$/;
+
+  function problems(rel: string, text: string): string[] {
+    const found: string[] = [];
+    if (text.includes("\r")) found.push(`${rel}: carriage return`);
+    const lines = text.split("\n");
+    lines.forEach((line, i) => {
+      if (/[ \t]+$/.test(line)) found.push(`${rel}:${i + 1}: trailing whitespace`);
+    });
+    if (!text.endsWith("\n")) found.push(`${rel}: no final newline`);
+    else if (text.endsWith("\n\n")) found.push(`${rel}: more than one final newline`);
+    return found;
+  }
+
+  it("is LF-only, without trailing whitespace, and ends in exactly one newline", () => {
+    const hits: string[] = [];
+    for (const root of roots) {
+      for (const f of walk(root)) {
+        const rel = relative(ROOT, f).replace(/\\/g, "/");
+        if (!TEXT.test(rel)) continue;
+        hits.push(...problems(rel, readFileSync(f, "utf8")));
+      }
+    }
+    assert.deepEqual(hits, []);
+  });
+
+  it("renders primers the same way", async () => {
+    const home = tmp("hygiene-home");
+    for (const profile of ["minimal", "knowledge"]) {
+      const out = (await cli(["primer", "--profile", profile], { cwd: home, home })).out;
+      assert.deepEqual(problems(`primer (${profile})`, out), []);
+    }
+  });
+});
+
 describe("a public package", () => {
   const DENY: [RegExp, string][] = [
     [/\/Users\/[A-Za-z]/, "an absolute home path"],

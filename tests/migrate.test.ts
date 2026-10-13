@@ -70,6 +70,19 @@ describe("a clean 1.9.1 install", () => {
     }
   });
 
+  it("does not repeat an ignore rule the file already has outside the 1.x block", async () => {
+    const p = v1Project();
+    const gi = join(p.app, ".gitignore");
+    write(gi, ".DS_Store\n.idea/\n" + read(gi));
+    const r = await migrate(p);
+    assert.equal(r.code, 0, r.err);
+    const lines = read(gi).split("\n");
+    for (const rule of [".DS_Store", ".idea/", "Thumbs.db"]) {
+      assert.equal(lines.filter((l) => l === rule).length, 1, `${rule} appears once`);
+    }
+    assert.ok(lines.includes(".cursor/telemetry/"), "a rule only the 1.x block had is kept");
+  });
+
   it("leaves a healthy project: doctor passes, the hook runs, and a second install changes nothing", async () => {
     const p = v1Project();
     await migrate(p);

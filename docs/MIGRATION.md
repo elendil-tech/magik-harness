@@ -82,6 +82,15 @@ If a repository has scripts, tests or docs that read `.cursor/harness.json` or `
 - the resolution order is: overlay over the project pointer, then the machine's `~/.magik/config.json` convention, then nothing. [ARCHITECTURE.md](ARCHITECTURE.md#5-the-pointer-and-how-it-resolves) has the exact rules; `magik-harness resolve --json` prints the result so a script need not re-implement them;
 - a guard test that asserts the pointer's schema string should accept `magik-harness/harness@2` (and `magik-repo/harness@1` if you want a transition period).
 
+Other places that tend to know about the old layout, found by migrating two real projects:
+
+- **A guard test over the hook.** A test that takes the last word of the hook command as the script (`command.split()[-1]`) now sees `cursor`: the command is `node .magik/runtime/session-start.mjs --format cursor`. Match the script by extension instead, and assert `.magik/runtime/` and `.magik/lock.json` are committed.
+- **A lint or index test over your skills folder.** The harness skills sit next to yours when the skills folder is `.cursor/skills` (the installer chooses it when `.agents/` is git-ignored). They are upgraded by the CLI, not edited by you, so exclude them: `.magik/lock.json` lists them under `files` (paths such as `.cursor/skills/harness/SKILL.md`).
+- **CI and Docker ignore lists.** A harness-only change touches `.magik/**`, `.agents/**` (or `.cursor/skills/**`), `AGENTS.md` and `.cursor/hooks.json`. If your pull-request CI skips documentation or `.cursor/**` changes through `paths-ignore`, add `.magik/**` and `.agents/**` so these changes do not start a full run, and add both to `.dockerignore`.
+- **A README or docs test that lists every top-level directory.** `.magik/` is a new one.
+- **A pre-commit hook set.** Nothing to do: the shipped files already satisfy trailing-whitespace, end-of-file and mixed-line-ending hooks (a test guards this), so a formatter will not make them look edited.
+- **Your CI policy block in `AGENTS.md`** (from the `ci-runners` pack) names the script's location: replace the plugin path with `<skills folder>/ci-runners/scripts/ci_usage.py` and keep any bullets you added to the block yourself.
+
 ## Rolling back
 
 - Nothing is deleted without a copy: every file the install replaced or removed is under `.magik/backups/<timestamp>/` (git-ignored), under its original relative path.

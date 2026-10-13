@@ -148,17 +148,19 @@ function planSeed(d) {
 }
 
 /**
- * Lines of a legacy gitignore block that are not part of the new block, kept
- * as a user-owned section so migration never silently drops an ignore rule.
+ * Lines of a legacy gitignore block that the rest of the file does not already
+ * say, kept as a user-owned section so migration never silently drops an ignore
+ * rule and never repeats one either. A negation (`!rule`) is always kept: where
+ * it sits decides what it re-includes.
  * @param {string} legacyBody
- * @param {string} newBody
+ * @param {string} fileText   the file as it will be once the new block has replaced the legacy one
  */
-function legacyRemainder(legacyBody, newBody) {
-  const have = new Set(newBody.split("\n").map((l) => l.trim()));
+function legacyRemainder(legacyBody, fileText) {
+  const have = new Set(fileText.split(/\r?\n/).map((l) => l.trim()));
   const kept = legacyBody
     .split("\n")
     .map((l) => l.replace(/\s+$/g, ""))
-    .filter((l) => l.trim() && !l.trim().startsWith("#") && !have.has(l.trim()));
+    .filter((l) => l.trim() && !l.trim().startsWith("#") && (l.trim().startsWith("!") || !have.has(l.trim())));
   return kept;
 }
 
@@ -181,7 +183,7 @@ function planBlock(d, ctx) {
     const legacy = r.previous.name !== d.name;
     let newText = r.text;
     if (legacy && d.keepLegacyRemainder) {
-      const kept = legacyRemainder(r.previous.body, d.body);
+      const kept = legacyRemainder(r.previous.body, r.text);
       if (kept.length > 0) {
         const eol = text.includes("\r\n") ? "\r\n" : "\n";
         const section = ["", "# Kept from magik-repo 1.x (not managed; edit or delete freely):", ...kept].join(eol);
