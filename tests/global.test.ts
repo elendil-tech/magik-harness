@@ -325,6 +325,19 @@ describe("upgrade and uninstall", () => {
     );
   });
 
+  it("keeps the layout of a hooks file that is formatted its own way: tabs, and no newline at the end", async () => {
+    const b = box();
+    const own = JSON.stringify({ version: 1, hooks: { sessionStart: [{ command: "orca-hook start" }] } }, null, "\t"); // note: no final newline
+    write(join(b.home, ".cursor/hooks.json"), own);
+    assert.equal((await installGlobal(b)).code, 0);
+    const merged = read(join(b.home, ".cursor/hooks.json"));
+    assert.ok(!merged.endsWith("\n"), "it did not gain a trailing newline");
+    assert.match(merged, /\n\t"version": 1/, "it kept its tab indentation");
+    assert.equal(readJson(join(b.home, ".cursor/hooks.json")).hooks.sessionStart.length, 2);
+    assert.equal((await g(b, ["uninstall", "--scope", "global", "--yes"])).code, 0);
+    assert.equal(read(join(b.home, ".cursor/hooks.json")), own, "and it is handed back exactly as it was");
+  });
+
   it("uninstall --purge removes the config too (it is unedited), and leaves the vault alone", async () => {
     const b = box();
     await installGlobal(b);

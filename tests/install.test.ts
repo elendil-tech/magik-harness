@@ -58,6 +58,30 @@ describe("a fresh knowledge install", () => {
     for (const key of Object.keys(lock.files)) assert.ok(has(join(p.app, key)), `locked file ${key} exists`);
   });
 
+  it("writes a lock that is safe to commit: no path of this machine in it, and it still works", async () => {
+    const p = proj();
+    const packs = join(p.home, "packs");
+    write(join(packs, "mine/pack.json"), JSON.stringify({ description: "An external pack, here to check what the lock records about it.", requires: {} }));
+    write(join(packs, "mine/skills/mine-skill/SKILL.md"), "---\nname: mine-skill\ndescription: Use when checking that an external pack is recorded portably in the lock file.\n---\n\n# mine\n");
+    const r = await install(p, ["--vault", p.vault, "--pack-dir", packs, "--packs", "mine"]);
+    assert.equal(r.code, 0, r.err);
+
+    const raw = read(join(p.app, ".magik/lock.json"));
+    assert.ok(!raw.includes(p.root), "the project lock is committed, so it must not name this machine's directories");
+    const lock = JSON.parse(raw);
+    assert.deepEqual(lock.packDirs, ["~/packs"]);
+    assert.ok("~/vault/app/knowledge/_index.md" in lock.seeds, "the vault's starter index is recorded home-relative");
+
+    assert.equal((await run(p, ["upgrade", "--yes"])).code, 0, "the saved pack dir is found again from its portable form");
+    assert.equal((await run(p, ["doctor"])).code, 0);
+    const again = await install(p, ["--pack-dir", packs]);
+    assert.equal(again.code, 0, again.err);
+    assert.deepEqual(readJson(join(p.app, ".magik/lock.json")).packDirs, ["~/packs"], "passing the same directory again does not duplicate it");
+
+    assert.equal((await run(p, ["uninstall", "--purge"])).code, 0);
+    assert.ok(!has(join(p.vault, "app/knowledge/_index.md")), "purge finds the seed through its portable key");
+  });
+
   it("installs a hook that works from inside the repo, on its own", async () => {
     const p = proj();
     await install(p, ["--vault", p.vault]);

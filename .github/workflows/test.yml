@@ -1,35 +1,45 @@
 name: test
 
+# One run per pull request. The suite is the gate for main; a squash merge
+# produces the tree the PR already tested, so main is not tested a second time.
+# (This repo is public, so hosted runners on all three platforms are free.)
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
-  workflow_dispatch:
+    paths-ignore:
+      - "assets/**"
+      - "ROADMAP.md"
+      - "LICENSE"
 
 permissions:
   contents: read
 
 concurrency:
-  group: test-${{ github.workflow }}-${{ github.ref }}
+  group: test-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   test:
-    name: ${{ matrix.os }} · node-${{ matrix.node }}
+    name: ${{ matrix.os }} · node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
+        # Node 22 on every platform, plus the oldest supported (18) and the
+        # newest (24) on Linux. package.json#engines is >=18.18.
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node: ["20", "22"]
+        node: ["22"]
+        include:
+          - { os: ubuntu-latest, node: "18" }
+          - { os: ubuntu-latest, node: "24" }
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up pnpm
-        # Version is read from package.json#packageManager (single source of truth).
+        # The version comes from package.json#packageManager (single source of truth).
         uses: pnpm/action-setup@v4
 
       - name: Set up Node.js ${{ matrix.node }}

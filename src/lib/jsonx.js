@@ -14,6 +14,7 @@ import { readText } from "./fsx.js";
  * @property {any} value        parsed document ({} when missing)
  * @property {string} text      raw text ("" when missing)
  * @property {string|number} indent
+ * @property {boolean} finalNewline   whether the file ends with a newline (true for a file that does not exist yet)
  * @property {string|null} error
  */
 
@@ -27,18 +28,19 @@ export function detectIndent(text) {
 /** @param {string} path @returns {JsonFile} */
 export function readJsonFile(path) {
   const text = readText(path);
-  if (text === null) return { exists: false, valid: true, value: {}, text: "", indent: 2, error: null };
-  if (!text.trim()) return { exists: true, valid: true, value: {}, text, indent: 2, error: null };
+  if (text === null) return { exists: false, valid: true, value: {}, text: "", indent: 2, finalNewline: true, error: null };
+  if (!text.trim()) return { exists: true, valid: true, value: {}, text, indent: 2, finalNewline: true, error: null };
+  const finalNewline = text.endsWith("\n");
   try {
-    return { exists: true, valid: true, value: JSON.parse(text.replace(/^\uFEFF/, "")), text, indent: detectIndent(text), error: null };
+    return { exists: true, valid: true, value: JSON.parse(text.replace(/^\uFEFF/, "")), text, indent: detectIndent(text), finalNewline, error: null };
   } catch (e) {
-    return { exists: true, valid: false, value: null, text, indent: 2, error: String(/** @type {any} */ (e)?.message ?? e) };
+    return { exists: true, valid: false, value: null, text, indent: 2, finalNewline, error: String(/** @type {any} */ (e)?.message ?? e) };
   }
 }
 
-/** @param {any} value @param {string|number} [indent] */
-export function stringifyJson(value, indent = 2) {
-  return JSON.stringify(value, null, indent) + "\n";
+/** @param {any} value @param {string|number} [indent] @param {boolean} [finalNewline] */
+export function stringifyJson(value, indent = 2, finalNewline = true) {
+  return JSON.stringify(value, null, indent) + (finalNewline ? "\n" : "");
 }
 
 /** @param {unknown} v */

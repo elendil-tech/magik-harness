@@ -10,7 +10,7 @@
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
 
-import { projectInfo, resolveHarness } from "../../runtime/resolve.mjs";
+import { expandPath, projectInfo, resolveHarness } from "../../runtime/resolve.mjs";
 import { parseFlags, UsageError } from "../lib/args.js";
 import { exists, isDirectory, readBuffer, readText, sha256 } from "../lib/fsx.js";
 import { loadCatalog, packProblems } from "../lib/catalog.js";
@@ -137,7 +137,7 @@ function checkInstall(kind, io, cwd, out) {
 
   // packs: do their scripts have what they need on this machine?
   if (lock.packs.length > 0) {
-    const catalog = loadCatalog({ packDirs: lock.packDirs ?? [] });
+    const catalog = loadCatalog({ packDirs: (lock.packDirs ?? []).map((d) => expandPath(d, io.home, scope.root)) });
     for (const name of lock.packs) {
       const pack = catalog.packs.find((p) => p.name === name);
       if (!pack) {
@@ -180,7 +180,7 @@ function checkInstall(kind, io, cwd, out) {
     if (!blk) out.push({ area, level: "fail", message: "AGENTS.md has no harness primer block", fix: upgradeCmd });
     else {
       out.push({ area, level: blk.name === "magik-harness:primer" ? "ok" : "warn", message: `primer present in AGENTS.md (${Buffer.byteLength(blk.body)} bytes)`, fix: blk.name === "magik-harness:primer" ? undefined : upgradeCmd });
-      if (Buffer.byteLength(blk.body) > 6000) out.push({ area, level: "warn", message: "primer block is over 6 KB; every session pays for it" });
+      if (Buffer.byteLength(blk.body) > 5000) out.push({ area, level: "warn", message: "primer block is over 5 KB; every session pays for it" });
     }
     // git-ignored managed paths
     const rels = [...Object.keys(lock.files).filter((k) => !k.includes("#")), "AGENTS.md", ".magik/harness.json"].filter((k) => exists(keyToAbs(scope, k)));

@@ -238,7 +238,8 @@ export function buildInstall(o, io) {
   }
 
   // --- settings -----------------------------------------------------------
-  const catalog = loadCatalog({ packDirs: [...(prior?.packDirs ?? []), ...o.packDirs] });
+  const savedPackDirs = (prior?.packDirs ?? []).map((d) => expandPath(d, home, baseScope.root));
+  const catalog = loadCatalog({ packDirs: [...new Set([...savedPackDirs, ...o.packDirs])] });
   const { profiles, globalOnly } = loadProfiles();
   /** @type {string[]} */
   const notes = [];
@@ -444,7 +445,8 @@ export function buildInstall(o, io) {
     tools,
     profile: profileName,
     packs: packNames,
-    packDirs: [...new Set([...(prior?.packDirs ?? []), ...o.packDirs])],
+    // stored home-relative (`~/…`) where possible: the project lock is committed and must not carry this machine's home path
+    packDirs: [...new Set([...(prior?.packDirs ?? []), ...o.packDirs.map((d) => portableVault(d, io.cwd, home).value)])],
     skillsDir: skillsChoice.dir,
   };
   return { scope, prior, desired, settings, notes, catalog, skills, profileName, tools, toolHow: toolSel.how, legacy, scaffold };
@@ -550,13 +552,14 @@ export async function runInstall(argv, io, mode = "install") {
     for (const bk of backups) io.out(`  backup: ${bk}\n`);
     io.out(`  hook self-test: ${test.ok ? "ok" : "FAILED"} (${test.detail})\n`);
     if (conflicts) io.out(`  ${conflicts} path(s) already existed and were left alone; resolve them or re-run with --force.\n`);
-    if (o.scope === "project") {
+    // A re-run that changed nothing does not repeat the "what to do next" advice.
+    const changed = items.some((i) => ["create", "insert", "update", "merge", "remove"].includes(i.action));
+    if (changed && o.scope === "project") {
       io.out("\nNext: review `git status`, then commit .magik/, the skills folder, AGENTS.md, .gitignore and the tool config files so every clone and worktree has the harness.\n");
-      io.out("Check anytime with: magik-harness doctor\n");
-    } else {
+    } else if (changed) {
       io.out("\nNext: start a new agent session. Per project, run `magik-harness init` (creates the vault folders) or add a .magik/harness.json.\n");
-      io.out("Check anytime with: magik-harness doctor --scope global\n");
     }
+    io.out(`${changed ? "" : "\n"}Check anytime with: magik-harness doctor${o.scope === "global" ? " --scope global" : ""}\n`);
   }
   return test.ok ? 0 : 1;
 }

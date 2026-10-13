@@ -221,7 +221,7 @@ function planJson(d, ctx) {
   const merged = d.flavor === "cursor" ? mergeCursorHooks(f.value, opts) : mergeClaudeHooks(f.value, opts);
   const createdByUs = !f.exists || Boolean(ctx.prior?.json[key]?.created);
   /** @type {PlanItem} */
-  const base = { type: "json", action: "merge", abs: d.abs, key, reason: "", commands: [d.command], createdByUs, newText: stringifyJson(merged.doc, f.indent) };
+  const base = { type: "json", action: "merge", abs: d.abs, key, reason: "", commands: [d.command], createdByUs, newText: stringifyJson(merged.doc, f.indent, f.finalNewline) };
   if (f.exists && !merged.changed) return { ...base, action: "unchanged", reason: "hook already registered" };
   return f.exists
     ? { ...base, action: "merge", reason: "hook entry added/updated; other entries untouched", backup: true }
@@ -250,6 +250,7 @@ function planRemoval(d, ctx) {
  * @param {string} key
  */
 export function keyToAbs(scope, key) {
+  if (key.startsWith("~/")) return join(scope.home, ...key.slice(2).split("/"));
   return isAbsolute(key) ? key : join(scope.root, key);
 }
 
@@ -423,7 +424,7 @@ export function planUninstall(lock, o) {
     const r = flavor === "claude" ? removeClaudeHooks(f.value, opts) : removeCursorHooks(f.value, opts);
     if (!r.changed) continue;
     if (r.empty && info.created) items.push({ type: "json", action: "remove", abs, key, reason: "file created by magik-harness and now empty" });
-    else items.push({ type: "json", action: "merge", abs, key, reason: "hook entry removed; other entries untouched", newText: stringifyJson(r.doc, f.indent), backup: true });
+    else items.push({ type: "json", action: "merge", abs, key, reason: "hook entry removed; other entries untouched", newText: stringifyJson(r.doc, f.indent, f.finalNewline), backup: true });
   }
 
   if (o.purge) {

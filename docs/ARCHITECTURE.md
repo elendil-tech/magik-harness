@@ -57,7 +57,7 @@ The **four rules** the harness enforces live in the primer ([section 8](#8-the-p
 | --- | --- | --- |
 | **CLI** `magik-harness` (`npx magik-harness …`) | everyone; the primary channel | the full install in either scope, plus `upgrade`, `doctor`, `status`, `uninstall`, `resolve`, `init`, `list` |
 | **Repo-committed artifacts** | teammates, CI, other machines, other worktrees | after a project-scope install the repo carries everything; `git clone` is the whole installation |
-| **Cursor plugin** (this repo, `.cursor-plugin/`) | Cursor users who want a one-click convenience | the core skills and the setup command. No rules and no hooks: the plugin cannot install a pointer, and a primer that points at things only the plugin has is exactly the dependency the principles forbid |
+| **Cursor plugin** (this repo, `.cursor-plugin/`) | Cursor users who want a one-click convenience | the skills and four slash commands (`setup`, `doctor`, `kb-sanitize`, `kb-code-sync`). No rules and no hooks: the plugin cannot install a pointer, and a primer that points at things only the plugin has is exactly the dependency the principles forbid |
 | **By hand** | anyone | copy `skills/<name>` into `.agents/skills/` and paste `content/primer.knowledge.md` into `AGENTS.md`; everything else is optional |
 
 Why the CLI is primary: skills installed into project or user folders are listed ahead of plugin skills when a tool caps the skill list (Cursor lists at most 150 up front and drops plugin skills first; observed), a plugin cannot reach `cursor-agent` runs or remote machines reliably, and a plugin cannot carry per-project state.
@@ -76,7 +76,8 @@ Everything is written inside the repo and is meant to be **committed**.
 │   ├── harness.json               the pointer (tracked; yours after creation)
 │   ├── harness.local.json         per-machine overlay (gitignored)
 │   ├── lock.json                  managed files + hashes
-│   └── runtime/                   session-start.mjs, resolve.mjs, gitctx.mjs
+│   ├── runtime/                   session-start.mjs, resolve.mjs, gitctx.mjs
+│   └── backups/<timestamp>/…      copies of files the installer replaced or removed (gitignored)
 ├── .agents/skills/<skill>/        skills (canonical location)
 ├── .cursor/hooks.json             merged entry          (tool: cursor)
 ├── .claude/settings.json          merged entry          (tool: claude, experimental)
@@ -207,7 +208,11 @@ When nothing resolves and the git policy says quiet, it prints `{}` (cursor/clau
 
 ### 6.3 Dedupe when two hooks fire
 
-If both scopes are installed, both hooks run at session start. When the payload carries `session_id` or `conversation_id`, the first hook atomically creates `<tmpdir>/magik-harness/<sha1(id)>.lock`; a later hook with the same id emits nothing. Without an id there is no dedupe (a duplicate block is harmless). Lock files older than a day are removed opportunistically.
+If both scopes are installed, both hooks run at session start. When the payload carries `session_id` or `conversation_id`, the first hook atomically creates `<tmpdir>/magik-harness/<sha1(id|source)>.lock`; a later hook with the same id and source emits nothing (`{}` for the JSON formats). Three details keep this from ever hiding context a session needs:
+
+- a claim is honoured for **two minutes**; an older one is taken over, so a crashed or abandoned run cannot silence a later session that reuses the id;
+- the payload's `source` (Claude Code sends `startup`, `resume`, `compact`, `clear`) is part of the key, so a resumed or compacted session gets its context again;
+- without an id there is no dedupe at all (a duplicate block is harmless; a missing one is not).
 
 ## 7. Skills, profiles and packs
 
@@ -231,8 +236,8 @@ Every skill follows the Agent Skills format: folder name equals `name` (Cursor l
 
 | Profile | Skills | Primer | Vault |
 | --- | --- | --- | --- |
-| `minimal` | `harness`, `agentic-e2e-loop` | `primer.minimal.md` (≈1 KB: the loop and git protocol) | none; the hook reports git state only |
-| `knowledge` (default when a vault is given) | all core skills except `harness-setup` | `primer.knowledge.md` (≈4.5 KB: the four rules) | required |
+| `minimal` | `harness`, `agentic-e2e-loop` | `primer.minimal.md` (under 1 KB: the loop and git protocol) | none; the hook reports git state only |
+| `knowledge` (default when a vault is given) | all core skills except `harness-setup` | `primer.knowledge.md` (≈3 KB: the four rules) | required |
 
 ### 7.3 Packs
 
@@ -254,7 +259,7 @@ A pack is `packs/<name>/pack.json` plus `packs/<name>/skills/<skill>/`. Packs ar
 
 ### 7.5 Skill budget
 
-Core is nine skills (seven in the default profile); descriptions are short and carry the trigger words. Packs are opt-in. A harness should cost a few dozen lines of the tool's skill list, not hundreds.
+Core is nine skills: eight in the `knowledge` profile, two in `minimal`, and `harness-setup` only at global scope. Descriptions are short and carry the trigger words. Packs are opt-in. A harness should cost a few dozen lines of the tool's skill list, not hundreds.
 
 ## 8. The primer
 
@@ -287,7 +292,7 @@ Status vocabulary: **verified** = observed in a live session during v2 developme
 
 Cursor-specific facts the design relies on, each verified against `cursor-agent` with workspace trust:
 
-- project hooks only run in a **trusted** workspace; `doctor` says so when it cannot prove trust;
+- project hooks only run in a **trusted** workspace (if a session shows no `magik-harness session context` marker, trust the workspace first; see [TOOLS.md](TOOLS.md#checking-it-in-a-live-session));
 - a skill is listed under its **folder** name, even if frontmatter `name` differs;
 - project `.agents/skills`, `.cursor/skills`, `.claude/skills` and `.codex/skills` all load, including nested group folders;
 - `AGENTS.md` and `.cursor/rules/*.mdc` (always-apply) both reach the model.
@@ -316,7 +321,7 @@ Every mutating command builds a **plan** first: a list of items `{path, action, 
 - **Whole files** (runtime, skills, the global primer `.mdc`): recorded in the lock with `sha256`. Unmodified → safe to update or remove.
 - **Marker blocks** (`AGENTS.md`, `.gitignore`, `CLAUDE.md`, `~/.codex/AGENTS.md`): we own only the text between the markers.
 - **JSON entries** (`hooks.json`, `settings.json`): we own only entries whose command points at a `session-start.mjs` under a magik runtime (or the legacy 1.x hook); the rest of the file is preserved key for key. Invalid JSON is never rewritten (notice instead).
-- **User-owned after creation**: `.magik/harness.json` and `.magik/harness.local.json`. Never overwritten; removed only by `uninstall --purge`.
+- **User-owned after creation** (the pointer, the overlay, the global config, the vault's starter `_index.md`): created once, never overwritten. The lock records a hash of what was written, so `uninstall --purge` removes one only while it is still exactly that; an edited one is kept (`--force` removes it too, after a backup). The vault itself is never touched.
 
 ### 10.3 Commands
 
@@ -331,29 +336,29 @@ Every mutating command builds a **plan** first: a list of items `{path, action, 
 | `init` | creates the vault folders (and a first `_index.md`) for the resolved project |
 | `list` | prints profiles, skills and packs |
 
-All commands accept `--project-root <dir>` and `--json`. Mutating commands accept `--dry-run` and `--force`. Exit codes: `0` ok, `1` failure or failed checks, `2` usage error.
+`primer` prints the primer text for a profile, for tools that need it pasted into their own instruction file. The full option reference is [CLI.md](CLI.md). Exit codes: `0` ok, `1` failure or failed checks, `2` usage error (nothing is written on a usage error).
 
 ### 10.4 Backups
 
-Anything the installer modifies **outside a git repo's protection** (global scope: `~/.cursor/hooks.json`, `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, and any `--force` overwrite) is first copied to `~/.magik/backups/<timestamp>/<relative path>`. In project scope git is the backup.
+Anything the installer replaces, merges into or removes, other than files it just created, is first copied to `<harness dir>/backups/<timestamp>/<path>`: `.magik/backups/` in a project, `~/.magik/backups/` at global scope. That covers user files it edits (`AGENTS.md`, `.gitignore`, `hooks.json`, `settings.json`, `~/.codex/AGENTS.md`), `--force` overwrites, and 1.x leftovers it removes. The backup folder carries its own `.gitignore` (`*`), so it never shows up in `git status`, even after an uninstall removes the project's managed ignore block.
 
 ## 11. Doctor
 
-`magik-harness doctor [--scope project|global|auto] [--json] [--probe cursor]` runs layered checks. Each result is `ok`, `warn` or `fail` with a fix hint; the exit code is `1` if any `fail`.
+`magik-harness doctor [--scope project|global|all] [--strict] [--json]` runs layered, read-only checks. Each result is `ok`, `info`, `warn` or `fail`, and anything that is not `ok` carries the command that fixes it. Exit code `1` if any check fails (or warns, with `--strict`), otherwise `0`, so it is safe in scripts and CI.
 
 | Area | Checks |
 | --- | --- |
-| Resolution | pointer found and valid; source; vault exists; knowledge and memory folders; local overlay parses |
-| Install | lock present and well-formed; installed version vs CLI version; every managed file present and unmodified |
-| Runtime | `session-start.mjs` exists and **executes**: a synthetic payload is piped through it and the output must parse in the registered format |
-| Registrations | each selected tool's hook entry is present and its script path exists |
-| Skills | each expected skill present; `name` equals folder; frontmatter parses; description within limits; total count |
-| Primer | block present, version matches, size under 5 KB |
-| Git | managed paths are not git-ignored (artifacts would not travel); the skills fallback is recorded |
-| Legacy | 1.x leftovers (`.cursor/harness.json`, `.cursor/hooks/session-start.js`, `harness:` markers) with the migrating command |
-| Worktrees | when run inside a linked worktree: the pointer is tracked and resolves the same vault as the primary |
+| Resolution | which source produced the result; the vault exists (**fail** if not: a repo cloned without its vault); resolver warnings (invalid pointer JSON) are failures; a pointer still at the 1.x path; in a linked worktree, that the pointer is tracked by git |
+| Install | lock present and readable; installed version vs CLI version; every managed file present (**fail**) and edited ones noted; the plan this CLI would apply right now is empty ("up to date") |
+| Registrations | for each tool in the lock, the hook entry is present in the tool's file; a missing, invalid or unregistered file is a **fail** |
+| Runtime | `session-start.mjs` is run with a synthetic payload and its output must parse in the registered format |
+| Packs | each installed pack's requirements (commands on `PATH`, platform) are met (**warn**) |
+| Skills | every installed skill folder passes the Agent Skills lint (**warn**, with the problem named) |
+| Primer | the block is present in `AGENTS.md` (**fail**), current, and under 5 KB |
+| Git | no managed path is git-ignored, because clones and worktrees would not receive it (**fail**) |
+| Legacy | 1.x leftovers, with a louder message while the old hook is still registered next to the new one (context would be injected twice) |
 
-`--probe cursor` additionally starts one `cursor-agent` session (workspace trust assumed) and asks it to quote the marker line from its context. It proves the wiring end to end, costs one model call, and is never run implicitly.
+Doctor never writes. There is no automatic live-tool probe: starting a model session is a cost and a trust decision, so the verification in [TOOLS.md](TOOLS.md#checking-it-in-a-live-session) is a procedure you run on purpose.
 
 ## 12. Migrating from magik-repo 1.x
 
@@ -370,7 +375,16 @@ Anything the installer modifies **outside a git repo's protection** (global scop
 | plugin rules (`harness`, `knowledge-base`, `memory`, `agentic-work`, `kb-conventions`, `worktrees`, `ci-runners`) | skills (`harness`, `knowledge-base`, `harness-memory`, `agentic-e2e-loop`, `kb-conventions`, pack `worktrees`, pack `ci-runners`) |
 | `/magik-repo-setup` and friends | `magik-harness install` (or the `harness-setup` skill) |
 
-`install` detects a 1.x install and migrates it in one pass: write the new files, merge the hooks entry, replace both blocks, then remove the legacy hook script **only if** its content hash matches a known 1.x release (a locally modified legacy hook is left in place, its registration is kept, and `doctor` reports it). The legacy pointer is removed after its content is carried over. `magik-harness doctor` lists anything left.
+`install` detects a 1.x install and migrates it in one pass: write the new files, move the pointer and the overlay, merge the hooks entry, replace both blocks, then remove the legacy hook script **only if** its content hash matches a known 1.x release. Specifics worth knowing:
+
+- a locally modified legacy hook is **kept**, together with its registration, and `install` and `doctor` both warn that context is now injected twice. `--drop-legacy-hook` removes it (after a backup) once you have ported your edits;
+- the pointer keeps its 1.x mounts (`knowledge`, `memory`); nothing is rewritten to the new per-project layout, so an existing vault keeps working untouched;
+- ignore rules in the old `.gitignore` block that the new block does not repeat are kept below the new block under a "Kept from magik-repo 1.x" header, as plain user lines;
+- everything removed is backed up first (`.magik/backups/`);
+- an unreadable `.cursor/harness.json` stops a plain `install` (exit 2, nothing written) rather than guessing a profile; with `--vault` the install goes on and leaves the file as it was;
+- `--keep-legacy-pointer` leaves `.cursor/harness.json` where it is for tooling that still reads it. The resolver reads both paths, so the project keeps working, and `doctor` keeps nudging until a plain `install` finishes the move.
+
+[MIGRATION.md](MIGRATION.md) is the step-by-step guide, including a checklist for projects that wrapped the 1.x pointer in their own scripts.
 
 ## 13. Decision log
 
@@ -396,7 +410,7 @@ The decisions below close the open proposals of the October 2026 assessment. "Ve
 - Secrets never belong in the pointer or the vault; the pointer says so in its `_doc`.
 - Writes are limited to the paths in section 4 and to the vault folders created by `init`. Global scope writes outside the project only after printing the plan, and backs up every user file it touches.
 - The hook never executes anything from the vault. It reads Markdown as text.
-- `doctor --probe` and any live-tool verification are opt-in.
+- Live-tool verification is a manual, opt-in procedure ([TOOLS.md](TOOLS.md#checking-it-in-a-live-session)); nothing in the package starts a model session.
 
 ## 15. Non-goals
 

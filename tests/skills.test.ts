@@ -162,10 +162,10 @@ describe("primers", () => {
         assert.match(text, /`harness`/);
       });
 
-      it("has no unrendered placeholders and fits the budget (6 KB)", async () => {
+      it("has no unrendered placeholders and fits the budget (5 KB)", async () => {
         const text = await primer();
         assert.ok(!text.includes("{{") && !text.includes("}}"), "template placeholder left in the primer");
-        assert.ok(Buffer.byteLength(text) < 6000, `${Buffer.byteLength(text)} bytes; every session pays for the primer`);
+        assert.ok(Buffer.byteLength(text) < 5000, `${Buffer.byteLength(text)} bytes; every session pays for the primer`);
       });
 
       it("does not mention Cursor-only mechanisms (it is read by every tool)", async () => {

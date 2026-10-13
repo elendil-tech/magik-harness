@@ -53,10 +53,17 @@ export function buildScope(o) {
   const skillsRel = o.skillsDir ?? DEFAULT_SKILLS_DIR;
   const skillsDir = isAbsolute(skillsRel) ? skillsRel : join(root, skillsRel);
 
-  /** @param {string} abs */
+  /**
+   * Lock key: relative to the scope root; else `~/…` when under the home directory; else absolute.
+   * The project lock is committed, so it must not carry this machine's home path.
+   * @param {string} abs
+   */
   const key = (abs) => {
     const rel = relative(root, abs);
-    return !rel || rel.startsWith("..") || isAbsolute(rel) ? toPosix(abs) : toPosix(rel);
+    if (rel && !rel.startsWith("..") && !isAbsolute(rel)) return toPosix(rel);
+    const underHome = relative(home, abs);
+    if (underHome && !underHome.startsWith("..") && !isAbsolute(underHome)) return "~/" + toPosix(underHome);
+    return toPosix(abs);
   };
   /** @param {string} abs */
   const display = (abs) => {
