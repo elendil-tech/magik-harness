@@ -44,8 +44,8 @@ An existing pointer already holds the vault, layout, access and autonomy: use th
 
 ## 3. Strap on (the CLI)
 
-1. Carry over what exists. A pointer in an older place moves with `git mv` to `.magik/harness.json` (see the pointer entry in [drift.md](references/drift.md)); `install` never overwrites a pointer and takes the vault from it.
-2. Preview with `magik-harness install <options> --dry-run` and show the plan. When a lock already exists, use `upgrade` instead.
+1. Reconcile the pointer. An older pointer holds the project's own decisions (vault, mounts, autonomy), and they win over defaults. If `install` has not run yet, `git mv` the older pointer to `.magik/harness.json` first (see the pointer entry in [drift.md](references/drift.md)): `install` never overwrites a pointer and takes the vault from it. If `install` already ran and seeded a pointer from its defaults (the lock lists it under `seeds`, and the file is unchanged), replace the seeded file with the older one's content instead. If both were edited, show the user both and ask.
+2. Preview with `magik-harness install <options> --dry-run` and show the plan. When a lock already exists, use `upgrade`; to grow a `minimal` install into a knowledge base, run `install --profile knowledge` once the pointer is in place.
 3. Apply it: the same command without `--dry-run` (add `--yes` when nobody is there to answer a prompt). Report its output and exit code as they are. Do not pass `--force` unless the user agreed: it overwrites edited files, after making a backup.
 
 ## 4. Adjust the fit (your part)

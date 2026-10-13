@@ -254,6 +254,24 @@ describe("a public package", () => {
     assert.deepEqual(hits, []);
   });
 
+  it("no shipped text names a skill that is not in the package", () => {
+    // A skill that was renamed or removed leaves dangling references in the prose of the others. Any `kebab-name` that
+    // starts like one of our skills (harness-, kb-, ...) has to be one of our skills.
+    const prefixes = new Set([...KNOWN].map((n) => n.split("-")[0]));
+    const dangling: string[] = [];
+    for (const root of ["skills", "packs", "commands", "content", "docs"].map((r) => join(ROOT, r)).filter(existsSync)) {
+      for (const f of walk(root).filter((x) => x.endsWith(".md"))) {
+        // The fit skill's drift list is the one place that names what earlier layouts were called.
+        if (f.endsWith(join("harness-fit", "references", "drift.md"))) continue;
+        const text = readFileSync(f, "utf8");
+        for (const m of text.matchAll(/`([a-z][a-z0-9]*(?:-[a-z0-9]+)+)`/g)) {
+          if (prefixes.has(m[1].split("-")[0]) && !KNOWN.has(m[1])) dangling.push(`${relative(ROOT, f).replace(/\\/g, "/")}: \`${m[1]}\``);
+        }
+      }
+    }
+    assert.deepEqual([...new Set(dangling)], []);
+  });
+
   it("every SKILL.md frontmatter is parseable by the same reader the installer uses", () => {
     for (const s of everySkill) {
       const meta = parseSkillMd(readFileSync(join(s.dir, "SKILL.md"), "utf8"));

@@ -20,7 +20,7 @@ import { ROOT } from "./_helpers.ts";
 
 const text = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
-/** The markdown that describes the product (history is frozen and links to files that no longer exist). */
+/** The markdown that describes the product. */
 function docFiles(): string[] {
   const out = ["README.md", "CHANGELOG.md", "ROADMAP.md"];
   for (const f of readdirSync(join(ROOT, "docs"))) if (f.endsWith(".md")) out.push(`docs/${f}`);

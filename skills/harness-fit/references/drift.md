@@ -16,7 +16,7 @@ Each entry below says what you may find, why it matters and what to do. Work thr
 
 - **Look for.** `.cursor/harness.json` or `.cursor/harness.local.json`, or a pointer anywhere but `.magik/`; a `schema` of `magik-repo/harness@1` or `magik-harness/harness@1`; a long `_doc`; a `vault` written as an absolute path under the home directory; a tracked overlay.
 - **Why.** The runtime reads only `.magik/harness.json` and `.magik/harness.local.json`. Anywhere else, the harness looks absent and sessions start without the vault.
-- **Do.** `git mv` the pointer (and the overlay) into `.magik/`. Set `schema` to `magik-harness/harness@2`, drop `_doc`, write the vault as `~/...`, and keep every other field (mounts, autonomy, `inject`). If the overlay was tracked, `git rm --cached` it. Do this before `install`: it never overwrites a pointer, and it reads the vault from it.
+- **Do.** `git mv` the pointer (and the overlay) into `.magik/`. Set `schema` to `magik-harness/harness@2`, drop `_doc`, write the vault as `~/...`, and keep every other field (mounts, autonomy, `inject`). If the overlay was tracked, `git rm --cached` it. Do this before `install`: it never overwrites a pointer, and it reads the vault from it. If `install` ran first and seeded `.magik/harness.json` from its defaults (the lock lists it under `seeds` and the file is unchanged), the older pointer is the project's decision: put its content in the seeded file's place and tell the user. `install` may also have created empty store folders in the vault for the seeded pointer; leave the vault alone and name the unused folders in the report.
 
 ## A session hook from an older install
 
@@ -64,7 +64,7 @@ Each entry below says what you may find, why it matters and what to do. Work thr
 
 - **Look for.** The search above, in scripts, tests, docs and READMEs, CI workflows, Dockerfiles, pre-commit configuration, and knowledge-base pages about local setup.
 - **Why.** Anything that names an old path fails the day the old file is gone, and a test that pins the old layout fails the fit itself.
-- **Do.** Update the text to the current paths. Where a guard test pins a file list or a layout, update the test in the same change.
+- **Do.** Update the text to the current paths. Where a guard test pins a file list or a layout, update the test in the same change and keep it as strict as it was: change what it points at, not what it protects.
 
 ## Ignore lists, formatters and CI filters
 

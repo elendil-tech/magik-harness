@@ -4,7 +4,7 @@
 magik-harness <command> [options]
 ```
 
-Run it without installing anything: `npx magik-harness <command>` (or `npx github:codeisalifestyle/magik-repo-plugin <command>`). `magik-harness <command> --help` (or `magik-harness help <command>`) prints the options of one command; this page is the longer version of those texts. `magik-harness --version` prints the version; with no command at all it prints the command list and exits `2`.
+Run it without installing anything: `npx magik-harness <command>` (or `npx github:codeisalifestyle/magik-harness <command>`). `magik-harness <command> --help` (or `magik-harness help <command>`) prints the options of one command; this page is the longer version of those texts. `magik-harness --version` prints the version; with no command at all it prints the command list and exits `2`.
 
 - [Conventions](#conventions)
 - [install and upgrade](#install-and-upgrade)
@@ -50,7 +50,7 @@ magik-harness upgrade [options]
 
 | Option | |
 | --- | --- |
-| `--profile minimal\|knowledge` | `minimal`: the delivery loop and git protocol, no vault (skills `harness`, `agentic-e2e-loop`). `knowledge`: everything, with a knowledge base and memory in a vault. Default: `knowledge` when a vault is known (`--vault`, an existing pointer), otherwise `minimal`. An existing install keeps its saved profile. |
+| `--profile minimal\|knowledge` | `minimal`: the delivery loop and git protocol, no vault (skills `harness`, `harness-fit`, `agentic-e2e-loop`). `knowledge`: everything, with a knowledge base and memory in a vault. Default: `knowledge` when a vault is known (`--vault`, an existing pointer), otherwise `minimal`. An existing install keeps its saved profile. |
 | `--packs a,b` | opt-in skill packs (`magik-harness list` shows them): `worktrees`, `ci-runners` |
 | `--pack-dir <dir>` | an extra directory of pack folders (`<dir>/<pack>/pack.json` and `<dir>/<pack>/skills/`), for a team's own policy bundles. Remembered in the lock, home-relative when it is under your home directory. |
 | `--tools <list>` | `auto` (default), `none`, or a comma list of `cursor`, `claude`, `codex`, `generic`. `auto` detects `.cursor/`, `.claude/`, `CLAUDE.md` and `.codex/` in the project (or the same folders in your home for `--scope global`), and falls back to `cursor` with a note. A detected tool is skipped (with a note) when git ignores its hook file, such as a generated `.claude/`, because clones and worktrees would never get it; naming it with `--tools` installs it anyway and warns. `generic` (`AGENTS.md` and `.agents/skills`) is always part of the install. `none` writes no tool-specific files. |
@@ -76,8 +76,6 @@ The vault options only matter when the pointer is created. If `.magik/harness.js
 | `--force` | overwrite managed files you edited and paths the installer did not create; a backup is made first |
 | `--yes`, `-y` | no prompts |
 | `--json` | the plan as JSON (see below). Unless `--dry-run` is given the plan is still applied. |
-| `--keep-legacy-pointer` | 1.x projects: leave `.cursor/harness.json` where it is. The resolver reads both paths. |
-| `--drop-legacy-hook` | 1.x projects: also remove a 1.x hook script you edited (after a backup) and its registration |
 
 ### What `install` does, in order
 
@@ -87,6 +85,7 @@ The vault options only matter when the pointer is created. If `.magik/harness.js
 4. Writes the lock file last.
 5. Runs the installed session hook once with a synthetic payload (`hook self-test`). A failing hook makes the exit code `1`.
 
+`install` manages only what it can prove it owns. Anything else in the project (an older pointer location, a hook script from an earlier setup, instructions that repeat the primer, scripts that name old paths) is left exactly as it was. Bringing those in line is the agent's work, done with the `harness-fit` skill: ask your agent to run it ([FITTING.md](FITTING.md)). A re-run of `install` that changed something prints the same hint.
 ### `install --json`
 
 ```json
@@ -139,12 +138,12 @@ resolution
 
 project install
   ok   installed v2.0.0: profile knowledge, tools cursor, packs none
-  ok   15 managed files present
+  ok   20 managed files present
   ok   up to date with this CLI
   ok   hook registered in .cursor/hooks.json
   ok   session hook runs: emits the session context
-  ok   8 skill folder(s) checked, all valid
-  ok   primer present in AGENTS.md (3086 bytes)
+  ok   9 skill folder(s) checked, all valid
+  ok   primer present in AGENTS.md (3159 bytes)
   ok   no managed path is git-ignored
 
 global install
@@ -163,7 +162,7 @@ resolution
   FAIL Vault not found: /home/me/vaults/acme (from "~/vaults/acme"). Knowledge and memory are unavailable until it exists. Clone or create it, or point this machine elsewhere in .magik/harness.local.json (key `vault`). Check with `magik-harness doctor`.
 ```
 
-Levels: `ok`, `info` (no action needed), `warn` (works, but something is off), `fail` (broken). The exit code is `1` when anything failed, or when anything warned and `--strict` is set. `--scope all` (default) checks both scopes and treats a missing install as information. The checks are listed in [ARCHITECTURE.md](ARCHITECTURE.md#11-doctor).
+Levels: `ok`, `info` (no action needed), `warn` (works, but something is off), `fail` (broken). The exit code is `1` when anything failed, or when anything warned and `--strict` is set. `--scope all` (default) checks both scopes and treats a missing install as information. The checks are listed in [ARCHITECTURE.md](ARCHITECTURE.md#11-doctor). When something fails or warns, or nothing is installed, the output ends with a hint to ask your agent to run the `harness-fit` skill: the CLI checks the files it owns, the skill handles the rest.
 
 ```json
 {
@@ -173,7 +172,7 @@ Levels: `ok`, `info` (no action needed), `warn` (works, but something is off), `
   "failures": 0,
   "warnings": 0,
   "checks": [
-    { "area": "project install", "level": "ok", "message": "15 managed files present" },
+    { "area": "project install", "level": "ok", "message": "20 managed files present" },
     { "area": "project install", "level": "fail", "message": "1 managed file(s) missing, e.g. .agents/skills/harness/SKILL.md", "fix": "magik-harness upgrade" }
   ]
 }
@@ -211,7 +210,7 @@ A missing vault folder is refused by default, because it usually means the vault
 magik-harness list [--json] [--pack-dir <dir>]
 ```
 
-Profiles, core skills with their descriptions, packs with their requirements, and the tool adapters with their verification status. `--json` shape: `{ version, profiles, globalOnly, skills: [{ name, description }], packs: [{ name, description, skills, requires }], tools: [{ id, label, status }] }`.
+Profiles, core skills with their descriptions, packs with their requirements, and the tool adapters with their verification status. `--json` shape: `{ version, profiles, skills: [{ name, description }], packs: [{ name, description, skills, requires }], tools: [{ id, label, status }] }`.
 
 ## primer
 
@@ -270,5 +269,7 @@ npx magik-harness install --vault ~/vaults/acme --yes
 **Give a whole team a policy bundle** without touching this package: keep `<repo>/packs/<name>/pack.json` and `skills/`, then `install --pack-dir <repo>/packs --packs <name>`.
 
 **Move a project to another vault** (this machine only): put `{ "vault": "~/elsewhere" }` in `.magik/harness.local.json` (git-ignored). The tracked pointer stays as it is.
+
+**Fit a project that already has a setup of its own** (an older layout, hand-made hooks, duplicated instructions): `npx magik-harness install`, then ask your agent to run the `harness-fit` skill. After an `upgrade`, ask it again. [FITTING.md](FITTING.md) says what to expect.
 
 **Undo everything:** `magik-harness uninstall` (and `--scope global`). Add `--purge` to drop the pointer too. Your vault and any file you edited stay.

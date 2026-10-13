@@ -7,10 +7,14 @@ What magik-harness does **not** ship today, and why. The [CHANGELOG](CHANGELOG.m
 The code, tests and docs are on the `refactor/magik-harness` branch. Release steps that are the maintainer's to take:
 
 - Run CI on a pull request marked ready: the matrix covers Linux, macOS and Windows, and until it runs only Linux-like behavior has been exercised locally.
-- Rename the GitHub repository (and its description and topics), then replace the old repository URL (`magik-repo-plugin`) in `README.md`, `package.json` and the primer text in `content/`.
-- Publish to npm and flip `"private": true` in `package.json`; then drop the `npx github:…` fallback from the README.
+- Publish to npm (`npm login`, then `npm publish`; the package is public and `publishConfig` is set), then drop the `npx github:…` fallback from the README.
 - Refresh the Cursor marketplace listing (name, description, logo) and reinstall the local plugin with `pnpm install-plugin`.
-- Update anything that calls a script by its 1.x plugin path (see [docs/MIGRATION.md](docs/MIGRATION.md#if-you-used-the-cursor-plugin)).
+- In each project that already uses the harness: `magik-harness upgrade`, then ask the agent to run the `harness-fit` skill.
+
+## Skills
+
+- **Mountable skill bundles.** Packs and `--pack-dir` already mount bundles of skills. A larger bundle, a **business OS** covering the domains a company runs on (engineering, product, marketing, sales, strategy, legal and more, with sub-domains inside each), is an idea for a separate project that mounts on the harness, not something to build into this package. When that project exists, link it from the README's "Mounting more".
+- **Fit notes for every release.** Each release adds a heading to the fit skill's `references/versions.md`. If the notes ever need more than text (a check that a project's own files match a release), it should be a `doctor` check, not a script.
 
 ## Tools
 
@@ -30,7 +34,7 @@ The code, tests and docs are on the `refactor/magik-harness` branch. Release ste
 - **`_index.md` auto-maintenance.** `kb-sanitize` flags drift; a future option could regenerate the orientation map from the KB's actual shape, on approval.
 - **Memory retention.** Memory grows without bound. A helper could summarize or prune old `memory/daily/` notes on request, never automatically: memory is the agent's, and pruning is destructive.
 - **A reference MCP-backed store.** `accessVia: mcp` is carried in the pointer and the hook prints the mount id, but wiring a remote store is left to your MCP configuration. A reference adapter could ship if there is demand.
-- **Skill-efficacy evals.** A way to score whether skills a team authored actually change an agent's behavior: opt-in tooling, not a revival of the old in-repo eval runner.
+- **Skill-efficacy evals.** A way to score whether skills a team authored actually change an agent's behavior: opt-in tooling.
 
 ## Not planned
 
@@ -38,3 +42,4 @@ The code, tests and docs are on the `refactor/magik-harness` branch. Release ste
 - Runtime dependencies or a build step in the published package (the point of `npx` working on a clean machine).
 - Telemetry of any kind.
 - Owning the structure of your knowledge base.
+- Migration commands or code that reads an older layout. Fitting a project to the current layout is the `harness-fit` skill's job.

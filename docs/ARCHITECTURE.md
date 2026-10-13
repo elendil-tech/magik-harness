@@ -13,7 +13,7 @@ Design of record for **2.0.0**. Where this document and the code disagree, fix o
 - [9. Tool adapters and what is verified](#9-tool-adapters-and-what-is-verified)
 - [10. Install lifecycle and ownership](#10-install-lifecycle-and-ownership)
 - [11. Doctor](#11-doctor)
-- [12. Migrating from magik-repo 1.x](#12-migrating-from-magik-repo-1x)
+- [12. Fitting: how a project is brought in line](#12-fitting-how-a-project-is-brought-in-line)
 - [13. Decision log](#13-decision-log)
 - [14. Safety and privacy](#14-safety-and-privacy)
 - [15. Non-goals](#15-non-goals)
@@ -31,7 +31,7 @@ A **harness** wraps an ordinary code repository with the few things an AI coding
 | **Session hook** | A zero-dependency Node script that resolves the pointer and injects live context at session start. | `.magik/runtime/` | `~/.magik/runtime/` |
 | **Lock** | What the installer manages, with content hashes. | `.magik/lock.json` | `~/.magik/lock.json` |
 
-`magik-harness` is the tool that installs, upgrades, checks and removes those pieces. The artifacts are plain files. Any agent runtime that reads `AGENTS.md` and Agent Skills can use them; thin adapters add the wiring that some runtimes need (hooks, instruction files).
+`magik-harness` is the tool that installs, upgrades, checks and removes those pieces. Bringing the rest of a project in line with them (an older layout, a hand-made setup, drift) is the `harness-fit` skill's job: text an agent follows, not code ([section 12](#12-fitting-how-a-project-is-brought-in-line)). The artifacts are plain files. Any agent runtime that reads `AGENTS.md` and Agent Skills can use them; thin adapters add the wiring that some runtimes need (hooks, instruction files).
 
 The **four rules** the harness enforces live in the primer ([section 8](#8-the-primer)):
 
@@ -57,7 +57,7 @@ The **four rules** the harness enforces live in the primer ([section 8](#8-the-p
 | --- | --- | --- |
 | **CLI** `magik-harness` (`npx magik-harness …`) | everyone; the primary channel | the full install in either scope, plus `upgrade`, `doctor`, `status`, `uninstall`, `resolve`, `init`, `list` |
 | **Repo-committed artifacts** | teammates, CI, other machines, other worktrees | after a project-scope install the repo carries everything; `git clone` is the whole installation |
-| **Cursor plugin** (this repo, `.cursor-plugin/`) | Cursor users who want a one-click convenience | the skills and four slash commands (`setup`, `doctor`, `kb-sanitize`, `kb-code-sync`). No rules and no hooks: the plugin cannot install a pointer, and a primer that points at things only the plugin has is exactly the dependency the principles forbid |
+| **Cursor plugin** (this repo, `.cursor-plugin/`) | Cursor users who want a one-click convenience | the skills and four slash commands (`fit`, `doctor`, `kb-sanitize`, `kb-code-sync`). No rules and no hooks: the plugin cannot install a pointer, and a primer that points at things only the plugin has is exactly the dependency the principles forbid |
 | **By hand** | anyone | copy `skills/<name>` into `.agents/skills/` and paste `content/primer.knowledge.md` into `AGENTS.md`; everything else is optional |
 
 Why the CLI is primary: skills installed into project or user folders are listed ahead of plugin skills when a tool caps the skill list (Cursor lists at most 150 up front and drops plugin skills first; observed), a plugin cannot reach `cursor-agent` runs or remote machines reliably, and a plugin cannot carry per-project state.
@@ -137,7 +137,7 @@ Allowed and sensible: global for your own machine, project for a repo that shoul
 - `knowledge.autonomy` is `open` (default), `ask` or `readonly`. Unknown values are treated as `open`.
 - `memory.inject.maxBytes` caps what the hook injects (default 4000; `0` injects only the path).
 - `mounts[]` (optional) adds more stores. `role` is `knowledge` or `memory`. A project can read a shared company KB next to its own, each mount with its own autonomy.
-- `magik-repo/harness@1` and `magik-harness/harness@1` files are read as-is (v2 is a superset). The installer upgrades `schema` and drops the long `_doc` when it writes.
+- A pointer with another `schema` value is still read, as `harness@2`, with a note in the session context. The `harness-fit` skill sets the value.
 
 ### 5.2 Resolution order
 
@@ -145,7 +145,7 @@ For a session started in directory `D`:
 
 1. **Project root**: `git rev-parse --show-toplevel` from `D` (fallback `D`). The **primary checkout** (`git rev-parse --git-common-dir`, parent) names the project; linked worktrees therefore resolve the same project name as the primary.
 2. **Local overlay**: `.magik/harness.local.json`, deep-merged over the tracked pointer (objects merge, arrays and scalars replace). It exists for per-machine and per-worktree differences, for example a vault clone that lives somewhere else on this machine.
-3. **Tracked pointer**: `.magik/harness.json`; if absent, the legacy `.cursor/harness.json` (+ `.cursor/harness.local.json`).
+3. **Tracked pointer**: `.magik/harness.json`. No other location is read: a pointer anywhere else is invisible, and the fit moves it ([section 12](#12-fitting-how-a-project-is-brought-in-line)).
 4. **Global config**: `~/.magik/config.json` (`$MAGIK_HOME` overrides the directory). With `layout: "per-project"` the stores are `<vault>/<project>/knowledge` and `<vault>/<project>/memory`. The harness is considered active for the repo only if the project folder exists in the vault.
 5. **None**: the repo is not harnessed. No error, no output.
 
@@ -229,7 +229,7 @@ If both scopes are installed, both hooks run at session start. When the payload 
 | `kb-code-sync` | check the KB against the code |
 | `harness-memory` | the running log: cadence, layout, why it never auto-promotes |
 | `agentic-e2e-loop` | orient → implement → verify → ship → KB sync → clean up, with the git protocol |
-| `harness-setup` | (global scope and the plugin) walk an agent through installing the harness into a repo |
+| `harness-fit` | install, upgrade and re-align a project (or the machine) with the harness: survey, plan, strap on, adjust, check, hand over ([section 12](#12-fitting-how-a-project-is-brought-in-line)) |
 
 Every skill follows the Agent Skills format: folder name equals `name` (Cursor lists a skill by its **folder** name; observed), `description` explains *what and when*, long material goes under `references/`.
 
@@ -237,8 +237,8 @@ Every skill follows the Agent Skills format: folder name equals `name` (Cursor l
 
 | Profile | Skills | Primer | Vault |
 | --- | --- | --- | --- |
-| `minimal` | `harness`, `agentic-e2e-loop` | `primer.minimal.md` (under 1 KB: the loop and git protocol) | none; the hook reports git state only |
-| `knowledge` (default when a vault is given) | all core skills except `harness-setup` | `primer.knowledge.md` (≈3 KB: the four rules) | required |
+| `minimal` | `harness`, `harness-fit`, `agentic-e2e-loop` | `primer.minimal.md` (under 1 KB: the loop and git protocol) | none; the hook reports git state only |
+| `knowledge` (default when a vault is given) | all core skills | `primer.knowledge.md` (≈3 KB: the four rules) | required |
 
 ### 7.3 Packs
 
@@ -260,7 +260,7 @@ A pack is `packs/<name>/pack.json` plus `packs/<name>/skills/<skill>/`. Packs ar
 
 ### 7.5 Skill budget
 
-Core is nine skills: eight in the `knowledge` profile, two in `minimal`, and `harness-setup` only at global scope. Descriptions are short and carry the trigger words. Packs are opt-in. A harness should cost a few dozen lines of the tool's skill list, not hundreds.
+Core is nine skills: all nine in the `knowledge` profile, three in `minimal`. Descriptions are short and carry the trigger words. Packs are opt-in. A harness should cost a few dozen lines of the tool's skill list, not hundreds.
 
 ## 8. The primer
 
@@ -274,7 +274,7 @@ Core is nine skills: eight in the `knowledge` profile, two in `minimal`, and `ha
 
 It contains the four rules, how the harness is wired (pointer location, resolution in two sentences, the manual fallback command for tools without hooks), and the list of skills to request on demand. Everything it names exists in the same install. It does not mention slash commands, plugins or any tool-specific path other than the pointer.
 
-The block is replaced in place on upgrade. Text outside the markers is never touched. Legacy 1.x markers (`<!-- harness:primer:start v=… -->`) are recognised and replaced.
+The block is replaced in place on upgrade. Text outside the markers is never touched, and a block with any other name is the project's own text: it is left alone (the fit skill's drift list covers older primer blocks).
 
 ## 9. Tool adapters and what is verified
 
@@ -315,7 +315,7 @@ Every mutating command builds a **plan** first: a list of items `{path, action, 
 | `unchanged` | already current |
 | `keep` | managed but modified on disk: left alone (use `--force` to overwrite) |
 | `conflict` | path exists, not managed by us: left alone (use `--force` to overwrite, after a backup) |
-| `remove` | stale managed file or legacy leftover, safe to delete |
+| `remove` | stale managed file, safe to delete |
 | `notice` | something the user should do or know |
 
 `--dry-run` prints the plan and writes nothing. Apply executes the plan in order and writes the lock last, so a crash leaves the previous lock describing the previous state.
@@ -324,14 +324,14 @@ Every mutating command builds a **plan** first: a list of items `{path, action, 
 
 - **Whole files** (runtime, skills, the global primer `.mdc`): recorded in the lock with `sha256`. Unmodified → safe to update or remove.
 - **Marker blocks** (`AGENTS.md`, `.gitignore`, `CLAUDE.md`, `~/.codex/AGENTS.md`): we own only the text between the markers.
-- **JSON entries** (`hooks.json`, `settings.json`): we own only entries whose command points at a `session-start.mjs` under a magik runtime (or the legacy 1.x hook); the rest of the file is preserved key for key. Invalid JSON is never rewritten (notice instead).
+- **JSON entries** (`hooks.json`, `settings.json`): we own only entries whose command points at a `session-start.mjs` under a magik runtime; the rest of the file is preserved key for key. Invalid JSON is never rewritten (notice instead).
 - **User-owned after creation** (the pointer, the overlay, the global config, the vault's starter `_index.md`): created once, never overwritten. The lock records a hash of what was written, so `uninstall --purge` removes one only while it is still exactly that; an edited one is kept (`--force` removes it too, after a backup). The vault itself is never touched.
 
 ### 10.3 Commands
 
 | Command | What it does |
 | --- | --- |
-| `install` | plan + apply; creates pointer, runtime, skills, primer, registrations, lock; migrates 1.x installs in the same pass |
+| `install` | plan + apply; creates pointer, runtime, skills, primer, registrations, lock. Touches only what it owns; the rest of a project is the `harness-fit` skill's work |
 | `upgrade` | `install` with the options recorded in the lock; refreshes managed files; removes stale ones |
 | `uninstall` | removes what the lock lists (unmodified files, our blocks, our JSON entries); keeps the pointer unless `--purge` |
 | `doctor` | read-only health check ([section 11](#11-doctor)) |
@@ -344,7 +344,7 @@ Every mutating command builds a **plan** first: a list of items `{path, action, 
 
 ### 10.4 Backups
 
-Anything the installer replaces, merges into or removes, other than files it just created, is first copied to `<harness dir>/backups/<timestamp>/<path>`: `.magik/backups/` in a project, `~/.magik/backups/` at global scope. That covers user files it edits (`AGENTS.md`, `.gitignore`, `hooks.json`, `settings.json`, `~/.codex/AGENTS.md`), `--force` overwrites, and 1.x leftovers it removes. The backup folder carries its own `.gitignore` (`*`), so it never shows up in `git status`, even after an uninstall removes the project's managed ignore block.
+Anything the installer replaces, merges into or removes, other than files it just created, is first copied to `<harness dir>/backups/<timestamp>/<path>`: `.magik/backups/` in a project, `~/.magik/backups/` at global scope. That covers user files it edits (`AGENTS.md`, `.gitignore`, `hooks.json`, `settings.json`, `~/.codex/AGENTS.md`) and `--force` overwrites. The backup folder carries its own `.gitignore` (`*`), so it never shows up in `git status`, even after an uninstall removes the project's managed ignore block.
 
 ## 11. Doctor
 
@@ -352,7 +352,7 @@ Anything the installer replaces, merges into or removes, other than files it jus
 
 | Area | Checks |
 | --- | --- |
-| Resolution | which source produced the result; the vault exists (**fail** if not: a repo cloned without its vault); resolver warnings (invalid pointer JSON) are failures; a pointer still at the 1.x path; a tracked pointer that names the vault by an absolute path under your home directory (**warn**: it only works for you; `~/...` works everywhere); in a linked worktree, that the pointer is tracked by git |
+| Resolution | which source produced the result; the vault exists (**fail** if not: a repo cloned without its vault); resolver warnings (invalid pointer JSON) are failures; a tracked pointer that names the vault by an absolute path under your home directory (**warn**: it only works for you; `~/...` works everywhere); in a linked worktree, that the pointer is tracked by git |
 | Install | lock present and readable; installed version vs CLI version; every managed file present (**fail**) and edited ones noted; the plan this CLI would apply right now is empty ("up to date") |
 | Registrations | for each tool in the lock, the hook entry is present in the tool's file; a missing, invalid or unregistered file is a **fail** |
 | Runtime | `session-start.mjs` is run with a synthetic payload and its output must parse in the registered format |
@@ -360,35 +360,50 @@ Anything the installer replaces, merges into or removes, other than files it jus
 | Skills | every installed skill folder passes the Agent Skills lint (**warn**, with the problem named) |
 | Primer | the block is present in `AGENTS.md` (**fail**), current, and under 5 KB |
 | Git | no managed path is git-ignored, because clones and worktrees would not receive it (**fail**) |
-| Legacy | 1.x leftovers, with a louder message while the old hook is still registered next to the new one (context would be injected twice) |
+
+When anything fails or warns, or nothing is installed, doctor ends with a hint: the CLI checks the files it owns, and the `harness-fit` skill handles the rest ([section 12](#12-fitting-how-a-project-is-brought-in-line)).
 
 Doctor never writes. There is no automatic live-tool probe: starting a model session is a cost and a trust decision, so the verification in [TOOLS.md](TOOLS.md#checking-it-in-a-live-session) is a procedure you run on purpose.
 
-## 12. Migrating from magik-repo 1.x
+## 12. Fitting: how a project is brought in line
 
-1.x layout → 2.0:
+The installer is deterministic and owns files. A project is more than the files the installer owns: scripts that read the pointer, docs that name paths, instructions that repeat the primer, hand-made hooks, an earlier layout of this very harness. Judging what to keep, carry over or remove there means reading the project, and that is work for the agent, not for code.
 
-| 1.x | 2.0 |
+| | Does | Knows about |
+| --- | --- | --- |
+| **The CLI** (`install`, `upgrade`, `doctor`) | writes, hash-checks, refreshes and removes the files it owns; merges into the ones it shares | the current layout only. It has no code path for any other |
+| **The `harness-fit` skill** | surveys the project, plans, runs the CLI, adjusts the project's own files, checks, hands over a commit | what a fitted project looks like, what drift looks like (older layouts included), what each release asks of a project |
+
+The skill is plain text (a `SKILL.md` and four references) and ships with every install, so a project can re-fit itself after an upgrade with neither the package nor the network. [FITTING.md](FITTING.md) is the guide for people.
+
+### 12.1 The fit
+
+Six steps: survey (read only), plan (shown before anything changes), strap on (the CLI: `install --dry-run`, then `install` or `upgrade`), adjust (the project's own files), check (`doctor`, the project's own checks, a hook run) and hand over (one commit on a branch of its own, a short report). The skill's rules:
+
+- never write a managed file by hand; if one is wrong, fix the cause and run `upgrade`;
+- carry over what is specific to the project before removing an older file, and remove only what can be shown to be a copy; anything uncertain is listed for the user, and a run with nobody to ask takes the defaults and leaves such removals out;
+- work on a branch of its own, never push or merge unless asked, and never read secrets files while surveying.
+
+### 12.2 The references
+
+| File | What it holds |
 | --- | --- |
-| `.cursor/harness.json` (`magik-repo/harness@1`) | `.magik/harness.json` (`magik-harness/harness@2`); content preserved, `_doc` shortened |
-| `.cursor/harness.local.json` | `.magik/harness.local.json` |
-| `.cursor/hooks/session-start.js` | `.magik/runtime/session-start.mjs` |
-| `.cursor/hooks.json` entry `node .cursor/hooks/session-start.js` | entry `node .magik/runtime/session-start.mjs --format cursor` (other entries untouched) |
-| `<!-- harness:primer:start v=… -->` block | `<!-- magik-harness:primer:start v=… -->` block |
-| `# harness:gitignore:start v=…` block | `# magik-harness:gitignore:start v=…` block |
-| plugin rules (`harness`, `knowledge-base`, `memory`, `agentic-work`, `kb-conventions`, `worktrees`, `ci-runners`) | skills (`harness`, `knowledge-base`, `harness-memory`, `agentic-e2e-loop`, `kb-conventions`, pack `worktrees`, pack `ci-runners`) |
-| `/magik-repo-setup` and friends | `magik-harness install` (or the `harness-setup` skill) |
+| `fitted.md` | the structure the harness dictates, per scope. A test builds a real install and checks that every folder, marker, schema and hook command the installer writes is named there, so it cannot go stale |
+| `drift.md` | what to search for, why it matters and what to do: older pointer locations and schemas, older hook scripts and managed blocks, duplicated instructions, plugin and slash-command dependence, forks of shipped skills, homemade versions of what the harness provides, homemade agent setups, old names and paths in the project's own text, ignore lists and formatters, git-ignored tool folders, a missing vault, edited managed files, machine-level leftovers. It is the one place in the package that knows what earlier layouts looked like |
+| `stages.md` | the same fit at the start, in the middle and at the end of a project, and as a re-fit |
+| `versions.md` | one heading per release saying what it asks of a project's own files. A test requires a heading for the current version, so a release cannot ship without someone deciding what it asks |
 
-`install` detects a 1.x install and migrates it in one pass: write the new files, move the pointer and the overlay, merge the hooks entry, replace both blocks, then remove the legacy hook script **only if** its content hash matches a known 1.x release. Specifics worth knowing:
+### 12.3 Why a skill and not a command
 
-- a locally modified legacy hook is **kept**, together with its registration, and `install` and `doctor` both warn that context is now injected twice. `--drop-legacy-hook` removes it (after a backup) once you have ported your edits;
-- the pointer keeps its 1.x mounts (`knowledge`, `memory`); nothing is rewritten to the new per-project layout, so an existing vault keeps working untouched;
-- ignore rules in the old `.gitignore` block that the new block does not repeat are kept below the new block under a "Kept from magik-repo 1.x" header, as plain user lines;
-- everything removed is backed up first (`.magik/backups/`);
-- an unreadable `.cursor/harness.json` stops a plain `install` (exit 2, nothing written) rather than guessing a profile; with `--vault` the install goes on and leaves the file as it was;
-- `--keep-legacy-pointer` leaves `.cursor/harness.json` where it is for tooling that still reads it. The resolver reads both paths, so the project keeps working, and `doctor` keeps nudging until a plain `install` finishes the move.
+- The package, tests and docs describe one layout. Earlier layouts live as text in one file, instead of as code paths that outlive their usefulness.
+- Judgment calls (is this script a copy? does this rule hold something unique?) are what an agent is for. The skill makes them visible: a plan up front, a diff to review at the end, uncertain removals listed as follow-ups.
+- One procedure serves a new project, a project in progress, a late-stage one and an upgrade.
 
-[MIGRATION.md](MIGRATION.md) is the step-by-step guide, including a checklist for projects that wrapped the 1.x pointer in their own scripts.
+### 12.4 What the CLI guarantees so the fit can rely on it
+
+- `install` never touches what it does not own. An older pointer, hook script or primer block is left exactly as it was, and the current files are added beside them (a test pins this).
+- `install` never overwrites a pointer, so what the fit moves into `.magik/harness.json` is honoured.
+- `doctor` ends with a hint to run the skill when anything fails or warns, or when nothing is installed.
 
 ## 13. Decision log
 
@@ -396,7 +411,7 @@ The decisions below close the open proposals of the October 2026 assessment. "Ve
 
 | # | Proposal | Decision | Basis |
 | --- | --- | --- | --- |
-| P1 | Delivery channel | **Hybrid**: repo-committed artifacts + CLI as the primary channel; global scope as the machine-level equivalent; the Cursor plugin demoted to optional convenience (skills + setup command only) | user requirement (agnostic, both scopes); plugin skills rank last under list caps |
+| P1 | Delivery channel | **Hybrid**: repo-committed artifacts + CLI as the primary channel; global scope as the machine-level equivalent; the Cursor plugin demoted to optional convenience (skills + commands only) | user requirement (agnostic, both scopes); plugin skills rank last under list caps |
 | P2 | How skills are stored | **Flat `.agents/skills` canonical**; copies only for tools that cannot read it; fallback to `.cursor/skills` when `.agents/` is git-ignored | **verified**: project `.agents/skills` loads in `cursor-agent`; folder name wins over frontmatter name |
 | P3 | What goes in `AGENTS.md` | The four binding rules stay in the always-on primer (rules left to on-demand loading were followed least); details and cross-project policy live in skills | assessment adherence data |
 | P4 | Install, upgrade, drift | `doctor` (layered, executes the hook) + `upgrade` + lock with hashes; the same command at both scopes | stale installs and diverged hook forks were the main measured drift |
@@ -407,6 +422,7 @@ The decisions below close the open proposals of the October 2026 assessment. "Ve
 | P9 | Coverage | Profiles by need (`minimal`, `knowledge`) and opt-in packs | most active repos had no harness |
 | P10 | Worktrees | The pointer is tracked so every worktree resolves the same vault; `harness.local.json` overrides per worktree; the `worktrees` pack documents the durable root convention and audits it | worktree fragmentation |
 | P11 | Skill budget | Nine core skills, short descriptions, packs opt-in; installed skills outrank plugin skills under the cap | **verified** list-cap behaviour in `cursor-agent` |
+| P12 | Older layouts, hand-made setups, drift | **No migration code.** The CLI knows one layout; the `harness-fit` skill (text an agent follows) adapts everything else, and its `versions.md` says what each release asks of a project's own files | the harness dictates the structure, and judgment about a project's own files belongs to the agent ([section 12](#12-fitting-how-a-project-is-brought-in-line)) |
 
 ## 14. Safety and privacy
 
@@ -414,6 +430,7 @@ The decisions below close the open proposals of the October 2026 assessment. "Ve
 - Secrets never belong in the pointer or the vault; the pointer says so in its `_doc`.
 - Writes are limited to the paths in section 4 and to the vault folders created by `init`. Global scope writes outside the project only after printing the plan, and backs up every user file it touches.
 - The hook never executes anything from the vault. It reads Markdown as text.
+- The `harness-fit` skill runs with the agent's own tools, so it is bounded by what the user lets the agent do. It is told to work on a branch of its own, to leave a diff for review, never to push or merge unasked, never to read secrets files, and never to delete what it cannot show to be a copy.
 - Live-tool verification is a manual, opt-in procedure ([TOOLS.md](TOOLS.md#checking-it-in-a-live-session)); nothing in the package starts a model session.
 
 ## 15. Non-goals
