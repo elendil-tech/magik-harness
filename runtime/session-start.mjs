@@ -243,6 +243,7 @@ export function buildContext(opts = {}) {
     steps.push(
       `- Before substantive work run the \`kb-search\` skill: gather context from the knowledge base, the code and live state. Skills live in \`${skillsDir}/\`; if your tool did not load them, read \`${skillsDir}/kb-search/SKILL.md\`.`,
     );
+    steps.push(`- Follow the \`agentic-e2e-loop\` skill for substantive work (\`${skillsDir}/agentic-e2e-loop/SKILL.md\`): orient, implement, verify, ship, clean up.`);
     if (res.knowledge.autonomy === "readonly") steps.push("- Knowledge autonomy is `readonly`: report KB changes, never write them.");
     else if (res.knowledge.autonomy === "ask") steps.push("- Knowledge autonomy is `ask`: write the KB only on request or an approved proposal.");
     else steps.push("- Knowledge autonomy is `open`: keep the KB in step with your work (see the `knowledge-base` skill).");

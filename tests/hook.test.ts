@@ -69,6 +69,7 @@ describe("what it prints", () => {
     assert.ok(ctx.includes("remember the milk"));
     assert.match(ctx, /## Next steps/);
     assert.match(ctx, /kb-search/);
+    assert.match(ctx, /`agentic-e2e-loop` skill for substantive work \(`\.agents\/skills\/agentic-e2e-loop\/SKILL\.md`\)/, "the loop skill is named even when a vault is configured: a global Cursor install has no primer file to say so");
   });
 
   it("speaks Cursor, Claude and plain text", () => {

@@ -2,29 +2,24 @@
 /**
  * cursor.js — Cursor IDE and `cursor-agent`.
  *
- * Verified against cursor-agent (2026-10-13):
+ * Verified against cursor-agent 2026.10.01 (2026-10-13), each with a canary the model could only know
+ * from the channel under test:
  *   - AGENTS.md reaches the model
  *   - project `.agents/skills`, `.cursor/skills`, `.claude/skills`, `.codex/skills` all load
+ *   - `~/.agents/skills` loads in every workspace
  *   - `.cursor/hooks.json` `sessionStart` -> `additional_context` (project scope, trusted workspace)
- * Observed, undocumented: `~/.cursor/rules/*.mdc` (global primer).
+ *   - `~/.cursor/hooks.json` `sessionStart` -> `additional_context` (global scope)
+ *
+ * NOT honored: rule files in `~/.cursor/rules/`. A rule file with `alwaysApply: true` there, and the
+ * one that already existed on the test machine, never reached the model. Cursor keeps user rules in
+ * Settings, so a global install has no always-on primer file for Cursor. What reaches the agent
+ * instead is the session hook (it names the loop skill and carries the vault, memory and git state)
+ * and the skills; `magik-harness primer` prints the text to paste into Settings -> Rules.
  */
 
 import { join } from "node:path";
 
 import { isDirectory } from "../lib/fsx.js";
-
-/** @param {string} primerBody */
-function userRule(primerBody) {
-  return [
-    "---",
-    "description: magik-harness primer (managed by `magik-harness`; change it with `magik-harness upgrade`, not by hand)",
-    "alwaysApply: true",
-    "---",
-    "",
-    primerBody,
-    "",
-  ].join("\n");
-}
 
 /** @type {import("./common.js").ToolAdapter} */
 export const cursor = {
@@ -45,8 +40,12 @@ export const cursor = {
       },
     ];
     if (scope.kind === "global") {
-      const abs = join(scope.root, ".cursor", "rules", "magik-harness.mdc");
-      desired.push({ type: "file", abs, key: scope.key(abs), content: userRule(ctx.primerBody), group: "cursor-user-rule" });
+      desired.push({
+        type: "notice",
+        level: "info",
+        message:
+          "cursor: Cursor reads user-level rules from Settings -> Rules, not from a file in your home directory, so there is no always-on primer file to install. The session hook and the skills work without one; to also have the primer always on, paste the output of `magik-harness primer --scope global` into Settings -> Rules.",
+      });
     }
     return { desired };
   },

@@ -100,10 +100,11 @@ Everything is written under the user's home. Nothing is written into any repo.
 │   └── backups/<timestamp>/…      copies of every user file the installer modified
 ├── .agents/skills/<skill>/        skills
 ├── .cursor/hooks.json             merged entry          (tool: cursor)
-├── .cursor/rules/magik-harness.mdc primer file          (tool: cursor)
 ├── .claude/{settings.json,CLAUDE.md,skills/}            (tool: claude, experimental)
 └── .codex/AGENTS.md               managed block         (tool: codex, experimental)
 ```
+
+Cursor has no file-based user-level rules (a rule file in `~/.cursor/rules/` never reached the model in a live check; see [section 9](#9-tool-adapters-and-what-is-verified)), so a global install delivers the primer to Cursor through the session hook (which names the loop skill, the vault, memory and git state) and the skills, and prints the text to paste into Settings -> Rules if you want it always on. Claude Code and Codex get the primer in their own user-level files.
 
 Choose it when you want every repo on the machine covered without committing anything, or when the repos are not yours to change. Per project, `magik-harness init` creates the vault folders for the convention layout (`<vault>/<project>/{knowledge,memory}`); until then the hook is silent in that repo.
 
@@ -285,8 +286,8 @@ Status vocabulary: **verified** = observed in a live session during v2 developme
 | Project skills | `.agents/skills` **verified**, also `.cursor/skills`, `.claude/skills`, `.codex/skills`, nested folders | `.claude/skills` mirror (experimental) | `.agents/skills` (documented) | Agent Skills convention |
 | User skills | `~/.agents/skills` (verified) | `~/.claude/skills` mirror (experimental) | `~/.agents/skills` (documented) | |
 | Session hook | `.cursor/hooks.json` `sessionStart` → `additional_context` (verified) | `.claude/settings.json` `SessionStart` (experimental) | none; manual fallback in the primer | none |
-| User-level primer | `~/.cursor/rules/*.mdc` (observed, undocumented) | `~/.claude/CLAUDE.md` (experimental) | `~/.codex/AGENTS.md` (experimental) | |
-| User-level hook | `~/.cursor/hooks.json` (documented) | `~/.claude/settings.json` (experimental) | none | |
+| User-level primer | **none as a file**: `~/.cursor/rules/*.mdc` is not read by `cursor-agent` (verified negative); user rules live in Settings | `~/.claude/CLAUDE.md` (experimental) | `~/.codex/AGENTS.md` (experimental) | |
+| User-level hook | `~/.cursor/hooks.json` (**verified**) | `~/.claude/settings.json` (experimental) | none | |
 
 `--tools` accepts `auto` (default: detect `.cursor/`, `.claude/`, `CLAUDE.md`, `.codex/` in the project, or the matching folders in home), a comma list of `cursor,claude,codex,generic`, or `none`. `generic` is always implied: `AGENTS.md` + `.agents/skills`.
 
@@ -295,7 +296,10 @@ Cursor-specific facts the design relies on, each verified against `cursor-agent`
 - project hooks only run in a **trusted** workspace (if a session shows no `magik-harness session context` marker, trust the workspace first; see [TOOLS.md](TOOLS.md#checking-it-in-a-live-session));
 - a skill is listed under its **folder** name, even if frontmatter `name` differs;
 - project `.agents/skills`, `.cursor/skills`, `.claude/skills` and `.codex/skills` all load, including nested group folders;
-- `AGENTS.md` and `.cursor/rules/*.mdc` (always-apply) both reach the model.
+- `AGENTS.md` and project `.cursor/rules/*.mdc` (always-apply) both reach the model;
+- user-level rule **files** do not: a canary in an `alwaysApply` file in `~/.cursor/rules/`, and a rule file that was already there, were both invisible to the model. Global instructions for Cursor therefore travel through the session hook and the skills, or through Settings -> Rules by hand;
+- `~/.agents/skills` loads in every workspace, and a user-level `~/.cursor/hooks.json` `sessionStart` entry runs and delivers `additional_context` in a workspace that has no project install of its own;
+- with a project hook and a global hook both registered, the session context holds exactly one `magik-harness session context` line.
 
 ## 10. Install lifecycle and ownership
 

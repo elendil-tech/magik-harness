@@ -40,7 +40,7 @@ export function summarize(items) {
 }
 
 /** Skill files are the only grouped items; the runtime and tool config files stand alone. */
-const UNGROUPED = new Set(["runtime", "cursor-user-rule"]);
+const UNGROUPED = new Set(["runtime"]);
 
 /** @param {PlanItem} it */
 function isSkillItem(it) {

@@ -75,7 +75,6 @@ describe("a global install", () => {
       ".magik/runtime/resolve.mjs",
       ".magik/runtime/gitctx.mjs",
       ".magik/runtime/session-start.mjs",
-      ".cursor/rules/magik-harness.mdc",
       ".claude/CLAUDE.md",
     ]) {
       assert.ok(has(join(b.home, f)), `${f} should exist`);
@@ -84,6 +83,10 @@ describe("a global install", () => {
     assert.deepEqual(skillNames(b, ".claude/skills"), GLOBAL_SKILLS, "Claude Code reads its own folder");
     assert.deepEqual(files(b.proj2), ["README.md"], "no repository is touched");
     assert.deepEqual(files(b.proj3), ["README.md"]);
+    // cursor-agent ignores rule files in ~/.cursor/rules (checked live), so none is written; the install says what to do instead
+    assert.ok(!has(join(b.home, ".cursor/rules")), "no dead rule file");
+    assert.match(r.out, /Settings -> Rules/);
+    assert.match(r.out, /magik-harness primer --scope global/);
 
     const config = readJson(join(b.home, ".magik/config.json"));
     assert.equal(config.schema, "magik-harness/config@1");
@@ -117,10 +120,8 @@ describe("a global install", () => {
     assert.match(codex, /^<!-- magik-harness:primer:start v=/);
     assert.ok(codex.endsWith("# my codex notes\n"), "your notes stay, below the primer");
 
-    const rule = read(join(b.home, ".cursor/rules/magik-harness.mdc"));
-    assert.match(rule, /^---\ndescription: magik-harness primer/);
-    assert.match(rule, /alwaysApply: true/);
-    assert.match(rule, /~\/\.magik\/runtime\/session-start\.mjs/, "the primer points at the machine-level hook script");
+    const claudeMd = read(join(b.home, ".claude/CLAUDE.md"));
+    assert.match(claudeMd, /~\/\.magik\/runtime\/session-start\.mjs/, "the primer points at the machine-level hook script");
   });
 
   it("a dry run changes nothing", async () => {
