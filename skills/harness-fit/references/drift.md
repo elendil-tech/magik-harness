@@ -52,7 +52,7 @@ Each entry below says what you may find, why it matters and what to do. Work thr
 
 - **Look for.** Scripts, CI steps, tests or Makefile targets that read the pointer JSON themselves, locate the vault by a hard-coded path, print a session context of their own, or search the KB with their own code; wrappers around the old pointer path.
 - **Why.** They break the next time the pointer or the layout changes, and they quietly disagree with the runtime.
-- **Do.** Call `magik-harness resolve --json` and read the paths from it (`vaultDir`, `knowledge.dir`, `memory.dir`, `source`, `warnings`), or import the runtime's `resolve.mjs`. Keep only what is genuinely the project's.
+- **Do.** Call `magik-harness resolve --json` and read the paths from it (`vaultDir`, `knowledge.dir`, `memory.dir`, `source`, `warnings`), or import the runtime's `resolve.mjs` (`node .magik/runtime/resolve.mjs --json --project-root <dir>` answers for another checkout too). Where several scripts need the same lookup, keep one thin adapter of the project's own that asks the resolver and derives only what is the project's (a subfolder of the knowledge base, say), and have the rest call it. Drop fallbacks to an older pointer path and lists of places to search for the vault: a machine that keeps the vault elsewhere sets it in `.magik/harness.local.json`. Keep only what is genuinely the project's.
 
 ## A homemade agent setup
 
