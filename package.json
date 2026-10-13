@@ -1,16 +1,59 @@
 {
-  "name": "magik-repo",
-  "version": "1.9.1",
+  "name": "magik-harness",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "The light harness — Cursor plugin packaging.",
+  "description": "A harness for AI coding agents: a repo, a vault of knowledge and memory, and a few rules. One CLI installs it per project or per machine; works with Cursor, Claude Code, Codex and any agent that reads AGENTS.md.",
+  "license": "MIT",
+  "author": "LaLi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codeisalifestyle/magik-repo-plugin.git"
+  },
+  "homepage": "https://github.com/codeisalifestyle/magik-repo-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/codeisalifestyle/magik-repo-plugin/issues"
+  },
+  "keywords": [
+    "agents",
+    "ai",
+    "harness",
+    "knowledge-base",
+    "memory",
+    "agents-md",
+    "agent-skills",
+    "cursor",
+    "claude-code",
+    "codex",
+    "cli"
+  ],
+  "bin": {
+    "magik-harness": "bin/magik-harness.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "runtime",
+    "content",
+    "skills",
+    "packs",
+    "commands",
+    ".cursor-plugin",
+    "assets/magik-harness-logo.png",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18.18"
+  },
   "scripts": {
-    "build": "tsx scripts/build.ts",
-    "install-local": "tsx scripts/build.ts && tsx scripts/install-local.ts",
-    "uninstall-local": "tsx scripts/uninstall-local.ts",
-    "clean": "rm -rf seeds dist *.tsbuildinfo",
-    "pretest": "tsx scripts/build.ts",
-    "test": "tsx scripts/run-tests.ts"
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/run-tests.mjs",
+    "check": "tsc --noEmit && node scripts/run-tests.mjs",
+    "install-plugin": "node scripts/install-plugin.mjs",
+    "uninstall-plugin": "node scripts/install-plugin.mjs --uninstall"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

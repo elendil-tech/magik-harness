@@ -1,0 +1,9 @@
+{
+  "description": "An opinionated example CI policy for private GitHub repos on a free plan: hosted pool first, managed runners as overflow, local-first CI, workflow hygiene, plus read-only pool and diff-audit tools.",
+  "requires": {
+    "commands": [
+      "gh",
+      "python3"
+    ]
+  }
+}

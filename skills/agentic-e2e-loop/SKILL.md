@@ -1,245 +1,94 @@
 ---
 name: agentic-e2e-loop
 description: >-
-  Full end-to-end agentic work loop for harnessed repos: gather context (kb-search),
-  strategize, implement, verify locally (programmatic or human-in-the-loop for taste),
-  ship (commit/push/PR, CI watch + fix-forward, merge), sync the knowledge base, and
-  clean up (ephemeral worktree teardown or primary checkout reset to develop/main).
-  Applies in Cursor IDE, Orca worktrees, and any other agent surface — not tied to a
-  specific orchestrator. Use whenever starting or closing substantive work so the
-  loop always completes.
+  The end-to-end work loop for a harnessed repo: orient, strategize, implement, verify, involve a
+  human only where taste is needed, ship (commit, push, PR, watch CI, fix, merge), sync the knowledge
+  base, and clean up (tear down a worktree or reset the primary checkout). Includes the multi-machine
+  git protocol: pull before working, cloud-save with WIP commits, never stash across worktrees. Use
+  when starting or closing substantive work, when pushing or opening a PR, when watching or re-running
+  CI, when pausing or switching machines, and when deciding whether a human approval gate is needed.
 ---
 
-# Agentic E2E loop (magik-repo)
+# The agentic end-to-end loop
 
-Completion means **merged + CI/ship gates held + KB updated + workspace reset/tidy**,
-not “code written” or “PR opened.” This loop applies whether you are in the primary
-Cursor IDE chat, an Orca worktree agent, or any other agent surface that uses this harness.
+Completion means **merged, checks green, knowledge updated, workspace tidy**. It does not mean "code written" or "PR opened". The loop is the same in an IDE chat, a CLI session, a worktree agent or an orchestrator's worker.
 
-## Loop
+## The loop
 
 ```
-1. Orient       kb-search — KB + code + live services (rule 1)
-2. Strategize   how to tackle the work for *this* project + sound engineering practice
-3. Implement    scoped change only
-4. Verify       always — cadence is the agent's call (as-you-go for large work;
-                end-loaded for small). See Verification below.
-5. HITL gate    only when taste/creative — raise approval; drafts + back-and-forth OK
-6. Ship         commit → push → PR → watch CI → fix failures → merge → confirm
-                post-merge integration/deploy when the project has it
-                (resolve code merge conflicts as part of shipping — not afterthought)
-7. KB sync      update durable knowledge/docs so the vault matches what landed
-                (resolve vault/KB merge conflicts as part of sync — not afterthought)
-8. Clean up     surface-dependent: tear down ephemeral worktrees, or reset the
-                primary checkout to the integration branch — leave the workspace tidy
+1. Orient       git state; kb-search (KB + code + live services) when the harness has a KB
+2. Strategize   an approach that fits this project and sound engineering practice
+3. Implement    a scoped change only
+4. Verify       always. As you go for large work, at the end for small work
+5. Human gate   only for taste or brand work: drafts, then explicit approval
+6. Ship         commit, push, PR, watch CI, fix failures, merge; resolve code conflicts here
+7. KB sync      make durable knowledge match what landed; resolve vault conflicts here
+8. Clean up     tear down an ephemeral worktree, or reset the primary checkout
 ```
 
-## Verification
+## 1. Orient
 
-### Programmatic (no human required)
+- `git status`, the current branch, and whether it tracks an upstream (`git rev-parse --abbrev-ref @{u}`).
+- If the branch is behind origin, `git pull --ff-only` **before** editing. Never build on a stale branch.
+- If the harness has a knowledge base, load `kb-search` (rule 1 of the harness). The KB is the start of context; corroborate it against the code and live state.
 
-Use when the outcome is objectively checkable: unit/integration/e2e tests, typecheck,
-lint, local stacks, health checks, deterministic assertions. Run these autonomously.
-Do not block on a human for green checks.
+## 4. Verify
 
-### Human-in-the-loop (required)
+**Programmatic checks need no human.** Tests, types, lint, builds, local stacks, health checks and deterministic assertions run autonomously. Skipping verification is never an option; only its cadence is yours to choose.
 
-Raise an **approval gate** to the human when work involves taste or human representation:
+**Reproduce CI locally.** Run the same commands the project's CI runs before you push. CI confirms; it is not where you debug.
 
-- visual / product design
-- brand, positioning, voice
-- marketing or product copy
-- front-end visual decisions
-- anything that represents the human or their brand
+## 5. The human gate
 
-For creative work: produce **2–3 drafts** (or variants), summarize differences, and
-**wait for explicit approval or steering**. Expect a back-and-forth until approved —
-that is part of the loop, not a failure. After approval, still run programmatic checks
-before shipping.
+Raise an approval gate when the artifact needs **taste** or represents a person or brand: visual or product design, copy and voice, front-end look and feel, positioning.
 
-Programmatically verifiable tasks skip the HITL gate.
+Stay interactive. For creative work produce **two or three drafts**, summarize how they differ, and wait for explicit approval or steering. A back-and-forth is part of the loop, not a failure. After approval, still run the programmatic checks before shipping. Do **not** auto-merge taste work on your own judgment, and do **not** block programmatically verifiable work on a human.
 
-## Merge conflict resolution (code + KB)
+## 6. Ship
 
-Resolving merge conflicts is **in-loop work**, not a follow-up. Parallel agents,
-worktrees, and vault checkouts make conflicts expected.
+Commit, push, open a PR (as a draft until local checks pass), **watch CI, fix failures**, then merge, and confirm the post-merge pipeline when the project has one (fix forward if it fails). Resolve merge conflicts as part of shipping: never leave conflict markers or an unfinished merge or rebase, and never force-push over peers to dodge a conflict. Details, the CI discipline and the stop-after-three rule are in `references/shipping-and-ci.md`.
 
-### During Ship (code repo)
+## 7. KB sync
 
-When rebase/merge/PR integration hits conflicts in the **code** repo:
+After the merge, durable knowledge must not lag the code:
 
-1. Treat conflict resolution as part of step 6 — do not declare ship complete while
-   conflict markers or an unfinished merge/rebase remain.
-2. Prefer integrating against the project's integration branch (`develop` / `main`)
-   with a normal merge or rebase; fix conflicts with full context (kb-search + the
-   conflicting change's intent), re-run verification, then continue the PR/merge.
-3. Never leave half-merged trees or “someone else can fix conflicts” as the close-out.
+1. Identify the entries the work touched (specs, policies, architecture, runbooks, glossary).
+2. Update or add them at the autonomy the pointer grants, following `knowledge-base` and `kb-conventions`. Edit living entries in place; supersede decision records, never rewrite them.
+3. If code and KB disagree beyond what you touched, reconcile inline or escalate to the `kb-code-sync` skill.
+4. If the vault is versioned, pull or rebase, resolve entry conflicts, then push. Do not leave durable truth only in chat or memory.
 
-### During KB sync (vault)
+Skip only when the change has genuinely no durable-knowledge impact. When in doubt, sync.
 
-When the vault is versioned (its own git remote) and pull/rebase/PR on the KB hits
-conflicts:
+## 8. Clean up
 
-1. Treat conflict resolution as part of step 7 — same bar as code.
-2. Pull/rebase onto the vault’s integration branch (often `master` / `main`) before
-   or while publishing; resolve entry conflicts so living surfaces stay coherent
-   (`knowledge-base` / `kb-conventions`); re-check links/`_index.md` if touched.
-3. Parallel Orca worktrees with independent vault checkouts must not clobber each
-   other: publish via the vault’s normal git workflow; resolve conflicts instead of
-   force-pushing over peers.
-
-If a conflict is truly judgment-heavy (competing product decisions), surface it —
-but mechanical and obvious resolutions stay autonomous.
-
-## KB sync (after ship)
-
-Before treating the task as closed, bring the knowledge base (and any project docs that
-are ground truth) in line with what actually shipped:
-
-1. Identify entries touched by the work (specs, policies, architecture, runbooks, glossary).
-2. Update or add them per `knowledge.autonomy` and `rules/knowledge-base.mdc` /
-   `rules/kb-conventions.mdc` — prefer editing living surfaces; supersede decision records.
-3. If code and KB disagree, reconcile (inline judgment, or escalate with
-   `/magik-repo-kb-code-sync` for a full pass).
-4. Commit/push KB changes in the vault’s own workflow when the vault is versioned;
-   **resolve any vault merge conflicts as part of this step**; do not leave durable
-   truth only in chat or memory.
-
-Skip only when the change truly has **no** durable-knowledge impact (e.g. pure typo in
-a comment with no behavioral or operational meaning). When in doubt, sync.
-
-## CI watch + fix-forward (part of Ship — not optional garnish)
-
-Watching CI and correcting failures is **in-loop**, not overkill. A merge button click
-without green checks (or a red post-merge deploy left unfixed) is an incomplete ship.
-Fold this into step 6 — do **not** invent a separate “step 9” that agents skip.
-
-### Before merge (PR / branch CI)
-
-1. After opening or updating the PR, **monitor** the project's required (or advisory-but-
-   discipline-enforced) checks until they finish.
-2. On failure: read the failing job logs, fix the root cause on the feature branch,
-   verify the fix locally, push once, and **re-watch**. Repeat until green or a true
-   external blocker (infra outage, missing secret you cannot provision) — then
-   surface the blocker; do not declare the task done. Stay inside the CI minutes
-   budget below: three consecutive red runs on one branch is a stop-and-report, not
-   another retry.
-3. Only then merge to the integration branch (per the project's merge discipline).
-
-### CI minutes budget (applies to every push, dispatch, and rerun)
-
-Hosted CI minutes are metered (GitHub Free: 2,000 a month shared by every private repo,
-and each job rounds up to a whole minute — a run of ten short jobs bills at least ten
-minutes); overflow runs on Ubicloud managed runners (free credit, then pennies; never a
-paid GitHub plan). Treat a full CI run as a deliberate, milestone-level action — never as
-a debugger. Runner routing, workflow hygiene and the pool check: rule and skill
-`ci-runners`.
-
-0. **Draft until ready.** Open PRs as drafts; checkpoints carry `[skip ci]`; mark the PR
-   ready (`gh pr ready`) once local checks pass — that is the one CI run.
-
-1. **Verify locally first.** Before any push or dispatch whose purpose is "see if CI
-   passes", run the project's CI-equivalent commands locally (lint, typecheck, tests,
-   build — the project's CI skill or doc lists them). Trigger CI only once they pass.
-2. **Read the failure; do not re-run blind.** After a red run:
-   `gh run view <id> --log-failed`, reproduce that job's exact commands locally, fix,
-   verify locally, then push or dispatch **once**.
-3. **Rerun, don't re-dispatch.** For flaky or infra failures use
-   `gh run rerun <id> --failed` (re-runs only the failed jobs) instead of a new
-   dispatch or an empty commit. After a "job was not started because recent account
-   payments have failed" refusal re-run **all** jobs (`gh run rerun <id>`) so the router
-   re-evaluates; a partial re-run reuses its stale output.
-4. **One run per ref at a time.** Do not push or dispatch again while a run on the same
-   ref is still going. Superseded runs that get cancelled still bill the minutes they
-   used.
-5. **No CI-as-debugger.** No `workflow_dispatch` loops, empty commits, or throwaway
-   pushes to "see what happens". Trigger full CI at milestones (ready for review, ready
-   to merge). Intermediate checkpoints use `[skip ci]`.
-6. **Stop after three.** After three consecutive red runs on one branch, stop. Report
-   the failing job, what was tried, and roughly how many minutes were burned; continue
-   only when the user says so.
-
-Where CI is free (public repo) the cap relaxes, but steps 1–2 still save wall-clock
-time; managed runners (Ubicloud) are cheap, not free. A project's own CI doc may set
-tighter limits — follow the stricter one.
-
-### After merge (integration / deploy CI)
-
-When the project runs checks or deploys on the integration branch after merge:
-
-1. Confirm the merge landed and watch the post-merge pipeline (deploy, re-test, etc.).
-2. If it fails, **fix forward** on the integration branch (or a hotfix branch that
-   merges immediately) — same bar as PR CI. Do not walk away from a broken tip.
-3. Skip endless monitoring of unrelated workflows; scope to the pipelines this change
-   triggers.
-
-Repos/creative work still needs HITL before merge; CI watch applies after approval.
-
-## Shipping & cleanup
-
-- Prefer merging to the project's integration branch (often `develop` or `main`) once
-  verification (+ HITL if required) passes and **PR CI is green**.
-- **Resolve code merge conflicts as part of shipping** (see above) — unfinished
-  conflict state means ship is not done.
-- **CI watch + fix-forward** (see above) is part of shipping — PR green before merge;
-  post-merge integration/deploy healthy when the project has that gate.
-- Run **KB sync** after the merge is confirmed (so the KB describes what is actually on
-  the integration branch), including vault conflict resolution when needed.
-- **Clean up is surface-dependent** (see below) — do not leave the primary checkout on
-  a merged feature branch, and do not leave ephemeral worktrees behind.
-- If an orchestrator is in use (e.g. Orca), signal completion with that tool's
-  completion message — do not invent a fake subcommand. Example pattern:
-  `orca orchestration send --type worker_done …` then `task-update --status completed`.
-
-## Cleanup: primary checkout vs ephemeral worktree
-
-Same completion bar; different mechanic.
-
-| Surface | After merge + KB sync |
+| Surface | After merge and KB sync |
 | --- | --- |
-| **Ephemeral worktree** (Orca, `git worktree`, throwaway clone) | **Tear down** the worktree and its ephemeral stacks / sibling vault checkout. Do not “return” it to `develop` — remove it. |
-| **Primary / long-lived checkout** (main Cursor workspace, reused across tasks) | **Reset to the integration branch**: check out `develop`/`main`, pull so local matches remote, delete the local feature branch, prune stale remotes. The tree is reused, not destroyed. |
+| **Ephemeral worktree** (a `git worktree`, an orchestrator's worktree, a throwaway clone) | Tear it down, with its stacks and any sibling vault checkout. Do not "return" it to the integration branch |
+| **Primary or long-lived checkout** | Check out the integration branch (`main`, `develop`, ...), pull to match the remote, delete the local feature branch, prune stale remotes. It is reused, not torn down |
 
-During the task, staying on the feature branch is correct. After the branch is merged,
-leaving the primary still checked out on that feature branch is an **incomplete
-close-out**. Remote branch deletion on merge (when enabled) does not replace this step.
+Staying on the feature branch during the task is correct. Leaving the primary checkout on a merged feature branch is an incomplete close-out.
 
-## Multi-machine & worktree synchronicity ritual
+## Multi-machine and worktree protocol
 
-In setups where work alternates between local machines (e.g. MacBook), remote dev servers (VPS), or multiple worktrees:
-- **GitHub (`origin`) is the canonical relay across machines.**
-- **Shift start (Orient)**:
-  - Check current branch and dirty state: `git status`.
-  - Check upstream tracking: `git rev-parse --abbrev-ref @{u}`.
-  - If behind origin, run `git pull --ff-only` before editing. Never build features on top of a stale local branch.
-- **Shift handover / pause (Cloud-Save)**:
-  - Never leave uncommitted or unpushed work when pausing or switching machines.
-  - Commit progress with Conventional Commits or a descriptive WIP commit (`git commit -m "wip: <checkpoint> [skip ci]"`).
-  - Always append `[skip ci]` to WIP commits to prevent triggering CI builds and burning runner minutes on intermediate checkpoints.
-  - Push to origin: `git push`. Unpushed commits cannot travel between your machines.
-- **Never `git stash` across worktrees**:
-  - The git stash stack is repository-global (`.git/refs/stash`). Stashing in one worktree and popping in another contaminates worktrees. Use temporary WIP commits (`git commit -m "wip: ... [skip ci]"`) instead.
-- **Worktree cleanup**:
-  - When a feature PR merges, delete the local feature branch and tear down ephemeral worktrees immediately.
-  - Create worktrees in the durable root and remove them through the guarded audit — location and lifecycle: rule `worktrees`; procedure: skill `worktree-audit`.
+Work often alternates between machines (a laptop and a remote dev box) and between worktrees. **GitHub (`origin`) is the relay.**
+
+- **Orient on start**: as in step 1. Pull with `--ff-only` if behind.
+- **Cloud-save on pause or context switch**: never leave uncommitted or unpushed work. Commit with a Conventional Commit or a descriptive checkpoint, `git commit -m "wip: <checkpoint> [skip ci]"`, then `git push`. The `[skip ci]` keeps intermediate checkpoints from triggering CI where CI is metered. Unpushed commits cannot travel between machines.
+- **No global stash across worktrees**: the stash stack is shared by every worktree of a repository (`.git/refs/stash`), so stashing in one and popping in another contaminates both. Use a temporary WIP commit on the branch instead.
+- **Prune finished worktrees**: when a feature branch merges, delete the local branch and remove the worktree. The `worktrees` pack (`worktree-audit`) adds a guarded way to do it.
+
+## Orchestrators
+
+If a coordinator or worker tool is in use, signal completion through that tool's real API; do not invent subcommands. The loop itself does not depend on any orchestrator.
 
 ## Anti-patterns
 
-- Declaring done without local verification
-- Auto-merging taste/creative work without human approval
-- Blocking a purely programmatic task on a human
-- Shipping without updating the KB when durable truth changed
-- Leaving merge conflicts in the code repo or vault for “later”
-- Force-pushing over peers to dodge KB or code conflict resolution
-- Declaring ship done when PR CI is red, or ignoring a failed post-merge deploy
-- Leaving worktrees / stacks / branches behind after merge
-- Leaving the **primary** checkout on a merged feature branch instead of resetting to
-  the integration branch
-- Building changes on top of a stale branch without checking git state or pulling from origin
-- Pausing or context-switching machines without pushing WIP commits to origin
-- Using global `git stash` to transfer or park work across worktrees
-- Pushing or dispatching CI again after a red run without reading the logs and
-  reproducing the failure locally
-- Using `workflow_dispatch`, empty commits, or throwaway pushes as a debugger (CI
-  minutes are metered)
-- Continuing past three consecutive red runs on one branch instead of stopping to report
+- Declaring done without verifying locally.
+- Auto-merging taste or brand work without human approval, or blocking a programmatic task on a human.
+- Shipping while durable truth changed and the KB was not updated.
+- Leaving merge conflicts in the code repo or the vault for "later", or force-pushing over peers.
+- Calling a ship done while PR CI is red, or ignoring a failed post-merge deploy.
+- Leaving worktrees, stacks or branches behind; leaving the primary checkout on a merged feature branch.
+- Building on a stale branch without checking git state; pausing or switching machines without pushing a checkpoint.
+- Using `git stash` to move work across worktrees.
+- Pushing again after a red run without reading the logs and reproducing the failure locally; using CI as a debugger.

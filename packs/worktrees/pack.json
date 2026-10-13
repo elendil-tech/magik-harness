@@ -1,0 +1,13 @@
+{
+  "description": "A worktree location convention and a fail-closed audit: inventory every git worktree, classify it, and remove finished ones only when nothing can be lost.",
+  "requires": {
+    "commands": [
+      "git",
+      "python3"
+    ],
+    "platforms": [
+      "darwin",
+      "linux"
+    ]
+  }
+}

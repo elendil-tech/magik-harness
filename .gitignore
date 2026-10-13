@@ -1,21 +1,14 @@
 node_modules/
 dist/
-seeds/
 *.tsbuildinfo
 .DS_Store
 
-# Secrets — NEVER commit. .env.example is the only tracked variant.
+# Secrets: never commit.
 .env
 .env.*
-!.env.example
 
-# Harness artifacts — this repo is the plugin, not a harnessed project.
-# If `/magik-repo-setup` is ever run here by accident, ignore its outputs so
-# they don't pollute the plugin source tree.
-/knowledge/
-/memory/
-/workspace/
-/codebase/
-/AGENTS.md
-.cursor/harness.json
+# This repo develops the harness. If the installer is run here by accident,
+# keep its per-machine outputs out of the source tree.
+/.magik/
+/.agents/
 .cursor/harness.local.json

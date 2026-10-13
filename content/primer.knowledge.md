@@ -1,0 +1,15 @@
+> **Harness primer.** Managed by [magik-harness](https://github.com/codeisalifestyle/magik-repo-plugin); it is replaced in place on upgrade, so keep your own notes outside the markers.
+> This is a normal code repo with two external services behind it: a **knowledge base** (the project's ground truth) and **memory** (the running log of what happened). Both are plain Markdown in a vault outside the repo, found through {{POINTER}}.
+
+At session start a hook prints the resolved paths, today's memory and the git sync state under the heading `magik-harness session context`. If that heading is missing, run `node {{RUNTIME}} --format text` (or `magik-harness resolve`) yourself. If a store is unreachable, say so and carry on; never block on it.
+
+## The rules (there are four)
+
+1. **Gather full context before substantive work.** Before producing, modifying or committing anything domain-relevant, load the `kb-search` skill. The KB is the *start* of context, not the end: it says what *should* be true, so corroborate it against the code (what the system does) and, read-only, the live state of dependent services, and act on reality where they diverge. Your training priors are not this project's ground truth, and a stale KB is not either. If an active policy would be violated, stop and surface it. Stopping at a KB search alone is the failure this harness exists to catch.
+2. **Keep the KB in sync, at the autonomy granted.** `knowledge.autonomy` in the pointer (default `open`) sets how freely you write the KB on your own initiative. `open`: keep entries current as your work changes durable truth, without asking, and surface only large or destructive restructurings. `ask`: write only when asked or when a `kb-sanitize` / `kb-code-sync` proposal is approved. `readonly`: report, never write. Never silently reorganize structure or rewrite entries wholesale. Load `knowledge-base` before writing.
+3. **Memory is for recency; the KB is for durable truth.** Write observations and lessons to today's `memory/daily/<date>.md` as they surface (skill `harness-memory`). Never auto-promote memory into the KB; if a note should become ground truth, offer to record it in the KB.
+4. **Close the loop.** Orient, strategize, implement, verify, ship, sync the KB, clean up. Done means merged, checks green, knowledge updated and the workspace tidy, not "code written". Work that needs taste (design, copy, brand, look and feel) raises an approval gate with two or three drafts; work a machine can verify never waits on a human. Resolve code and KB merge conflicts inside the loop. **Across machines and worktrees:** orient on start (`git status`; `git pull --ff-only` if behind), cloud-save on pause (`git commit -m "wip: <checkpoint> [skip ci]"` then `git push`), and never `git stash` across worktrees. Load `agentic-e2e-loop` for the full procedure.
+
+## Skills to load on demand
+
+Folder `{{SKILLS_DIR}}/`: `harness` (the operating model), `kb-search`, `knowledge-base`, `kb-conventions`, `kb-sanitize`, `kb-code-sync`, `harness-memory`, `agentic-e2e-loop`.
