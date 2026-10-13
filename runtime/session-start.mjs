@@ -252,6 +252,9 @@ export function buildContext(opts = {}) {
   } else {
     steps.push(`- Follow the \`agentic-e2e-loop\` skill for substantive work (\`${skillsDir}/agentic-e2e-loop/SKILL.md\`).`);
   }
+  if (res.warnings.length) {
+    steps.push(`- The harness is configured but something is broken (see WARNING above). Run \`magik-harness doctor\`; the \`harness-fit\` skill (\`${skillsDir}/harness-fit/SKILL.md\`) repairs and re-aligns the project.`);
+  }
   parts.push(steps.join("\n"));
 
   return { text: parts.join("\n\n---\n\n"), resolution: res };

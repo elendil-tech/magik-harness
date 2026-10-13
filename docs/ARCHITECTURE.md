@@ -195,7 +195,7 @@ One block, roughly 2–7 KB:
 1. **Harness status**: resolved stores with absolute paths, autonomy, `source`, and warnings ([section 5.3](#53-failure-modes)). Always starts with the stable marker line `magik-harness session context v<version>` so adherence and probes can detect it.
 2. **Today's memory**: `memory/daily/<date>.md`, capped at `maxBytes`. Over the cap, the *tail* is injected (the newest notes) with a note giving the shown/total size and the full path.
 3. **Git sync context**: branch, dirty file count, ahead/behind, and the multi-machine protocol reminder (orient on start, cloud-save on pause with `[skip ci]` WIP commits, no global `git stash` across worktrees).
-4. **Next steps**: the concrete skill to run (`kb-search` for substantive work) and, when the harness is configured but empty, how to create the first KB entry.
+4. **Next steps**: the concrete skill to run (`kb-search` for substantive work), how to create the first KB entry when the harness is configured but empty, and, only when a WARNING is showing, a pointer to `doctor` and the `harness-fit` skill.
 
 Output formats:
 

@@ -131,6 +131,14 @@ describe("silence and loudness", () => {
     const ctx = contextOf(r.stdout);
     assert.match(ctx, /WARNING: Vault not found/);
     assert.match(ctx, /not-cloned-yet/);
+    assert.match(ctx, /`harness-fit` skill/, "a broken harness points at the way to repair it");
+  });
+
+  it("stays quiet about the fit skill while everything is fine", () => {
+    const w = world();
+    const ctx = contextOf(run(w).stdout);
+    assert.ok(!/WARNING/.test(ctx));
+    assert.ok(!/harness-fit/.test(ctx), "no extra context for a healthy harness");
   });
 
   it("is loud about a pointer it cannot parse", () => {
