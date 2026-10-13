@@ -1,5 +1,5 @@
 /**
- * tests/worktree-audit.test.ts — coverage for skills/worktree-audit/scripts/wt_audit.py.
+ * tests/worktree-audit.test.ts — coverage for packs/worktrees/skills/worktree-audit/scripts/wt_audit.py.
  *
  * Everything runs in a throwaway sandbox: HOME is redirected so the durable / Cursor /
  * Orca roots resolve inside it, "origin" is a local bare repo, and `gh` is a fake on PATH
@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = dirname(TEST_DIR);
-const TOOL = join(PLUGIN_ROOT, "skills", "worktree-audit", "scripts", "wt_audit.py");
+const TOOL = join(PLUGIN_ROOT, "packs", "worktrees", "skills", "worktree-audit", "scripts", "wt_audit.py");
 
 // The tool is POSIX-only (lsof, symlinks, POSIX paths), and so is this fixture (`sleep`, `#!/bin/sh`).
 const posix = process.platform !== "win32";

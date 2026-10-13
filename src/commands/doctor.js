@@ -116,18 +116,19 @@ function checkInstall(kind, io, cwd, out) {
     out.push({ area, level: "warn", message: `could not compare with this CLI: ${/** @type {Error} */ (e).message}` });
   }
 
-  // registrations
-  for (const [key, entry] of Object.entries(lock.json)) {
-    const abs = keyToAbs(scope, key);
+  // registrations: whatever the lock recorded, each installed tool needs its hook entry
+  // (an install that could not edit an invalid hooks.json recorded nothing, and must not pass here)
+  /** @type {{ abs: string, command: string }[]} */
+  const expected = [];
+  if (lock.tools.includes("cursor")) expected.push({ abs: join(scope.root, ".cursor", "hooks.json"), command: scope.hookCommand("cursor") });
+  if (lock.tools.includes("claude")) expected.push({ abs: join(scope.root, ".claude", "settings.json"), command: scope.hookCommand("claude") });
+  for (const { abs, command } of expected) {
+    const shown = scope.display(abs);
     const f = readJsonFile(abs);
-    if (!f.exists) out.push({ area, level: "fail", message: `${scope.display(abs)} is missing, so the session hook is not registered`, fix: upgradeCmd });
-    else if (!f.valid) out.push({ area, level: "fail", message: `${scope.display(abs)} is not valid JSON: ${f.error}` });
-    else {
-      const have = new Set(collectCommands(f.value));
-      const absent = entry.commands.filter((c) => !have.has(c));
-      if (absent.length) out.push({ area, level: "fail", message: `hook not registered in ${scope.display(abs)}`, fix: upgradeCmd });
-      else out.push({ area, level: "ok", message: `hook registered in ${scope.display(abs)}` });
-    }
+    if (!f.exists) out.push({ area, level: "fail", message: `${shown} is missing, so the session hook is not registered`, fix: upgradeCmd });
+    else if (!f.valid) out.push({ area, level: "fail", message: `${shown} is not valid JSON (${f.error}), so the session hook cannot be registered; fix the file, then add: ${command}` });
+    else if (!collectCommands(f.value).includes(command)) out.push({ area, level: "fail", message: `session hook is not registered in ${shown}`, fix: upgradeCmd });
+    else out.push({ area, level: "ok", message: `hook registered in ${shown}` });
   }
 
   // runtime

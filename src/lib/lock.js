@@ -24,7 +24,7 @@ export const LOCK_SCHEMA = "magik-harness/lock@1";
  * @property {Record<string,string>} files    key -> sha256 of the content we wrote
  * @property {Record<string,{ hash: string, name: string, style: "html"|"hash" }>} blocks   "<file>#<id>" -> body hash, marker name and comment style
  * @property {Record<string,{ commands: string[], created: boolean }>} json   file -> entries we own
- * @property {string[]} seeds                 user-owned files we created (removed only by --purge)
+ * @property {Record<string,string>} seeds    user-owned files we created -> sha256 of what we wrote (removed only by --purge, and only while unedited unless --force)
  */
 
 /** @returns {Lock} */
@@ -41,7 +41,7 @@ export function emptyLock() {
     files: {},
     blocks: {},
     json: {},
-    seeds: [],
+    seeds: {},
   };
 }
 
@@ -69,7 +69,10 @@ export function readLock(path) {
     if (!raw || typeof raw !== "object" || raw.schema !== LOCK_SCHEMA) {
       return { ok: false, missing: false, error: `unrecognised lock schema ${JSON.stringify(raw?.schema)}` };
     }
-    return { ok: true, lock: { ...emptyLock(), ...raw } };
+    const lock = { ...emptyLock(), ...raw };
+    // a list of paths (no hashes) is read as "edited": a purge then keeps those files
+    if (Array.isArray(lock.seeds)) lock.seeds = Object.fromEntries(lock.seeds.map((/** @type {unknown} */ k) => [String(k), ""]));
+    return { ok: true, lock };
   } catch (e) {
     return { ok: false, missing: false, error: String(/** @type {any} */ (e)?.message ?? e) };
   }

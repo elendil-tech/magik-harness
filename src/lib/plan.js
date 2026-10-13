@@ -144,7 +144,7 @@ function planFile(d, ctx) {
  */
 function planSeed(d) {
   if (existsSync(d.abs)) return { type: "seed", action: "skip", abs: d.abs, key: d.key, reason: "exists; yours, never overwritten" };
-  return { type: "seed", action: "create", abs: d.abs, key: d.key, reason: "new (yours from now on)", content: d.content };
+  return { type: "seed", action: "create", abs: d.abs, key: d.key, reason: "new (yours from now on)", content: d.content, hash: sha256(d.content) };
 }
 
 /**
@@ -312,6 +312,10 @@ function backupFile(item, scope, stamp) {
   if (!existsSync(item.abs)) return null;
   const dest = join(scope.backupRoot, stamp, item.key.split("#")[0].replace(/^[A-Za-z]:/, "").replace(/^\/+/, ""));
   ensureDir(dirname(dest));
+  // Backups are local safety copies. Keep them out of git even after uninstall has removed the
+  // .gitignore block that normally hides them: a `*` rule inside the folder ignores the folder.
+  const guard = join(scope.backupRoot, ".gitignore");
+  if (!existsSync(guard)) writeFileAtomic(guard, "# magik-harness backups: local safety copies, never commit.\n*\n");
   copyFileSync(item.abs, dest);
   return dest;
 }
@@ -352,7 +356,7 @@ export function computeLock(prior, items, settings) {
   lock.files = { ...(prior?.files ?? {}) };
   lock.blocks = { ...(prior?.blocks ?? {}) };
   lock.json = { ...(prior?.json ?? {}) };
-  lock.seeds = [...(prior?.seeds ?? [])];
+  lock.seeds = { ...(prior?.seeds ?? {}) };
 
   for (const it of items) {
     if (it.type === "file") {
@@ -368,11 +372,10 @@ export function computeLock(prior, items, settings) {
       if (["create", "merge", "unchanged"].includes(it.action) && it.commands) {
         lock.json[it.key] = { commands: it.commands, created: Boolean(it.createdByUs) };
       }
-    } else if (it.type === "seed" && it.action === "create" && !lock.seeds.includes(it.key)) {
-      lock.seeds.push(it.key);
+    } else if (it.type === "seed" && it.action === "create" && it.hash) {
+      lock.seeds[it.key] = it.hash;
     }
   }
-  lock.seeds.sort();
   return lock;
 }
 
@@ -423,9 +426,18 @@ export function planUninstall(lock, o) {
   }
 
   if (o.purge) {
-    for (const key of lock.seeds) {
+    // Seeds are yours (the pointer, the vault's starter index). Purge removes one only while it is
+    // exactly what install wrote; an edited one is real work and stays unless --force.
+    for (const [key, hash] of Object.entries(lock.seeds)) {
       const abs = keyToAbs(scope, key);
-      if (existsSync(abs)) items.push({ type: "remove", action: "remove", abs, key, reason: "user-owned file created by install (--purge)", backup: true });
+      const buf = readBuffer(abs);
+      if (!buf) continue;
+      const untouched = hash !== "" && sha256(buf) === hash;
+      if (untouched || o.force) {
+        items.push({ type: "remove", action: "remove", abs, key, reason: untouched ? "user-owned file created by install (--purge)" : "edited since it was created; removed (--purge --force)", backup: true });
+      } else {
+        items.push({ type: "remove", action: "keep", abs, key, reason: "edited since it was created; kept (use --force to remove)" });
+      }
     }
   }
   return items;

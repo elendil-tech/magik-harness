@@ -79,7 +79,7 @@ export async function runUninstall(argv, io) {
   if (!flags.json) {
     io.out(`Done: ${formatSummary(items)}.\n`);
     for (const b of backups) io.out(`  backup: ${b}\n`);
-    io.out("The vault and your pointer were left in place" + (flags.purge ? " (pointer removed: --purge)." : ".") + "\n");
+    io.out((flags.purge ? "The pointer was removed (--purge); the vault and its notes were left untouched." : "The vault and your pointer were left in place.") + "\n");
   }
   return 0;
 }
