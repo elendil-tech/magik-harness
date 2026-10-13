@@ -1,12 +1,13 @@
 ---
 name: kb-search
 description: >-
-  Gather full context before any substantive work. The KB is the claimed
-  ground truth, but it can be stale or wrong — so corroborate it against the
-  code and the live state of dependent services, and reconcile drift. Resolves
-  the KB from the harness pointer and navigates the external vault with your
-  own tools (Read / Grep / semantic search / code-intel / MCP). A mandatory
-  pre-task gate — never satisfied by a KB search alone.
+  Use before any substantive work (code, docs, decisions) to gather full
+  context. The KB is the claimed ground truth, but it can be stale or wrong, so
+  corroborate it against the code and the live state of dependent services, and
+  reconcile drift. Resolves the KB from the harness pointer and navigates the
+  external vault with your own tools (Read / Grep / semantic search /
+  code-intel / MCP). A mandatory pre-task gate, never satisfied by a KB search
+  alone.
 ---
 
 # Context gather (the pre-task gate)

@@ -256,18 +256,20 @@ export function buildInstall(o, io) {
 
   /** @type {any} */
   let existingVault = null;
-  if (o.scope === "project") {
-    const src = exists(pointerNew) ? pointerNew : exists(pointerLegacy) ? pointerLegacy : null;
-    if (src) {
-      const r = readJson(src);
-      if (r.ok && r.value && typeof r.value === "object") existingVault = r.value.vault ?? null;
-    }
-  } else {
-    const r = readJson(baseScope.pointerPath);
-    if (r.ok && r.value && typeof r.value === "object") existingVault = r.value.vault ?? null;
+  /** @type {string|null} a pointer file that exists but cannot be read */
+  let brokenPointer = null;
+  const pointerSrc = o.scope === "project" ? (exists(pointerNew) ? pointerNew : exists(pointerLegacy) ? pointerLegacy : null) : exists(baseScope.pointerPath) ? baseScope.pointerPath : null;
+  if (pointerSrc) {
+    const r = readJson(pointerSrc);
+    if (r.ok && r.value && typeof r.value === "object" && !Array.isArray(r.value)) existingVault = r.value.vault ?? null;
+    else brokenPointer = pointerSrc;
   }
-  const hasPointer = o.scope === "project" ? exists(pointerNew) || exists(pointerLegacy) : exists(baseScope.pointerPath);
+  const hasPointer = pointerSrc !== null;
   const vaultKnown = Boolean(o.vault) || Boolean(existingVault) || (o.accessVia === "mcp" && hasPointer);
+  if (brokenPointer && !o.vault && !o.profile && !prior) {
+    // Guessing "minimal" here would stick (an upgrade keeps the saved profile) and silently drop the knowledge base.
+    throw new UsageError(`${baseScope.display(brokenPointer)} exists but is not valid JSON, so this project's vault cannot be read. Fix or delete it, or pass --vault <dir> (or --profile minimal) to go on without it.`);
+  }
 
   const profileName = o.profile ?? prior?.profile ?? (vaultKnown ? "knowledge" : "minimal");
   const profile = profiles[profileName];

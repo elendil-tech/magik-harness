@@ -13,18 +13,12 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import { PLUGIN_VERSION } from "./_version.ts";
-import { cli, files, git, has, hook, machine, read, readJson, repo, write } from "./_helpers.ts";
+import { cli, files, git, has, hook, project as proj, read, readJson, write } from "./_helpers.ts";
+import type { Project as P } from "./_helpers.ts";
 
 const KNOWLEDGE_SKILLS = ["agentic-e2e-loop", "harness", "harness-memory", "kb-code-sync", "kb-conventions", "kb-sanitize", "kb-search", "knowledge-base"];
 const MINIMAL_SKILLS = ["agentic-e2e-loop", "harness"];
 const CURSOR_CMD = "node .magik/runtime/session-start.mjs --format cursor";
-
-function proj(opts: { files?: Record<string, string> } = {}) {
-  const m = machine();
-  const app = repo(join(m.root, "Projects"), "app", opts.files);
-  return { ...m, app, vault: join(m.home, "vault") };
-}
-type P = ReturnType<typeof proj>;
 
 const run = (p: P, args: string[]) => cli(args, { cwd: p.app, home: p.home });
 const install = (p: P, args: string[] = []) => run(p, ["install", "--yes", ...args]);

@@ -240,7 +240,8 @@ function planRemoval(d, ctx) {
   if (d.onlyIf && !d.onlyIf(buf.toString("utf8"))) {
     return { type: "remove", action: "keep", abs: d.abs, key, reason: d.keepReason ?? "has local edits; left in place" };
   }
-  return { type: "remove", action: "remove", abs: d.abs, key, reason: d.reason };
+  // what we delete is always 1.x leftovers a person may have edited: keep a copy
+  return { type: "remove", action: "remove", abs: d.abs, key, reason: d.reason, backup: true };
 }
 
 /**

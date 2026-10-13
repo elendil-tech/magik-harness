@@ -169,7 +169,8 @@ function checkInstall(kind, io, cwd, out) {
       out.push({ area, level: "warn", message: `skill ${name} (${dirKey}): ${p}` });
     }
   }
-  out.push({ area, level: problems ? "warn" : "ok", message: `${skillDirs.size} skill folder(s) checked${problems ? `, ${problems} problem(s)` : ", all valid"}` });
+  // the problems themselves are warnings above; this line only summarises, so it must not count twice
+  out.push({ area, level: problems ? "info" : "ok", message: `${skillDirs.size} skill folder(s) checked${problems ? `, ${problems} problem(s)` : ", all valid"}` });
 
   if (kind === "project") {
     // primer

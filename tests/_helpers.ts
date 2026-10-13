@@ -104,6 +104,20 @@ export function machine(): Machine {
   return { root, home };
 }
 
+export interface Project extends Machine {
+  /** The project checkout: `<root>/Projects/app`. */
+  app: string;
+  /** Where a vault would live: `<home>/vault`. It does not exist until something creates it. */
+  vault: string;
+}
+
+/** A fake machine with a committed git project named `app` on it. */
+export function project(opts: { files?: Record<string, string> } = {}): Project {
+  const m = machine();
+  const app = repo(join(m.root, "Projects"), "app", opts.files);
+  return { ...m, app, vault: join(m.home, "vault") };
+}
+
 export interface CliResult {
   code: number;
   out: string;
