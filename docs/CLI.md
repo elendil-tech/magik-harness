@@ -4,7 +4,7 @@
 magik-harness <command> [options]
 ```
 
-Run it without installing anything: `npx magik-harness <command>` (or `npx github:codeisalifestyle/magik-harness <command>`). `magik-harness <command> --help` (or `magik-harness help <command>`) prints the options of one command; this page is the longer version of those texts. `magik-harness --version` prints the version; with no command at all it prints the command list and exits `2`.
+Run it without installing anything: `npx magik-harness <command>` (or `npx github:elendil-tech/magik-harness <command>`). `magik-harness <command> --help` (or `magik-harness help <command>`) prints the options of one command; this page is the longer version of those texts. `magik-harness --version` prints the version; with no command at all it prints the command list and exits `2`.
 
 - [Conventions](#conventions)
 - [install and upgrade](#install-and-upgrade)

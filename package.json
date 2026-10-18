@@ -7,11 +7,11 @@
   "author": "LaLi",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/codeisalifestyle/magik-harness.git"
+    "url": "git+https://github.com/elendil-tech/magik-harness.git"
   },
-  "homepage": "https://github.com/codeisalifestyle/magik-harness#readme",
+  "homepage": "https://github.com/elendil-tech/magik-harness#readme",
   "bugs": {
-    "url": "https://github.com/codeisalifestyle/magik-harness/issues"
+    "url": "https://github.com/elendil-tech/magik-harness/issues"
   },
   "keywords": [
     "agents",

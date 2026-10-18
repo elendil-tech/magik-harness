@@ -3,10 +3,10 @@
 <img src="./assets/banner.png" alt="magik-harness: a harness for AI coding agents" width="100%" />
 
 <p>
-  <a href="https://github.com/codeisalifestyle/magik-harness/releases">
+  <a href="https://github.com/elendil-tech/magik-harness/releases">
     <img alt="Version" src="https://img.shields.io/badge/version-2.0.0-8A2BE2?style=for-the-badge" />
   </a>
-  <a href="https://github.com/codeisalifestyle/magik-harness/blob/main/LICENSE">
+  <a href="https://github.com/elendil-tech/magik-harness/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge" />
   </a>
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A518.18-339933?style=for-the-badge&logo=nodedotjs&logoColor=white" />
@@ -110,7 +110,7 @@ npx magik-harness doctor
 Pin a version with `npx magik-harness@2.0.0 ...`. Straight from GitHub (no npm needed):
 
 ```bash
-npx github:codeisalifestyle/magik-harness install --vault ~/vaults/my-project
+npx github:elendil-tech/magik-harness install --vault ~/vaults/my-project
 ```
 
 Then start a session in your tool. The first lines of the agent's context come from the hook and begin with `magik-harness session context`; [docs/TOOLS.md](docs/TOOLS.md#checking-it-in-a-live-session) shows how to confirm that on purpose. If the project already had a setup of its own, now is the time for "Fit the harness to this project."
