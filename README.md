@@ -3,17 +3,17 @@
 <img src="./assets/banner.png" alt="magik-repo-plugin — the light harness for Cursor" width="100%" />
 
 <p>
-  <a href="https://github.com/codeisalifestyle/magik-repo-plugin/releases">
+  <a href="https://github.com/elendil-tech/magik-harness/releases">
     <img alt="Version" src="https://img.shields.io/badge/version-1.9.1-8A2BE2?style=for-the-badge" />
   </a>
-  <a href="https://github.com/codeisalifestyle/magik-repo-plugin/blob/main/LICENSE">
+  <a href="https://github.com/elendil-tech/magik-harness/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge" />
   </a>
   <a href="https://docs.cursor.com/plugins">
     <img alt="Cursor Plugin" src="https://img.shields.io/badge/Cursor-Plugin-0ea5e9?style=for-the-badge&logo=cursor&logoColor=white" />
   </a>
-  <a href="https://github.com/codeisalifestyle">
-    <img alt="By codeisalifestyle" src="https://img.shields.io/badge/by-codeisalifestyle-fbbf24?style=for-the-badge&logo=github&logoColor=white" />
+  <a href="https://github.com/elendil-tech">
+    <img alt="By elendil-tech" src="https://img.shields.io/badge/by-elendil--tech-fbbf24?style=for-the-badge&logo=github&logoColor=white" />
   </a>
 </p>
 
@@ -223,6 +223,6 @@ MIT — see [LICENSE](./LICENSE). Build cool things. 🪄
 
 <div align="center">
 
-<sub>Made with 🪄 by <a href="https://github.com/codeisalifestyle">codeisalifestyle</a> · Powered by <a href="https://cursor.com">Cursor</a></sub>
+<sub>Made with 🪄 by <a href="https://github.com/elendil-tech">elendil-tech</a> · Powered by <a href="https://cursor.com">Cursor</a></sub>
 
 </div>

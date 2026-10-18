@@ -1,4 +1,4 @@
-> **Harness primer.** This is a normal code repo wired to [magik-repo](https://github.com/codeisalifestyle/magik-repo-plugin) — a light harness. Two external services back the agent: a **knowledge base** (the project's ground truth) and **memory** (the running log). Both live in an external vault pointed to by `.cursor/harness.json`.
+> **Harness primer.** This is a normal code repo wired to [magik-repo](https://github.com/elendil-tech/magik-harness) — a light harness. Two external services back the agent: a **knowledge base** (the project's ground truth) and **memory** (the running log). Both live in an external vault pointed to by `.cursor/harness.json`.
 
 ## How it's wired
 
