@@ -4,9 +4,8 @@ What magik-harness does **not** ship today, and why. The [CHANGELOG](CHANGELOG.m
 
 ## Before 2.0.0 is published
 
-The code, tests and docs are on the `refactor/magik-harness` branch. Release steps that are the maintainer's to take:
+2.0.0 is merged to `main` and not yet published. Release steps that are the maintainer's to take:
 
-- Run CI on a pull request marked ready: the matrix covers Linux, macOS and Windows, and until it runs only Linux-like behavior has been exercised locally.
 - Publish to npm (`npm login`, then `npm publish`; the package is public and `publishConfig` is set), then drop the `npx github:…` fallback from the README.
 - Refresh the Cursor marketplace listing (name, description, logo) and reinstall the local plugin with `pnpm install-plugin`.
 - In each project that already uses the harness: `magik-harness upgrade`, then ask the agent to run the `harness-fit` skill.
@@ -19,6 +18,7 @@ The code, tests and docs are on the `refactor/magik-harness` branch. Release ste
 ## Tools
 
 - **Claude Code and Codex: from experimental to verified.** The adapters are implemented from documentation and file-level tests. Each needs one run of the [live check](docs/TOOLS.md#checking-it-in-a-live-session) against the real tool, with the version and date recorded in `docs/TOOLS.md`.
+- **macOS and Windows in CI.** CI is one Linux job on Node 22, on purpose. The code sticks to portable APIs (no symlinks by default, `path` everywhere, forward-slash keys in the lock), but nothing checks other platforms or other Node versions. Add one only when a real bug shows it is worth the minutes.
 - **The Cursor IDE.** Only `cursor-agent` has been exercised; the IDE reads the same files, but a run per platform would settle whether anything differs.
 - **More adapters** (Gemini CLI, GitHub Copilot, Windsurf, OpenCode, Amp, …). An adapter is one file; see [Adding a tool](docs/TOOLS.md#adding-a-tool). Contributions welcome once a tool has a documented session hook or instruction file worth targeting.
 

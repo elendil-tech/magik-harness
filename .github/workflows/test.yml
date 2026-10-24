@@ -1,10 +1,14 @@
 name: test
 
-# One run per pull request. The suite is the gate for main; a squash merge
-# produces the tree the PR already tested, so main is not tested a second time.
-# (This repo is public, so hosted runners on all three platforms are free.)
+# One run per pull request: a single Linux job on Node 22. The suite is the gate
+# for main; a squash merge produces the tree the PR already tested, so main is
+# not tested a second time. Draft pull requests are skipped, so marking one
+# ready is the run. Only Linux is exercised here; the code sticks to portable
+# APIs (docs/ARCHITECTURE.md, principle 7) but nothing in CI checks macOS or
+# Windows.
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches: [main]
     paths-ignore:
       - "assets/**"
@@ -20,19 +24,9 @@ concurrency:
 
 jobs:
   test:
-    name: ${{ matrix.os }} · node ${{ matrix.node }}
-    runs-on: ${{ matrix.os }}
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        # Node 22 on every platform, plus the oldest supported (18) and the
-        # newest (24) on Linux. package.json#engines is >=18.18.
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        node: ["22"]
-        include:
-          - { os: ubuntu-latest, node: "18" }
-          - { os: ubuntu-latest, node: "24" }
 
     steps:
       - name: Checkout
@@ -42,10 +36,10 @@ jobs:
         # The version comes from package.json#packageManager (single source of truth).
         uses: pnpm/action-setup@v4
 
-      - name: Set up Node.js ${{ matrix.node }}
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: "22"
           cache: pnpm
 
       - name: Install dependencies

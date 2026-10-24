@@ -18,7 +18,7 @@ Tracks `harness@2`. magik-harness continues the Cursor plugin `magik-repo` (the 
 - **`doctor`**: checks resolution, the lock, managed files against their hashes, hook registration and a real run of the hook, skill lint, the primer's size and git-ignored managed paths, each with the command that fixes it. When anything fails or warns, it ends with a hint to run the `harness-fit` skill. `--strict` and `--json` for CI.
 - **Detection that respects git.** A tool that is only auto-detected is skipped, with a note, when git ignores its hook file (a repo that lets a generator own a git-ignored `.claude/`, say), so an install never ends up half-shared. `--tools <tool>` forces it and warns.
 - **Docs**: a README that explains the harness with the picture of a harness on a horse (the parts, the actions, fitting at the start, middle and end of a project, drift), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/CLI.md](docs/CLI.md), [docs/TOOLS.md](docs/TOOLS.md), [docs/FITTING.md](docs/FITTING.md), a new banner and social card.
-- **Tests**: more than 300, none touching your real home directory or your real repositories (each runs in throwaway directories with a fake `HOME`). They cover the resolver, the hook, both scopes, `doctor`, the plan/apply/lock machinery, a lint of every skill, and the fit skill against what the installer writes. CI runs them on Linux, macOS and Windows on Node 22, and on Node 18 and 24 on Linux.
+- **Tests**: more than 300, none touching your real home directory or your real repositories (each runs in throwaway directories with a fake `HOME`). They cover the resolver, the hook, both scopes, `doctor`, the plan/apply/lock machinery, a lint of every skill, and the fit skill against what the installer writes. CI runs them on Linux with Node 22.
 
 ### Changed
 
@@ -28,7 +28,7 @@ Tracks `harness@2`. magik-harness continues the Cursor plugin `magik-repo` (the 
 - **The primer** (always-on text) is one short block in `AGENTS.md`: about 0.9 KB for `minimal`, 3 KB for `knowledge`, with a 5 KB budget that `doctor` enforces. It used to be spread across rules only Cursor loaded.
 - **The hook** is `.magik/runtime/session-start.mjs`, and knowledge-profile context now also names the `agentic-e2e-loop` skill, so a global Cursor install, which has no primer file, still tells the agent about the loop.
 - **Cursor plugin packaging** is optional and generated from the same content: `pnpm install-plugin`. It supplies the core skills and the `/magik-harness-*` commands (`fit`, `doctor`, `kb-sanitize`, `kb-code-sync`).
-- **CI** (`.github/workflows/test.yml`): `pull_request` only, concurrency cancelling superseded runs, a timeout on every job, documentation-only changes skipped.
+- **CI** (`.github/workflows/test.yml`): one Linux job on Node 22, `pull_request` only, draft pull requests skipped, concurrency cancelling superseded runs, a timeout on every job, documentation-only changes skipped.
 
 ### Removed
 

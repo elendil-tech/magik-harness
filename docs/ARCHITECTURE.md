@@ -48,7 +48,7 @@ The **four rules** the harness enforces live in the primer ([section 8](#8-the-p
 4. **Fail open, never silent.** A hook error never blocks a session. A *configured but broken* harness (vault path missing) says so, loudly, in the session context. A repo with no harness stays quiet.
 5. **The installer owns only what it can prove it owns.** Every managed file is recorded with a content hash. A file edited by hand is never overwritten without `--force`. User files and foreign JSON entries are merged around, never replaced.
 6. **Zero runtime dependencies.** Node 18+ standard library only. The CLI runs straight from a git checkout (`npx github:…`) with no build step, and the runtime scripts copied into a project run with nothing installed.
-7. **Cross-platform.** No symlinks by default (they need privileges on Windows), forward-slash keys in the lock, `path` APIs everywhere. CI runs Linux, macOS and Windows.
+7. **Cross-platform.** No symlinks by default (they need privileges on Windows), forward-slash keys in the lock, `path` APIs everywhere. CI is one Linux job on Node 22, so macOS and Windows rest on that discipline rather than on a test.
 8. **Small always-on, large on-demand.** The primer stays under 5 KB. Detail lives in skills that load when the task needs them.
 
 ## 3. Delivery
