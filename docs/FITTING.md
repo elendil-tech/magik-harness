@@ -35,7 +35,7 @@ Splitting it this way keeps the package small and honest: it knows one layout. W
 
 ## How to ask
 
-Install the harness first (`npx magik-harness install`, see the [README](../README.md#quick-start)), which also installs the skill. Then tell the agent, in your own words:
+Install the harness first (`npx github:elendil-tech/magik-harness install`, see the [README](../README.md#quick-start)), which also installs the skill. Then tell the agent, in your own words:
 
 > Fit the harness to this project.
 

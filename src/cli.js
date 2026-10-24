@@ -33,10 +33,13 @@ Commands
   primer      Print the primer text (for tools without a primer file)
 
 Quick start
-  npx magik-harness install --vault ~/vaults/my-project     # project scope
-  npx magik-harness install --scope global --vault ~/vault  # whole machine
-  npx magik-harness install --profile minimal               # no vault at all
-  npx magik-harness doctor
+  magik-harness install --vault ~/vaults/my-project     # project scope
+  magik-harness install --scope global --vault ~/vault  # whole machine
+  magik-harness install --profile minimal               # no vault at all
+  magik-harness doctor
+
+Not on your PATH? There is no npm package; run it straight from GitHub:
+  npx github:elendil-tech/magik-harness <command>
 
 Run \`magik-harness <command> --help\` for the options of one command.
 `;

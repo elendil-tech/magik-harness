@@ -4,7 +4,7 @@
 magik-harness <command> [options]
 ```
 
-Run it without installing anything: `npx magik-harness <command>` (or `npx github:elendil-tech/magik-harness <command>`). `magik-harness <command> --help` (or `magik-harness help <command>`) prints the options of one command; this page is the longer version of those texts. `magik-harness --version` prints the version; with no command at all it prints the command list and exits `2`.
+Run it without installing anything: `npx github:elendil-tech/magik-harness <command>`. The harness is distributed from GitHub only, so there is no npm package. This page writes `magik-harness <command>` for short; to have that on your PATH, clone the repository and run `npm link` once. Pin a release with a tag: `npx github:elendil-tech/magik-harness#v2.0.1 <command>`. `magik-harness <command> --help` (or `magik-harness help <command>`) prints the options of one command; this page is the longer version of those texts. `magik-harness --version` prints the version; with no command at all it prints the command list and exits `2`.
 
 - [Conventions](#conventions)
 - [install and upgrade](#install-and-upgrade)
@@ -137,7 +137,7 @@ resolution
   ok   vault /home/me/vaults/acme
 
 project install
-  ok   installed v2.0.0: profile knowledge, tools cursor, packs none
+  ok   installed v2.0.1: profile knowledge, tools cursor, packs none
   ok   20 managed files present
   ok   up to date with this CLI
   ok   hook registered in .cursor/hooks.json
@@ -167,7 +167,7 @@ Levels: `ok`, `info` (no action needed), `warn` (works, but something is off), `
 ```json
 {
   "command": "doctor",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "ok": true,
   "failures": 0,
   "warnings": 0,
@@ -247,7 +247,7 @@ The hook decides which project it is for by `--project-root`, then `MAGIK_PROJEC
 **Check a repo in CI.** Fails when the harness rotted: a managed file missing or hand-broken, the hook not registered, a skill that fails its lint, a managed path that got git-ignored. A CI machine has no vault, so the `resolution` area (which checks the vault folder) is left out:
 
 ```bash
-npx magik-harness@2 doctor --scope project --json \
+npx github:elendil-tech/magik-harness#v2.0.1 doctor --scope project --json \
   | jq -e '[.checks[] | select(.level == "fail" and .area != "resolution")] | length == 0'
 ```
 
@@ -256,20 +256,20 @@ Add `or .level == "warn"` inside the `select` to fail on warnings too. With the 
 **Install non-interactively on a new machine** (scripts, dotfiles, a dev container):
 
 ```bash
-npx magik-harness install --scope global --vault ~/vaults --tools cursor,claude --yes
+npx github:elendil-tech/magik-harness install --scope global --vault ~/vaults --tools cursor,claude --yes
 ```
 
 **Preview, then apply, in a script:**
 
 ```bash
-npx magik-harness install --vault ~/vaults/acme --dry-run --json | jq '.items[] | select(.action != "unchanged")'
-npx magik-harness install --vault ~/vaults/acme --yes
+npx github:elendil-tech/magik-harness install --vault ~/vaults/acme --dry-run --json | jq '.items[] | select(.action != "unchanged")'
+npx github:elendil-tech/magik-harness install --vault ~/vaults/acme --yes
 ```
 
 **Give a whole team a policy bundle** without touching this package: keep `<repo>/packs/<name>/pack.json` and `skills/`, then `install --pack-dir <repo>/packs --packs <name>`.
 
 **Move a project to another vault** (this machine only): put `{ "vault": "~/elsewhere" }` in `.magik/harness.local.json` (git-ignored). The tracked pointer stays as it is.
 
-**Fit a project that already has a setup of its own** (an older layout, hand-made hooks, duplicated instructions): `npx magik-harness install`, then ask your agent to run the `harness-fit` skill. After an `upgrade`, ask it again. [FITTING.md](FITTING.md) says what to expect.
+**Fit a project that already has a setup of its own** (an older layout, hand-made hooks, duplicated instructions): `npx github:elendil-tech/magik-harness install`, then ask your agent to run the `harness-fit` skill. After an `upgrade`, ask it again. [FITTING.md](FITTING.md) says what to expect.
 
 **Undo everything:** `magik-harness uninstall` (and `--scope global`). Add `--purge` to drop the pointer too. Your vault and any file you edited stay.

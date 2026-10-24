@@ -2,11 +2,10 @@
 
 What magik-harness does **not** ship today, and why. The [CHANGELOG](CHANGELOG.md) is the record of what is shipped; this file is what is deliberately deferred. The floor is small on purpose (a pointer, a hook, a few skills, an installer that owns what it writes), so most of this is optional layers, not obligations.
 
-## Before 2.0.0 is published
+## Still to do by hand
 
-2.0.0 is merged to `main` and not yet published. Release steps that are the maintainer's to take:
+GitHub is the only channel, so a release is a tag and there is nothing to publish. What is left is the maintainer's:
 
-- Publish to npm (`npm login`, then `npm publish`; the package is public and `publishConfig` is set), then drop the `npx github:…` fallback from the README.
 - Refresh the Cursor marketplace listing (name, description, logo) and reinstall the local plugin with `pnpm install-plugin`.
 - In each project that already uses the harness: `magik-harness upgrade`, then ask the agent to run the `harness-fit` skill.
 
@@ -25,7 +24,7 @@ What magik-harness does **not** ship today, and why. The [CHANGELOG](CHANGELOG.m
 ## Installer
 
 - **`doctor --fix`.** Today every finding carries the command that fixes it. Applying the safe ones (re-registering a missing hook, restoring a deleted managed file) automatically is a candidate; anything involving a file you edited stays manual.
-- **An update hint.** `status` already says when the installed version is older than the CLI. A once-a-day, opt-in check against the registry could say when the CLI itself is behind. No network call without an explicit opt-in.
+- **An update hint.** `status` already says when the installed version is older than the CLI. A once-a-day, opt-in check for a newer tag on GitHub could say when the CLI itself is behind. No network call without an explicit opt-in.
 - **More hook delivery** for tools that can run a command at session start but cannot read a JSON payload.
 
 ## Knowledge base and memory
@@ -39,7 +38,8 @@ What magik-harness does **not** ship today, and why. The [CHANGELOG](CHANGELOG.m
 ## Not planned
 
 - A background service or a network component. The harness is files, a script that runs for a moment at session start, and a CLI.
-- Runtime dependencies or a build step in the published package (the point of `npx` working on a clean machine).
+- An npm package. GitHub is the only channel; the CLI runs straight from the repository, and an account, a login and a publish step would buy nothing.
+- Runtime dependencies or a build step (the point of `npx github:elendil-tech/magik-harness` working on a clean machine, straight from the repository: npm runs a `prepare` script on every install from git).
 - Telemetry of any kind.
 - Owning the structure of your knowledge base.
 - Migration commands or code that reads an older layout. Fitting a project to the current layout is the `harness-fit` skill's job.

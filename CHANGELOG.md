@@ -2,13 +2,25 @@
 
 Releases of magik-harness. The design of record is [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## 2.0.0 — unreleased (2026-10-13)
+## 2.0.1 — 2026-10-24
+
+GitHub is the only distribution channel. There is no npm package and none is planned.
+
+### Changed
+
+- **Running the CLI.** `npx github:elendil-tech/magik-harness <command>` is the documented form everywhere: the README, `--help`, the docs, `/magik-harness-doctor`, and the `harness` and `harness-fit` skills. `npx magik-harness` and `magik-harness@<version>` never worked, because the package was never published. A tag pins a release (`…#v2.0.1`), and a clone plus `npm link` puts `magik-harness` on the PATH.
+- **The package is private.** `package.json` says `"private": true` and has no `publishConfig`, so an accidental `npm publish` is refused. A test keeps it so, and fails if a doc, skill or source file goes back to the registry form.
+- **Releases are tags**: `v2.0.0` and `v2.0.1`. The roadmap no longer has a publish step.
+
+In a project, `magik-harness upgrade` refreshes the two skills, and `doctor` reports them as differing until then. The [fit notes](skills/harness-fit/references/versions.md) say what to change in a project's own files.
+
+## 2.0.0 — 2026-10-24
 
 Tracks `harness@2`. magik-harness continues the Cursor plugin `magik-repo` (the 1.x line) as a harness that does not depend on any one tool. The idea is unchanged: a code repo that points at an external vault of knowledge and memory, plus a few rules an agent follows. 2.0 makes it installable by anyone, into a project or onto a whole machine, for Cursor, Claude Code, Codex or any agent that reads `AGENTS.md` and Agent Skills. The Cursor plugin remains as optional packaging.
 
 ### Added
 
-- **A CLI**: `magik-harness install | upgrade | doctor | status | resolve | init | uninstall | list | primer` ([docs/CLI.md](docs/CLI.md)). Plain ES modules, no runtime dependencies, Node 18.18 or newer, no build step, so `npx magik-harness …` runs as is. Every command that writes has `--dry-run`; most have `--json`; exit codes are `0` ok, `1` failed, `2` usage error, and a usage error writes nothing.
+- **A CLI**: `magik-harness install | upgrade | doctor | status | resolve | init | uninstall | list | primer` ([docs/CLI.md](docs/CLI.md)). Plain ES modules, no runtime dependencies, Node 18.18 or newer, no build step, so it runs as is from a clone or straight from GitHub with `npx`. Every command that writes has `--dry-run`; most have `--json`; exit codes are `0` ok, `1` failed, `2` usage error, and a usage error writes nothing.
 - **Fitting, as text an agent follows.** The CLI puts the harness on; the new `harness-fit` skill fits it to the project: survey, plan, strap on, adjust, check, hand over. It brings a project's own files in line with the one layout the CLI knows (scripts, tests, docs and CI settings that name old paths, hook scripts and primer blocks from earlier setups, duplicated instructions, homemade versions of what the harness provides) and it keeps a project fitted after every upgrade. It is instructions only: a `SKILL.md` and four references (`fitted`, `drift`, `stages`, `versions`), installed with every profile, with a `/magik-harness-fit` command for Cursor and a guide for people in [docs/FITTING.md](docs/FITTING.md). There are no migration commands and no code that reads an older layout. A test builds a real install and checks that `fitted.md` names everything the installer writes; another requires `versions.md` to have an entry for the current version.
 - **Two first-class scopes.** *Project*: `.magik/` (pointer, lock, runtime, backups), skills in `.agents/skills/`, a primer block in `AGENTS.md`, a managed `.gitignore` block, tool registrations; all committed, so every clone and worktree has it. *Global*: `~/.magik/` and the machine-level files of each tool, nothing in any repository; a repository is covered when its project has a folder in the vault (`<vault>/<project>/{knowledge,memory}`), and `init` creates it. Both can coexist; a per-session lock keeps the two session hooks from injecting twice. `MAGIK_HOME` relocates the machine-level directory.
 - **Tool adapters.** Cursor (**verified** against `cursor-agent` 2026.10.01), Claude Code and Codex (experimental: implemented from documentation, covered by file-level tests), and a generic adapter for anything that reads `AGENTS.md` and `.agents/skills`. `--tools auto` detects what is configured. [docs/TOOLS.md](docs/TOOLS.md) says what each tool receives and how a status is earned.
