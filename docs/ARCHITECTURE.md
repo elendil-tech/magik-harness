@@ -1,6 +1,6 @@
 # magik-harness — architecture
 
-Design of record for **2.0.0**. Where this document and the code disagree, fix one of them in the same change.
+Design of record for **2.0**. Where this document and the code disagree, fix one of them in the same change.
 
 - [1. What a harness is](#1-what-a-harness-is)
 - [2. Principles](#2-principles)
@@ -55,12 +55,14 @@ The **four rules** the harness enforces live in the primer ([section 8](#8-the-p
 
 | Channel | For whom | What it provides |
 | --- | --- | --- |
-| **CLI** `magik-harness` (`npx magik-harness …`) | everyone; the primary channel | the full install in either scope, plus `upgrade`, `doctor`, `status`, `uninstall`, `resolve`, `init`, `list` |
+| **CLI** `magik-harness` (`npx github:elendil-tech/magik-harness …`) | everyone; the primary channel | the full install in either scope, plus `upgrade`, `doctor`, `status`, `uninstall`, `resolve`, `init`, `list` |
 | **Repo-committed artifacts** | teammates, CI, other machines, other worktrees | after a project-scope install the repo carries everything; `git clone` is the whole installation |
 | **Cursor plugin** (this repo, `.cursor-plugin/`) | Cursor users who want a one-click convenience | the skills and four slash commands (`fit`, `doctor`, `kb-sanitize`, `kb-code-sync`). No rules and no hooks: the plugin cannot install a pointer, and a primer that points at things only the plugin has is exactly the dependency the principles forbid |
 | **By hand** | anyone | copy `skills/<name>` into `.agents/skills/` and paste `content/primer.knowledge.md` into `AGENTS.md`; everything else is optional |
 
 Why the CLI is primary: skills installed into project or user folders are listed ahead of plugin skills when a tool caps the skill list (Cursor lists at most 150 up front and drops plugin skills first; observed), a plugin cannot reach `cursor-agent` runs or remote machines reliably, and a plugin cannot carry per-project state.
+
+GitHub is the only distribution channel. There is no npm package (`package.json` is `private`, and a test pins that). The CLI has no runtime dependencies and no build step, so `npx github:elendil-tech/magik-harness` runs it straight from the repository, a tag (`#v2.0.1`) pins a release, and a clone plus `npm link` puts it on the PATH. A registry would add an account, a login and a publish step for a tool whose users already have the repository.
 
 ## 4. Scopes: project and global
 
@@ -267,7 +269,7 @@ Core is nine skills: all nine in the `knowledge` profile, three in `minimal`. De
 `content/primer.knowledge.md` is inserted as a managed block at the **top** of `AGENTS.md`:
 
 ```text
-<!-- magik-harness:primer:start v=2.0.0 -->
+<!-- magik-harness:primer:start v=2.0.1 -->
 …
 <!-- magik-harness:primer:end -->
 ```

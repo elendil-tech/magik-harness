@@ -3,7 +3,7 @@
  *
  * package.json is the source of truth. Every other place that states the
  * version (the plugin manifest, the runtime's own constant, the CLI, the
- * README install line, the CHANGELOG) must agree, because a drifting
+ * README pinned install line and badge, the CHANGELOG) must agree, because a drifting
  * RUNTIME_VERSION makes `doctor` call a current install stale, or worse, call
  * a stale one current.
  */
@@ -47,8 +47,10 @@ describe("version-sync", () => {
     assert.ok(MARKER_LINE.endsWith(`v${PLUGIN_VERSION}`), "the marker line the hook prints names the version");
   });
 
-  it("README.md shows the install line for the current version", () => {
-    assert.match(text("README.md"), new RegExp(`magik-harness@${V}\\b`), `README.md must show "magik-harness@${PLUGIN_VERSION}"`);
+  it("README.md shows the pinned install line and the badge for the current version", () => {
+    const readme = text("README.md");
+    assert.match(readme, new RegExp(`magik-harness#v${V}\\b`), `README.md must show the pinned form "magik-harness#v${PLUGIN_VERSION}" (the tag is the release)`);
+    assert.match(readme, new RegExp(`badge/version-${V}-`), `README.md's version badge must say ${PLUGIN_VERSION}`);
   });
 
   it("CHANGELOG.md has a heading for the current version", () => {

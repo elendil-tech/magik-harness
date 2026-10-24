@@ -6,7 +6,7 @@
  * valid: Cursor reads `.cursor-plugin/plugin.json` to list it, a dangling
  * `logo` path degrades it silently, and a command that names a skill or a CLI
  * command that does not exist is a trap. So the manifest, the commands, the
- * install script and the npm `files` list are all checked against the disk.
+ * install script and the package `files` list are all checked against the disk.
  */
 
 import assert from "node:assert/strict";
@@ -84,16 +84,35 @@ describe("slash commands", () => {
   it("every CLI command a command runs exists", () => {
     for (const f of commandFiles()) {
       const body = read(join(ROOT, "commands", f));
-      for (const m of body.matchAll(/`(?:npx )?magik-harness ([a-z]+)/g)) assert.ok(CLI_COMMANDS.has(m[1]), `${f} runs unknown CLI command "magik-harness ${m[1]}"`);
+      for (const m of body.matchAll(/`(?:npx github:elendil-tech\/)?magik-harness ([a-z]+)/g)) assert.ok(CLI_COMMANDS.has(m[1]), `${f} runs unknown CLI command "magik-harness ${m[1]}"`);
     }
   });
 });
 
 describe("packaging", () => {
-  it("every path npm would publish exists (a missing one silently ships less)", () => {
+  it("every path the package ships exists (a missing one silently ships less)", () => {
     const pkg = JSON.parse(read(join(ROOT, "package.json"))) as { files: string[]; bin: Record<string, string> };
     for (const f of pkg.files) assert.ok(has(join(ROOT, f)), `package.json#files lists ${f}, which does not exist`);
     for (const target of Object.values(pkg.bin)) assert.ok(has(join(ROOT, target)), `bin ${target} does not exist`);
+  });
+
+  it("is distributed from GitHub only: private, and nothing tells anyone to run a registry package", () => {
+    const pkg = JSON.parse(read(join(ROOT, "package.json"))) as { private?: boolean; publishConfig?: unknown };
+    assert.equal(pkg.private, true, "there is no npm package, so package.json stays private (an accidental publish is then refused)");
+    assert.equal(pkg.publishConfig, undefined, "publishConfig has no place in a package that is never published");
+
+    // `npx magik-harness` and `magik-harness@2` name a registry package that does not exist. The changelog and the
+    // fit notes are history, so they may name the old form to say it is gone.
+    const registryForm = /\b(?:npx|bunx|pnpm dlx|yarn dlx)\s+(?:-\S+\s+)*magik-harness\b|\bnpm\s+(?:i|install)\b[^\n]*\bmagik-harness\b|\bmagik-harness@\d/;
+    const history = new Set(["CHANGELOG.md", "skills/harness-fit/references/versions.md"]);
+    const scanned = [
+      "README.md",
+      "ROADMAP.md",
+      ...["docs", "skills", "commands", "content", "packs", "src", "runtime", "bin"].flatMap((d) => files(join(ROOT, d)).map((f) => `${d}/${f}`)),
+    ].filter((f) => /\.(md|mjs|js|json|py)$/.test(f) && !history.has(f));
+    assert.ok(scanned.length > 50, `expected to scan the docs, skills and source, got ${scanned.length} files`);
+    const offenders = scanned.filter((f) => registryForm.test(read(join(ROOT, f))));
+    assert.deepEqual(offenders, [], "these files tell the reader to run a registry package; use `npx github:elendil-tech/magik-harness`");
   });
 
   it("the plugin installer copies only paths that exist, and installs and removes cleanly", () => {

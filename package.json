@@ -1,6 +1,7 @@
 {
   "name": "magik-harness",
-  "version": "2.0.0",
+  "version": "2.0.1",
+  "private": true,
   "type": "module",
   "description": "A harness for AI coding agents: a repo, a vault of knowledge and memory, and a few rules. One CLI installs it per project or per machine; works with Cursor, Claude Code, Codex and any agent that reads AGENTS.md.",
   "license": "MIT",
@@ -46,9 +47,6 @@
   ],
   "engines": {
     "node": ">=18.18"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

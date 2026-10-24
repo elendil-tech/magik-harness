@@ -24,7 +24,7 @@ Never write a managed file by hand. Everything you change is a normal, reviewabl
 
 ## 1. Survey (read only)
 
-1. Run `magik-harness status`, then `magik-harness doctor --json` (use `npx magik-harness` when it is not on PATH). They say what is installed, at which version, and what is broken, each with its fix command.
+1. Run `magik-harness status`, then `magik-harness doctor --json` (use `npx github:elendil-tech/magik-harness` when it is not on PATH). They say what is installed, at which version, and what is broken, each with its fix command.
 2. Compare the project with [fitted.md](references/fitted.md): what a fitted project looks like.
 3. Hunt for drift with [drift.md](references/drift.md): what to search for, why it matters and what to do. Search the whole repository, not only `.cursor/`.
 4. Read [versions.md](references/versions.md) for every release after the project's installed version (`version` in `.magik/lock.json`; no lock means the full fit).

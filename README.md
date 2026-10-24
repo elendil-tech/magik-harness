@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://github.com/elendil-tech/magik-harness/releases">
-    <img alt="Version" src="https://img.shields.io/badge/version-2.0.0-8A2BE2?style=for-the-badge" />
+    <img alt="Version" src="https://img.shields.io/badge/version-2.0.1-8A2BE2?style=for-the-badge" />
   </a>
   <a href="https://github.com/elendil-tech/magik-harness/blob/main/LICENSE">
     <img alt="License" src="https://img.shields.io/badge/license-MIT-22c55e?style=for-the-badge" />
@@ -25,7 +25,7 @@ One CLI puts the harness on a project or on your whole machine, and an agent fit
 ## In thirty seconds
 
 ```bash
-npx magik-harness install --vault ~/vaults/my-project     # tack up: put the harness on
+npx github:elendil-tech/magik-harness install --vault ~/vaults/my-project     # tack up: put the harness on
 ```
 
 Then tell your agent: **"Fit the harness to this project."** It adjusts the project to the harness, checks the result, and hands you a commit to review.
@@ -90,28 +90,24 @@ Nothing runs in the background. The checks run when you or the agent ask, and `d
 
 ## Quick start
 
-You need Node 18.18 or newer. There is nothing to build and nothing to install first.
+You need Node 18.18 or newer and git. There is nothing to build and nothing to install first.
 
 ```bash
 # in a project: files go into the repo, meant to be committed
-npx magik-harness install --vault ~/vaults/my-project
+npx github:elendil-tech/magik-harness install --vault ~/vaults/my-project
 
 # or once for the whole machine: files go under your home directory, no repo is touched
-npx magik-harness install --scope global --vault ~/vaults
+npx github:elendil-tech/magik-harness install --scope global --vault ~/vaults
 
 # no vault at all: just the delivery loop and the git protocol
-npx magik-harness install --profile minimal
+npx github:elendil-tech/magik-harness install --profile minimal
 
 # see what it would do first, check the result afterwards
-npx magik-harness install --vault ~/vaults/my-project --dry-run
-npx magik-harness doctor
+npx github:elendil-tech/magik-harness install --vault ~/vaults/my-project --dry-run
+npx github:elendil-tech/magik-harness doctor
 ```
 
-Pin a version with `npx magik-harness@2.0.0 ...`. Straight from GitHub (no npm needed):
-
-```bash
-npx github:elendil-tech/magik-harness install --vault ~/vaults/my-project
-```
+magik-harness is distributed from GitHub only: there is no npm package, on purpose. `npx` fetches it straight from this repository, so the commands above run the latest `main`. Pin a release with a tag (`npx github:elendil-tech/magik-harness#v2.0.1 doctor`). For a short command, clone the repository and run `npm link` once; then `magik-harness <command>` works anywhere, which is how the rest of this page writes it.
 
 Then start a session in your tool. The first lines of the agent's context come from the hook and begin with `magik-harness session context`; [docs/TOOLS.md](docs/TOOLS.md#checking-it-in-a-live-session) shows how to confirm that on purpose. If the project already had a setup of its own, now is the time for "Fit the harness to this project."
 

@@ -1,6 +1,6 @@
 {
   "name": "magik-harness",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A harness for AI coding agents: a vault of knowledge (ground truth) and memory (running log) behind your repo, plus the rules and skills agents follow. Optional Cursor packaging of the magik-harness CLI. Try the magik!",
   "author": {
     "name": "LaLi"

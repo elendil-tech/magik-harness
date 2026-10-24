@@ -24,7 +24,7 @@ import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 /** Version of the runtime files. Kept in step with package.json (version-sync test). */
-export const RUNTIME_VERSION = "2.0.0";
+export const RUNTIME_VERSION = "2.0.1";
 
 export const POINTER_SCHEMA = "magik-harness/harness@2";
 export const CONFIG_SCHEMA = "magik-harness/config@1";

@@ -100,4 +100,4 @@ The KB is free-form Markdown with a thin convention so the maintenance skills ha
 | `magik-harness upgrade` | Re-apply the install with newer content; your edits are kept |
 | `magik-harness init` | Create the vault folders for this project |
 
-If the command is not installed, `npx magik-harness <command>` runs it. To install, upgrade or repair the harness, or to bring a project's own files in line with it (an older layout, a hand-made setup, drift), use the `harness-fit` skill.
+If the command is not installed, `npx github:elendil-tech/magik-harness <command>` runs it. To install, upgrade or repair the harness, or to bring a project's own files in line with it (an older layout, a hand-made setup, drift), use the `harness-fit` skill.

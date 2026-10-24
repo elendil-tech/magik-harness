@@ -6,8 +6,8 @@
  * A block is the region between a start and an end marker line. The installer
  * owns only that region; text outside it is never touched.
  *
- *   html style:  <!-- NAME:start v=2.0.0 -->  ...  <!-- NAME:end -->
- *   hash style:  # NAME:start v=2.0.0         ...  # NAME:end
+ *   html style:  <!-- NAME:start v=2.0.1 -->  ...  <!-- NAME:end -->
+ *   hash style:  # NAME:start v=2.0.1         ...  # NAME:end
  */
 
 import { detectEol, sha256, toLf } from "./fsx.js";
