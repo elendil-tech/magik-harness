@@ -1,98 +1,67 @@
 /**
- * tests/version-sync.test.ts — assert that the plugin version stamp is
- * consistent across every place it appears.
+ * tests/version-sync.test.ts: one version, everywhere it is written down.
  *
- * package.json is the canonical source of truth; every other location
- * (plugin manifest, hook PLUGIN_VERSION constant, README, CHANGELOG) must
- * agree.
- *
- * Why: a desynced PLUGIN_VERSION between the hook and the marker regex it
- * writes leads to "current" projects being detected as "stale" forever, or
- * worse, "stale" projects being silently treated as "current". The marker
- * version is the trigger for in-place upgrades — drift here corrupts user
- * AGENTS.md / .gitignore.
+ * package.json is the source of truth. Every other place that states the
+ * version (the plugin manifest, the runtime's own constant, the CLI, the
+ * README install line, the CHANGELOG) must agree, because a drifting
+ * RUNTIME_VERSION makes `doctor` call a current install stale, or worse, call
+ * a stale one current.
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import test from "node:test";
 import assert from "node:assert/strict";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { join, relative } from "node:path";
+import { describe, it } from "node:test";
 
+import { VERSION } from "../src/version.js";
+import { MARKER_LINE } from "../runtime/session-start.mjs";
+import { RUNTIME_VERSION } from "../runtime/resolve.mjs";
 import { escapeRegex, PLUGIN_ROOT_DIR, PLUGIN_VERSION } from "./_version.ts";
+import { cli, tmp } from "./_helpers.ts";
 
 const V = escapeRegex(PLUGIN_VERSION);
+const text = (rel: string) => readFileSync(join(PLUGIN_ROOT_DIR, rel), "utf8");
 
-test("version-sync — .cursor-plugin/plugin.json matches package.json", () => {
-  const path = join(PLUGIN_ROOT_DIR, ".cursor-plugin", "plugin.json");
-  const manifest = JSON.parse(readFileSync(path, "utf-8")) as {
-    version?: string;
-  };
-  assert.equal(
-    manifest.version,
-    PLUGIN_VERSION,
-    `.cursor-plugin/plugin.json#version (${manifest.version}) must match package.json#version (${PLUGIN_VERSION})`,
-  );
-});
+function walk(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]));
+}
 
-test("version-sync — hooks/setup.ts PLUGIN_VERSION matches package.json", () => {
-  const path = join(PLUGIN_ROOT_DIR, "hooks", "setup.ts");
-  const src = readFileSync(path, "utf-8");
-  const m = src.match(/const\s+PLUGIN_VERSION\s*=\s*"([^"]+)"/);
-  assert.ok(
-    m,
-    "hooks/setup.ts must declare `const PLUGIN_VERSION = \"x.y.z\"`",
-  );
-  assert.equal(
-    m![1],
-    PLUGIN_VERSION,
-    `PLUGIN_VERSION in hooks/setup.ts (${m![1]}) must match package.json#version (${PLUGIN_VERSION}). Drift here breaks marker-block upgrades.`,
-  );
-});
+describe("version-sync", () => {
+  it("package.json holds a plain semantic version", () => {
+    assert.match(PLUGIN_VERSION, /^\d+\.\d+\.\d+$/);
+  });
 
-test("version-sync — README.md cites the current version", () => {
-  const path = join(PLUGIN_ROOT_DIR, "README.md");
-  const body = readFileSync(path, "utf-8");
-  const re = new RegExp(`magik-repo@${V}\\b`);
-  assert.match(
-    body,
-    re,
-    `README.md must contain "magik-repo@${PLUGIN_VERSION}" — bump it whenever you bump package.json`,
-  );
-});
+  it(".cursor-plugin/plugin.json matches package.json", () => {
+    assert.equal(JSON.parse(text(".cursor-plugin/plugin.json")).version, PLUGIN_VERSION);
+  });
 
-test("version-sync — CHANGELOG.md has a heading for the current version", () => {
-  const path = join(PLUGIN_ROOT_DIR, "CHANGELOG.md");
-  const body = readFileSync(path, "utf-8");
-  const re = new RegExp(`^##\\s+${V}\\b`, "m");
-  assert.match(
-    body,
-    re,
-    `CHANGELOG.md must contain a "## ${PLUGIN_VERSION}" heading — every release must be documented`,
-  );
-});
+  it("the CLI reports the package version", async () => {
+    assert.equal(VERSION, PLUGIN_VERSION);
+    const home = tmp("version-home");
+    const r = await cli(["--version"], { cwd: home, home });
+    assert.equal(r.out.trim(), PLUGIN_VERSION);
+  });
 
-test("version-sync — no leftover marker stamps from older versions in source files", () => {
-  // The hook writes markers at the *current* PLUGIN_VERSION, but a forgotten
-  // hardcoded "v=0.x.y" in source can mask drift. We only check non-CHANGELOG
-  // sources (CHANGELOG legitimately references historic versions).
-  const filesToScan = [
-    "hooks/setup.ts",
-    "README.md",
-    ".cursor-plugin/plugin.json",
-    "package.json",
-  ];
-  const markerRe = /v=(\d+\.\d+\.\d+)/g;
-  for (const rel of filesToScan) {
-    const path = join(PLUGIN_ROOT_DIR, rel);
-    if (!existsSync(path)) continue;
-    const body = readFileSync(path, "utf-8");
-    const matches = [...body.matchAll(markerRe)];
-    for (const m of matches) {
-      assert.equal(
-        m[1],
-        PLUGIN_VERSION,
-        `${rel} contains a marker stamp v=${m[1]} that doesn't match package.json#version (${PLUGIN_VERSION}). All v=x.y.z stamps in source must track the current version.`,
-      );
+  it("the runtime copied into projects carries the same version", () => {
+    assert.equal(RUNTIME_VERSION, PLUGIN_VERSION, "runtime/resolve.mjs RUNTIME_VERSION drifted from package.json");
+    assert.ok(MARKER_LINE.endsWith(`v${PLUGIN_VERSION}`), "the marker line the hook prints names the version");
+  });
+
+  it("README.md shows the install line for the current version", () => {
+    assert.match(text("README.md"), new RegExp(`magik-harness@${V}\\b`), `README.md must show "magik-harness@${PLUGIN_VERSION}"`);
+  });
+
+  it("CHANGELOG.md has a heading for the current version", () => {
+    assert.match(text("CHANGELOG.md"), new RegExp(`^##\\s+\\[?${V}\\b`, "m"), `CHANGELOG.md must have a "## ${PLUGIN_VERSION}" heading`);
+  });
+
+  it("no stray marker stamp (v=x.y.z) in shipped sources names another version", () => {
+    const sources = ["README.md", "package.json", ".cursor-plugin/plugin.json", ...["runtime", "src", "content", "skills", "commands"].flatMap((d) => walk(join(PLUGIN_ROOT_DIR, d)).map((f) => relative(PLUGIN_ROOT_DIR, f)))];
+    const stale: string[] = [];
+    for (const rel of sources) {
+      if (!existsSync(join(PLUGIN_ROOT_DIR, rel)) || !/\.(md|mjs|js|json|txt)$/.test(rel)) continue;
+      for (const m of text(rel).matchAll(/\bv=(\d+\.\d+\.\d+)/g)) if (m[1] !== PLUGIN_VERSION) stale.push(`${rel}: v=${m[1]}`);
     }
-  }
+    assert.deepEqual(stale, []);
+  });
 });

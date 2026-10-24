@@ -1,12 +1,13 @@
 ---
 name: kb-search
 description: >-
-  Gather full context before any substantive work. The KB is the claimed
-  ground truth, but it can be stale or wrong — so corroborate it against the
-  code and the live state of dependent services, and reconcile drift. Resolves
-  the KB from .cursor/harness.json and navigates the external vault with your
-  own tools (Read / Grep / semantic search / code-intel / MCP). A mandatory
-  pre-task gate — never satisfied by a KB search alone.
+  Use before any substantive work (code, docs, decisions) to gather full
+  context. The KB is the claimed ground truth, but it can be stale or wrong, so
+  corroborate it against the code and the live state of dependent services, and
+  reconcile drift. Resolves the KB from the harness pointer and navigates the
+  external vault with your own tools (Read / Grep / semantic search /
+  code-intel / MCP). A mandatory pre-task gate, never satisfied by a KB search
+  alone.
 ---
 
 # Context gather (the pre-task gate)
@@ -27,12 +28,12 @@ This is a lightweight *procedure* you run with your normal tools — there is no
 
 ## Procedure
 
-1. **Resolve the KB.** Read `.cursor/harness.json`. Expand `~` in `vault`; the KB lives at `join(vault, knowledge.mount)` (for `accessVia: path`) or behind the MCP server (for `accessVia: mcp`). If the manifest is absent, the repo isn't harnessed — offer `/magik-repo-setup` and proceed with code + services only.
+1. **Resolve the KB.** The session context (printed by the harness hook at session start) lists the knowledge base path and its autonomy. If you don't have it, run `magik-harness resolve` (dependency-free fallback: `node .magik/runtime/resolve.mjs`, or `~/.magik/runtime/resolve.mjs` for a global install). For `accessVia: path` the KB is a folder you navigate directly; for `accessVia: mcp` it is behind the MCP server the pointer names. Extra `mounts` (for example a shared company KB) are read the same way. If nothing resolves, the repo isn't harnessed: say so, offer the `harness-fit` skill, and proceed with code + services only.
 2. **Orient.** Read the KB root `_index.md` if present to learn the layout (it's the map / MOC).
-3. **Read the KB (claimed truth).** Use the best available tool: semantic search over the KB folder, `Grep` for the query's nouns/verbs, `Glob`/list to find candidates. Open the entries that bear on the task. Prefer `status: active`; follow a `deprecated` entry's `superseded_by` forward link. Traverse relations (`related`, `depends_on`, `implements`/`implemented_by`, `decided_by`) and `[[id]]` refs to neighbouring truth (see `rules/kb-conventions.mdc`).
+3. **Read the KB (claimed truth).** Use the best available tool: semantic search over the KB folder, `Grep` for the query's nouns/verbs, `Glob`/list to find candidates. Open the entries that bear on the task. Prefer `status: active`; follow a `deprecated` entry's `superseded_by` forward link. Traverse relations (`related`, `depends_on`, `implements`/`implemented_by`, `decided_by`) and `[[id]]` refs to neighbouring truth (see `kb-conventions`).
 4. **Inspect the code (actual reality).** For each load-bearing KB claim, look at the code that should embody it. Prefer **deterministic structure where it exists** — code-intelligence go-to-definition / find-references, dependency manifests, config — over probabilistic text grep. The KB says *what should be*; the code says *what is*.
 5. **Check dependent services (live state).** Identify the services this task depends on from config / manifests / env / the KB. Then **actually probe their current state, read-only**, wherever a safe path exists — an MCP server, a CLI, a read replica, a status/health or version endpoint — to learn the real schema, configuration, feature flags, deployed version, or health. Stay strictly read-only; **never mutate a service during the gate.** Where no safe read path exists, fall back to the *declared* dependency and mark it **unverified** rather than assuming it matches the KB.
-6. **Reconcile drift.** Compare the three. Where the KB disagrees with the code or the live state, the KB is the suspect — surface the divergence as a finding (this is the inline form of `/magik-repo-kb-code-sync`; escalate to that skill for a full pass). Decide which source is authoritative for the task at hand and proceed on *reality*, not on a stale claim. If the reconciliation changes durable truth, fix the KB per `knowledge.autonomy` (it's almost always the **living surface** — a `concept`/`specification`/`policy` — that's gone stale; records are corrected by superseding, see `rules/kb-conventions.mdc` §4.6).
+6. **Reconcile drift.** Compare the three. Where the KB disagrees with the code or the live state, the KB is the suspect — surface the divergence as a finding (this is the inline form of `kb-code-sync`; escalate to that skill for a full pass). Decide which source is authoritative for the task at hand and proceed on *reality*, not on a stale claim. If the reconciliation changes durable truth, fix the KB per `knowledge.autonomy` (it's almost always the **living surface** — a `concept`/`specification`/`policy` — that's gone stale; records are corrected by superseding, see `kb-conventions` §4.6).
 7. **Surface conflicts.** If an `active` policy/decision would be **violated** by the task, stop and surface it before proceeding. If one is merely *relevant*, read it before acting so you don't contradict or duplicate it.
 8. **Degrade gracefully.** If the vault is missing, a service is unreachable, or a probe isn't safe, say so and proceed with what you have — never block. Note which sources you couldn't verify.
 

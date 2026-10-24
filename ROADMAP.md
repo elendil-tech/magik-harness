@@ -1,25 +1,45 @@
 # Roadmap
 
-What `magik-repo` does **not** ship today, grouped by theme. The CHANGELOG is the canonical record of what is shipped; this file captures what is deliberately deferred and why.
+What magik-harness does **not** ship today, and why. The [CHANGELOG](CHANGELOG.md) is the record of what is shipped; this file is what is deliberately deferred. The floor is small on purpose (a pointer, a hook, a few skills, an installer that owns what it writes), so most of this is optional layers, not obligations.
 
-v1.0 is intentionally minimal — a pointer plus a janitor. The roadmap is mostly *optional power layers* on top of that floor, not core obligations.
+## Before 2.0.0 is published
 
-## KB-structure templating (future)
+2.0.0 is merged to `main` and not yet published. Release steps that are the maintainer's to take:
 
-- **Starter KB templates per project type.** `/magik-repo-setup` today scaffolds an empty `knowledge/_index.md`. A future layer could offer opinionated starting structures (e.g. SaaS, agency, library) — folders + seed entries the user can accept or ignore. Kept out of 1.0 to preserve the "harness is agnostic to KB structure" principle; templating must be opt-in and easy to discard.
-- **`_index.md` auto-maintenance.** `/magik-repo-kb-sanitize` flags `_index.md` drift; a future option could regenerate the orientation map from the KB's actual shape on approval.
+- Publish to npm (`npm login`, then `npm publish`; the package is public and `publishConfig` is set), then drop the `npx github:…` fallback from the README.
+- Refresh the Cursor marketplace listing (name, description, logo) and reinstall the local plugin with `pnpm install-plugin`.
+- In each project that already uses the harness: `magik-harness upgrade`, then ask the agent to run the `harness-fit` skill.
 
-## Skill layer (future)
+## Skills
 
-- **Skill templating.** Help users author project-specific skills (service / domain / task) with a guided scaffold — the capability the old `scaffolding-author` skill provided, reimagined as an opt-in helper rather than part of the core harness.
-- **Skill-efficacy evals.** A way to score whether a user's authored skills actually change agent behavior. Lets users tune their own skills with real signal. (v1.0 removed the in-repo behavioral eval suite — see CHANGELOG — so this would be a fresh, opt-in capability rather than a revival of the old runner.)
+- **Mountable skill bundles.** Packs and `--pack-dir` already mount bundles of skills. A larger bundle, a **business OS** covering the domains a company runs on (engineering, product, marketing, sales, strategy, legal and more, with sub-domains inside each), is an idea for a separate project that mounts on the harness, not something to build into this package. When that project exists, link it from the README's "Mounting more".
+- **Fit notes for every release.** Each release adds a heading to the fit skill's `references/versions.md`. If the notes ever need more than text (a check that a project's own files match a release), it should be a `doctor` check, not a script.
 
-## Memory (incremental)
+## Tools
 
-- **Memory retention/pruning.** Memory grows unbounded. A future helper could summarize or prune old `memory/daily/` notes on request (never automatically — memory is the agent's, and pruning is destructive).
-- **MCP-backed memory adapter.** `accessVia: mcp` is carried in the schema, but `/magik-repo-setup` only writes the manifest — wiring a remote memory store is left to the user's MCP config. A reference adapter could ship later if demand is clear.
+- **Claude Code and Codex: from experimental to verified.** The adapters are implemented from documentation and file-level tests. Each needs one run of the [live check](docs/TOOLS.md#checking-it-in-a-live-session) against the real tool, with the version and date recorded in `docs/TOOLS.md`.
+- **macOS and Windows in CI.** CI is one Linux job on Node 22, on purpose. The code sticks to portable APIs (no symlinks by default, `path` everywhere, forward-slash keys in the lock), but nothing checks other platforms or other Node versions. Add one only when a real bug shows it is worth the minutes.
+- **The Cursor IDE.** Only `cursor-agent` has been exercised; the IDE reads the same files, but a run per platform would settle whether anything differs.
+- **More adapters** (Gemini CLI, GitHub Copilot, Windsurf, OpenCode, Amp, …). An adapter is one file; see [Adding a tool](docs/TOOLS.md#adding-a-tool). Contributions welcome once a tool has a documented session hook or instruction file worth targeting.
 
-## Setup rigor
+## Installer
 
-- **JSON-merge for `.cursor/hooks.json`.** Today `/magik-repo-setup` skips seeding `hooks.json` when one exists and prints a notice. A proper JSON-merge that adds the `sessionStart` entry while preserving user hooks is a candidate follow-up.
-- **Per-machine vault override UX.** The manifest supports a gitignored `.cursor/harness.local.json` override conceptually; first-class `/magik-repo-setup` support for setting one is deferred.
+- **`doctor --fix`.** Today every finding carries the command that fixes it. Applying the safe ones (re-registering a missing hook, restoring a deleted managed file) automatically is a candidate; anything involving a file you edited stays manual.
+- **An update hint.** `status` already says when the installed version is older than the CLI. A once-a-day, opt-in check against the registry could say when the CLI itself is behind. No network call without an explicit opt-in.
+- **More hook delivery** for tools that can run a command at session start but cannot read a JSON payload.
+
+## Knowledge base and memory
+
+- **Starter KB templates per project type.** `init` creates an empty `knowledge/_index.md`. Opinionated starting structures (SaaS, agency, library), strictly opt-in and easy to discard, would stay compatible with the principle that the harness is agnostic to the KB's structure.
+- **`_index.md` auto-maintenance.** `kb-sanitize` flags drift; a future option could regenerate the orientation map from the KB's actual shape, on approval.
+- **Memory retention.** Memory grows without bound. A helper could summarize or prune old `memory/daily/` notes on request, never automatically: memory is the agent's, and pruning is destructive.
+- **A reference MCP-backed store.** `accessVia: mcp` is carried in the pointer and the hook prints the mount id, but wiring a remote store is left to your MCP configuration. A reference adapter could ship if there is demand.
+- **Skill-efficacy evals.** A way to score whether skills a team authored actually change an agent's behavior: opt-in tooling.
+
+## Not planned
+
+- A background service or a network component. The harness is files, a script that runs for a moment at session start, and a CLI.
+- Runtime dependencies or a build step in the published package (the point of `npx` working on a clean machine).
+- Telemetry of any kind.
+- Owning the structure of your knowledge base.
+- Migration commands or code that reads an older layout. Fitting a project to the current layout is the `harness-fit` skill's job.

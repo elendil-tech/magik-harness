@@ -1,0 +1,28 @@
+{
+  "minimal": {
+    "description": "The delivery loop and git protocol only. No vault, no knowledge base.",
+    "skills": [
+      "harness",
+      "harness-fit",
+      "agentic-e2e-loop"
+    ],
+    "primer": "primer.minimal.md",
+    "vault": false
+  },
+  "knowledge": {
+    "description": "Everything: a knowledge base and memory in a vault, the KB maintenance skills, and the delivery loop. Needs a vault.",
+    "skills": [
+      "harness",
+      "harness-fit",
+      "harness-memory",
+      "knowledge-base",
+      "kb-conventions",
+      "kb-search",
+      "kb-sanitize",
+      "kb-code-sync",
+      "agentic-e2e-loop"
+    ],
+    "primer": "primer.knowledge.md",
+    "vault": true
+  }
+}

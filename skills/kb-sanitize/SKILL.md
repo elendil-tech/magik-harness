@@ -4,23 +4,23 @@ description: >-
   Heal the knowledge base from the inside. Use to find logical conflicts
   between active entries, legacy/orphaned remnants, and broken or obsolete
   links, then propose cleanups. Proposal-first; applies only what the user
-  approves. Resolves the KB via .cursor/harness.json.
+  approves. Resolves the KB from the harness pointer.
 ---
 
 # KB sanitize
 
 Keep the knowledge base coherent as it grows. A graph of linked Markdown drifts over time — entries contradict, get superseded but stay `active`, links rot, metadata falls out of step with the standard. This skill surveys the KB and proposes fixes; it does not rewrite entries until the user approves.
 
-The recommended metadata standard it checks against — frontmatter schema, tagging, relations — lives in `rules/kb-conventions.mdc`; the project's controlled tag vocabulary (and any local field conventions) lives in the project's `knowledge/conventions.md`. Read both before the metadata checks so you propose *conformance*, not your own taste.
+The recommended metadata standard it checks against — frontmatter schema, tagging, relations — lives in `kb-conventions`; the project's controlled tag vocabulary (and any local field conventions) lives in the project's `knowledge/conventions.md`. Read both before the metadata checks so you propose *conformance*, not your own taste.
 
 ## Procedure
 
-1. **Resolve the KB.** Read `.cursor/harness.json`; the KB is at `join(vault, knowledge.mount)` (path) or behind MCP. Operate over that store only — never touch memory or code.
-2. **Load the conventions.** Read `rules/kb-conventions.mdc` (the generic standard) and the project's `knowledge/conventions.md` if present (its tag vocabulary + local fields). Absent the latter, fall back to the generic rules.
-3. **Inventory.** List every entry; record each entry's **filename basename** and parse frontmatter (`status`, `updated`, `id`/`aliases`, `type`, `domain`, `tags`, relations); collect outbound links/wikilinks and relation targets. `[[id]]` resolves by filename (not alias — see `rules/kb-conventions.mdc` §1.6), so build the resolution map from filenames. Read the root `_index.md` if present.
+1. **Resolve the KB** (the session context lists it; otherwise run `magik-harness resolve`). Operate over that store only — never touch memory or code.
+2. **Load the conventions.** Read `kb-conventions` (the generic standard) and the project's `knowledge/conventions.md` if present (its tag vocabulary + local fields). Absent the latter, fall back to the generic rules.
+3. **Inventory.** List every entry; record each entry's **filename basename** and parse frontmatter (`status`, `updated`, `id`/`aliases`, `type`, `domain`, `tags`, relations); collect outbound links/wikilinks and relation targets. `[[id]]` resolves by filename (not alias — see `kb-conventions` §1.6), so build the resolution map from filenames. Read the root `_index.md` if present.
 4. **Run the checks below.**
 5. **Report + propose.** Group findings; end with a numbered proposal list.
-6. **Apply per `knowledge.autonomy`** (read it from `.cursor/harness.json`; default `open`). Under **`ask`** apply only items the user approves; under **`readonly`** apply nothing (report only); under **`open`** apply the clearly-safe, additive/in-sync fixes (e.g. fix a broken link, add a missing reciprocal relation, set `superseded_by` on an already-deprecated entry, add a missing recommended field) directly, and still surface the judgment-call or destructive ones (reconciling contradictory `active` entries, deprecating an entry, deleting/renaming, `_index.md` reshapes) for the user to settle. Never reorganize structure or rewrite others' entries without surfacing it first.
+6. **Apply per `knowledge.autonomy`** (from the session context or `magik-harness resolve`; default `open`). Under **`ask`** apply only items the user approves; under **`readonly`** apply nothing (report only); under **`open`** apply the clearly-safe, additive/in-sync fixes (e.g. fix a broken link, add a missing reciprocal relation, set `superseded_by` on an already-deprecated entry, add a missing recommended field) directly, and still surface the judgment-call or destructive ones (reconciling contradictory `active` entries, deprecating an entry, deleting/renaming, `_index.md` reshapes) for the user to settle. Never reorganize structure or rewrite others' entries without surfacing it first.
 
 ## Checks
 
@@ -28,17 +28,17 @@ The recommended metadata standard it checks against — frontmatter schema, tagg
 | --- | --- |
 | **Conflicts** | Two `active` entries that assert contradictory things. Propose a survivor (reconcile, or deprecate one and link forward). |
 | **Duplicates** | Two or more `active` entries describing the **same concept** under different names/`id`s (concept fragmentation — the main source of bloat). Distinct from Conflicts: these *agree* but should be **one** entry. Propose merging into the best home, repointing inbound `[[id]]`/relation refs, and deprecating the rest with a forward link. |
-| **Records vs. state** | A `decision`/`fieldnote` that was **edited in place to reflect a new state** instead of being superseded (its body now contradicts its own dated premise) — propose splitting the new truth into a successor record (`supersedes`/`superseded_by`) and restoring the original as the historical snapshot. A state document (`concept`/`specification`/`policy`) that **copies a value authoritative in code or another entry** — propose pointing at the source instead. (See `rules/kb-conventions.mdc` §4.6.) |
+| **Records vs. state** | A `decision`/`fieldnote` that was **edited in place to reflect a new state** instead of being superseded (its body now contradicts its own dated premise) — propose splitting the new truth into a successor record (`supersedes`/`superseded_by`) and restoring the original as the historical snapshot. A state document (`concept`/`specification`/`policy`) that **copies a value authoritative in code or another entry** — propose pointing at the source instead. (See `kb-conventions` §4.6.) |
 | **Legacy** | Entries that read as superseded but are still `status: active`; very stale `updated` with no current relevance; orphaned files nothing links to and `_index.md` doesn't list. |
 | **Links** | Broken relative links / wikilinks; links pointing at `deprecated` entries (should point at the successor); missing reciprocal back-links between clearly related entries. |
 | **Metadata** | Missing required floor (`status`/`updated`); recommended fields a reader clearly needs but the entry lacks (`id`/`aliases`, `type`, `domain`, `summary`) — propose, don't gate; `type`/`domain` that disagree with the entry's actual content; empty placeholder relation fields. |
 | **Tags** | Tags off the project's controlled vocabulary (near-synonyms of a canonical tag); malformed tags (not `lowercase-kebab-case`); tags that merely restate a structured field (`type`/`domain`/`priority`/`severity`); counts well outside ~3–7; dead-context tags on non-historical entries. |
 | **Relations** | Non-reciprocal `related` (A→B but not B→A) and broken reciprocal pairs (`supersedes`↔`superseded_by`, `implements`↔`implemented_by`) where the pairing is clearly mutual; relation refs not in `"[[id]]"` form; self-references; **dangling/phantom `[[id]]`** refs that resolve to no entry's filename (`<id>.md`). |
-| **Filenames** | Entries whose **filename basename ≠ `id`** — this breaks `[[id]]` resolution (which is by filename, not alias; `rules/kb-conventions.mdc` §1.6). Propose renaming the file to `<id>.md` (and updating inbound `"[[id]]"` refs), or correcting the `id`. Also flag basename collisions between entries (ambiguous `[[id]]`). **Do not** flag an `id`-prefix that no longer matches the entry's folder — `id`s are opaque handles, and prefix↔folder drift is allowed by design (§1.7). |
+| **Filenames** | Entries whose **filename basename ≠ `id`** — this breaks `[[id]]` resolution (which is by filename, not alias; `kb-conventions` §1.6). Propose renaming the file to `<id>.md` (and updating inbound `"[[id]]"` refs), or correcting the `id`. Also flag basename collisions between entries (ambiguous `[[id]]`). **Do not** flag an `id`-prefix that no longer matches the entry's folder — `id`s are opaque handles, and prefix↔folder drift is allowed by design (§1.7). |
 | **Deprecation** | A `deprecated` entry with a successor in the KB but no `superseded_by` forward link; `active` entries whose `related` points at a now-`deprecated` target that has a successor (repoint to the successor). |
 | **Orientation** | `_index.md` missing entries that exist, or listing entries that were removed/renamed. It should read as a usable **map** (a Map of Content) — current links a fresh reader can navigate, so a newcomer sees a topic from above and knows where new entries belong — not a stale list. For a large domain, a nested area `_index.md` is fine. |
 
-For the metadata/tag/relation checks, apply the **judgment** in `rules/kb-conventions.mdc` §4: propose a relation/tag only when it is honest and high-signal, surface ambiguity for the human to settle, and never fabricate a link or coin a tag just to satisfy the schema.
+For the metadata/tag/relation checks, apply the **judgment** in `kb-conventions` §4: propose a relation/tag only when it is honest and high-signal, surface ambiguity for the human to settle, and never fabricate a link or coin a tag just to satisfy the schema.
 
 ## Output
 

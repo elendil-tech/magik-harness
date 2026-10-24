@@ -1,106 +1,120 @@
 /**
- * tests/plugin-manifest.test.ts — assert the Cursor plugin manifest is
- * structurally valid and every path it references actually exists on disk.
+ * tests/plugin-manifest.test.ts: the optional Cursor plugin packaging.
  *
- * Cursor reads `.cursor-plugin/plugin.json` to surface the plugin in the
- * marketplace and IDE; a broken `logo` path or missing required key means
- * the plugin loads silently-degraded (or not at all). This test is a cheap
- * gate that would have caught the v0.4.0 dangling `assets/logo.png`
- * reference where the file was deleted from disk but the manifest still
- * pointed at it.
- *
- * What this test does NOT do: validate against an upstream Cursor JSON
- * schema. We don't have a published, stable schema URL today; if/when one
- * lands, switch this to schema-driven validation instead.
+ * The CLI is the product; the plugin is a convenience wrapper (skills plus a
+ * few slash commands) for people who live in Cursor. It still has to be
+ * valid: Cursor reads `.cursor-plugin/plugin.json` to list it, a dangling
+ * `logo` path degrades it silently, and a command that names a skill or a CLI
+ * command that does not exist is a trap. So the manifest, the commands, the
+ * install script and the npm `files` list are all checked against the disk.
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import test from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, it } from "node:test";
 
-import { PLUGIN_ROOT_DIR, PLUGIN_VERSION } from "./_version.ts";
+import { loadCatalog } from "../src/lib/catalog.js";
+import { parseSkillMd } from "../src/lib/skillmd.js";
+import { PLUGIN_VERSION } from "./_version.ts";
+import { files, has, ROOT, read, tmp } from "./_helpers.ts";
 
-const MANIFEST_PATH = join(PLUGIN_ROOT_DIR, ".cursor-plugin", "plugin.json");
+const MANIFEST = join(ROOT, ".cursor-plugin", "plugin.json");
+const manifest = () => JSON.parse(readFileSync(MANIFEST, "utf8")) as Record<string, unknown>;
+const KNOWN_SKILLS = new Set([...loadCatalog({ packDirs: [] }).all.keys()]);
+const CLI_COMMANDS = new Set(["install", "upgrade", "doctor", "status", "resolve", "init", "uninstall", "list", "primer", "help"]);
+const commandFiles = () => readdirSync(join(ROOT, "commands")).filter((f) => f.endsWith(".md")).sort();
 
-interface PluginManifest {
-  name?: unknown;
-  version?: unknown;
-  description?: unknown;
-  author?: unknown;
-  license?: unknown;
-  logo?: unknown;
-  keywords?: unknown;
-}
+describe("plugin.json", () => {
+  it("exists and parses", () => {
+    assert.ok(existsSync(MANIFEST), `${MANIFEST} is missing`);
+    assert.doesNotThrow(manifest);
+  });
 
-function readManifest(): PluginManifest {
-  const raw = readFileSync(MANIFEST_PATH, "utf-8");
-  return JSON.parse(raw) as PluginManifest;
-}
+  it("has the required keys, well-typed, under the product's name", () => {
+    const m = manifest();
+    assert.equal(m.name, "magik-harness");
+    assert.equal(typeof m.version, "string");
+    assert.ok(typeof m.description === "string" && m.description.length > 40, "a real description");
+    assert.equal(m.license, "MIT");
+    assert.ok(Array.isArray(m.keywords) && m.keywords.length > 0 && m.keywords.every((k) => typeof k === "string"));
+    const author = m.author as { name?: unknown } | string;
+    assert.ok(typeof author === "string" ? author.length > 0 : typeof author?.name === "string" && author.name.length > 0, "author present");
+  });
 
-test("plugin-manifest — file exists and parses as JSON", () => {
-  assert.ok(existsSync(MANIFEST_PATH), `${MANIFEST_PATH} is missing`);
-  assert.doesNotThrow(() => readManifest(), "plugin.json must parse as JSON");
+  it("version matches package.json", () => {
+    assert.equal(manifest().version, PLUGIN_VERSION);
+  });
+
+  it("logo resolves to a real file (a dangling asset reference degrades the listing silently)", () => {
+    const logo = manifest().logo;
+    assert.equal(typeof logo, "string");
+    assert.ok(existsSync(join(ROOT, logo as string)), `logo ${logo as string} does not exist`);
+  });
+
+  it("does not describe the product as only a Cursor plugin", () => {
+    const d = String(manifest().description);
+    assert.match(d, /optional/i, "the plugin is one way to get the harness, not the harness");
+    assert.match(d, /magik-harness/);
+  });
 });
 
-test("plugin-manifest — required keys are present and well-typed", () => {
-  const m = readManifest();
-  assert.equal(typeof m.name, "string", "manifest#name must be a string");
-  assert.equal(m.name, "magik-repo", "manifest#name must be 'magik-repo'");
-  assert.equal(typeof m.version, "string", "manifest#version must be a string");
-  assert.equal(
-    typeof m.description,
-    "string",
-    "manifest#description must be a string",
-  );
-  assert.ok(
-    typeof m.description === "string" && m.description.length > 0,
-    "manifest#description must be non-empty",
-  );
-  assert.equal(typeof m.license, "string", "manifest#license must be a string");
-  assert.ok(
-    Array.isArray(m.keywords) && m.keywords.length > 0,
-    "manifest#keywords must be a non-empty array",
-  );
-  for (const kw of m.keywords as unknown[]) {
-    assert.equal(typeof kw, "string", "every keyword must be a string");
-  }
+describe("slash commands", () => {
+  it("there are some, and each has the frontmatter Cursor requires", () => {
+    const names = commandFiles();
+    assert.ok(names.length >= 3);
+    for (const f of names) {
+      const meta = parseSkillMd(read(join(ROOT, "commands", f)));
+      assert.deepEqual(meta.errors, [], f);
+      assert.equal(meta.name, f.replace(/\.md$/, ""), `${f}: name must equal the file name`);
+      assert.ok(meta.description && meta.description.length > 20, `${f}: needs a description`);
+      assert.ok(meta.body.trim().length > 40, `${f}: needs instructions`);
+    }
+  });
+
+  it("every skill a command loads exists", () => {
+    for (const f of commandFiles()) {
+      const body = read(join(ROOT, "commands", f));
+      for (const m of body.matchAll(/`([a-z][a-z0-9-]+)` skill/g)) assert.ok(KNOWN_SKILLS.has(m[1]), `${f} loads unknown skill ${m[1]}`);
+      for (const m of body.matchAll(/[Ll]oad the `([a-z][a-z0-9-]+)`/g)) assert.ok(KNOWN_SKILLS.has(m[1]), `${f} loads unknown skill ${m[1]}`);
+    }
+  });
+
+  it("every CLI command a command runs exists", () => {
+    for (const f of commandFiles()) {
+      const body = read(join(ROOT, "commands", f));
+      for (const m of body.matchAll(/`(?:npx )?magik-harness ([a-z]+)/g)) assert.ok(CLI_COMMANDS.has(m[1]), `${f} runs unknown CLI command "magik-harness ${m[1]}"`);
+    }
+  });
 });
 
-test("plugin-manifest — version matches package.json", () => {
-  const m = readManifest();
-  assert.equal(
-    m.version,
-    PLUGIN_VERSION,
-    `manifest#version (${m.version as string}) must match package.json#version (${PLUGIN_VERSION})`,
-  );
-});
+describe("packaging", () => {
+  it("every path npm would publish exists (a missing one silently ships less)", () => {
+    const pkg = JSON.parse(read(join(ROOT, "package.json"))) as { files: string[]; bin: Record<string, string> };
+    for (const f of pkg.files) assert.ok(has(join(ROOT, f)), `package.json#files lists ${f}, which does not exist`);
+    for (const target of Object.values(pkg.bin)) assert.ok(has(join(ROOT, target)), `bin ${target} does not exist`);
+  });
 
-test("plugin-manifest — logo path resolves to a real file (catches dangling asset references)", () => {
-  const m = readManifest();
-  assert.equal(typeof m.logo, "string", "manifest#logo must be a string");
-  const logoRel = m.logo as string;
-  const logoAbs = join(PLUGIN_ROOT_DIR, logoRel);
-  assert.ok(
-    existsSync(logoAbs),
-    `manifest#logo points at "${logoRel}" but no file exists at ${logoAbs}. ` +
-      `Either restore the asset or update plugin.json to point at an existing file.`,
-  );
-});
+  it("the plugin installer copies only paths that exist, and installs and removes cleanly", () => {
+    const src = read(join(ROOT, "scripts", "install-plugin.mjs"));
+    const list = /const INCLUDE = \[([^\]]+)\]/.exec(src);
+    assert.ok(list, "INCLUDE list found");
+    for (const m of list[1].matchAll(/"([^"]+)"/g)) assert.ok(has(join(ROOT, m[1])), `install-plugin copies ${m[1]}, which does not exist`);
 
-test("plugin-manifest — author is present (object or string form)", () => {
-  const m = readManifest();
-  if (typeof m.author === "string") {
-    assert.ok(m.author.length > 0, "author string must be non-empty");
-    return;
-  }
-  assert.equal(
-    typeof m.author,
-    "object",
-    "manifest#author must be a string or an object",
-  );
-  assert.ok(m.author !== null, "manifest#author must not be null");
-  const a = m.author as { name?: unknown };
-  assert.equal(typeof a.name, "string", "manifest#author.name must be a string");
-  assert.ok((a.name as string).length > 0, "author.name must be non-empty");
+    const target = join(tmp("plugin-target"), "magik-harness");
+    const run = (...args: string[]) => spawnSync(process.execPath, [join(ROOT, "scripts", "install-plugin.mjs"), ...args], { encoding: "utf8" });
+    const installed = run("--target", target);
+    assert.equal(installed.status, 0, installed.stderr);
+    for (const f of [".cursor-plugin/plugin.json", "commands/magik-harness-doctor.md", "skills/harness/SKILL.md", "assets/magik-harness-logo.png", "package.json"]) {
+      assert.ok(has(join(target, f)), `${f} was copied`);
+    }
+    assert.ok(!has(join(target, "src")), "the plugin carries skills and commands, not the CLI");
+    assert.ok(files(target).every((f) => !f.startsWith("tests/") && !f.startsWith("node_modules/")));
+
+    const removed = run("--uninstall", "--target", target);
+    assert.equal(removed.status, 0, removed.stderr);
+    assert.ok(!has(target));
+    assert.equal(run("--uninstall", "--target", target).status, 0, "removing twice is fine");
+  });
 });

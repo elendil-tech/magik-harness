@@ -1,17 +1,19 @@
 {
-  "name": "magik-repo",
-  "version": "1.9.1",
-  "description": "The light harness — point your code repo at an external vault of knowledge (the project's ground truth) and memory (the AI's log). Read-first, AI-maintained, never imposed. Try the magik!",
+  "name": "magik-harness",
+  "version": "2.0.0",
+  "description": "A harness for AI coding agents: a vault of knowledge (ground truth) and memory (running log) behind your repo, plus the rules and skills agents follow. Optional Cursor packaging of the magik-harness CLI. Try the magik!",
   "author": {
     "name": "LaLi"
   },
   "license": "MIT",
-  "logo": "assets/magik-repo-logo.png",
+  "logo": "assets/magik-harness-logo.png",
   "keywords": [
     "harness",
     "knowledge-base",
     "memory",
     "agent",
-    "vault"
+    "vault",
+    "agents-md",
+    "skills"
   ]
 }

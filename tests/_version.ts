@@ -1,12 +1,10 @@
 /**
- * tests/_version.ts — shared helper that derives the plugin version from
- * package.json so individual test files don't have to hardcode it. Reading
- * from package.json (rather than from `hooks/init-harness.ts`'s
- * PLUGIN_VERSION constant) makes package.json the canonical source of truth
- * — the version-sync test then asserts every other location agrees.
+ * tests/_version.ts: the package version and root, read from package.json so
+ * individual test files never hardcode them. package.json is the canonical
+ * source of truth; tests/version-sync.test.ts asserts every other place that
+ * states the version agrees.
  *
- * The `_` prefix keeps this file out of the `tests/*.test.ts` glob in the
- * test runner.
+ * The `_` prefix keeps this file out of the `tests/*.test.ts` glob.
  */
 
 import { readFileSync } from "node:fs";
