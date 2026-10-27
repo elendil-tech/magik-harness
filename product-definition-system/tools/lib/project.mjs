@@ -1,10 +1,13 @@
 // A project: pds.yaml and the definition folder it points at.
-import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { readFileSync, readdirSync, realpathSync, statSync, existsSync } from "node:fs";
+import { isAbsolute, join, posix, relative, sep } from "node:path";
 import { parseYaml } from "./yaml.mjs";
 
 export const CONFIG_FILE = "pds.yaml";
 const KNOWN_KEYS = ["pds", "name", "profile", "adoption", "modules", "definition_dir", "views_dir", "approvers", "rules", "probes", "policy"];
+
+/** Whether two project-relative folders are the same, or one is inside the other. */
+export const overlap = (a, b) => a === b || a.startsWith(b + "/") || b.startsWith(a + "/");
 
 /**
  * Turn the raw pds.yaml mapping into a resolved configuration. Anything the
@@ -13,7 +16,7 @@ const KNOWN_KEYS = ["pds", "name", "profile", "adoption", "modules", "definition
  */
 export function resolveConfig(meta, raw) {
   const problems = [];
-  const bad = (msg) => problems.push({ id: "SCH-project", msg });
+  const bad = (msg, key) => problems.push({ id: "SCH-project", msg, key });
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     bad("pds.yaml must be a mapping");
     raw = {};
@@ -71,14 +74,37 @@ export function resolveConfig(meta, raw) {
   const approvalPolicy = { required_for_tiers: [1], from: "specified", units: ["CAP", "FEAT"], ...(profile?.policy?.approval || {}) };
   for (const k of ["required_for_tiers", "from", "units"]) if (own[k] !== undefined && !problems.some((p) => p.msg.startsWith(`policy.approval.${k}`))) approvalPolicy[k] = own[k];
 
+  // Where the records and the generated views live: folders inside the project, apart from each other.
+  // Anything else is reported and the usual folder is used, so no command ever reaches outside the project.
+  const folder = (key, usual) => {
+    const given = raw[key];
+    if (given === undefined) return usual;
+    if (typeof given !== "string" || !given.trim()) {
+      bad(`${key} must be the name of a folder`, key);
+      return usual;
+    }
+    const clean = posix.normalize(given.trim().replace(/\\/g, "/")).replace(/\/$/, "");
+    if (clean === "." || clean === ".." || clean.startsWith("../") || isAbsolute(clean) || /^[A-Za-z]:/.test(clean)) {
+      bad(`${key} must be a folder inside the project, not ${given}`, key);
+      return usual;
+    }
+    return clean;
+  };
+  const definitionDir = folder("definition_dir", "definition");
+  let viewsDir = folder("views_dir", "views");
+  if (overlap(viewsDir, definitionDir)) {
+    bad(`views_dir (${viewsDir}) and definition_dir (${definitionDir}) must be separate folders, neither inside the other: the views are generated, and everything under the definition folder is read as a record`, "views_dir");
+    viewsDir = ["views", "generated-views", "pds-generated-views"].find((v) => !overlap(v, definitionDir));
+  }
+
   const config = {
     pds: 1,
     name: typeof raw.name === "string" ? raw.name : "Unnamed product",
     profile: raw.profile,
     adoption: meta.model.adoption.ladder.includes(adoption) ? adoption : "standard",
     modules,
-    definitionDir: raw.definition_dir ?? "definition",
-    viewsDir: raw.views_dir ?? "views",
+    definitionDir,
+    viewsDir,
     approvers: Array.isArray(approvers) ? approvers : [],
     disabledRules: disabled("rules", ruleIds, unwaivable),
     disabledProbes: disabled("probes", probeIds),
@@ -88,12 +114,32 @@ export function resolveConfig(meta, raw) {
   return { config, problems };
 }
 
-function walk(dir, out = []) {
-  for (const name of readdirSync(dir).sort()) {
-    const full = join(dir, name);
-    const st = statSync(full);
-    if (st.isDirectory()) walk(full, out);
-    else if (name.endsWith(".md") && name.toLowerCase() !== "readme.md" && !name.startsWith("_")) out.push(full);
+/**
+ * Every record file under `dir`, in a fixed order. A link is followed only when
+ * it leads somewhere inside the project: a definition is what is in its folder,
+ * and a command that rewrites records must not reach files outside it. Only
+ * regular files are read (a pipe called FEAT-x.md would wait forever).
+ */
+function walk(dir, { root, inside }, out = []) {
+  const shown = (path) => relative(root, path).split(sep).join("/");
+  for (const entry of readdirSync(dir, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
+    const full = join(dir, entry.name);
+    let isDir = entry.isDirectory();
+    let isFile = entry.isFile();
+    if (entry.isSymbolicLink()) {
+      let real;
+      try {
+        real = realpathSync(full);
+      } catch {
+        throw new Error(`${shown(full)} is a link that leads nowhere (it is broken, or it loops back on itself)`);
+      }
+      if (!inside(real)) throw new Error(`${shown(full)} is a link to ${real}, outside the project. Records must live inside the project folder: move them in, or point definition_dir at the folder that holds them.`);
+      const st = statSync(real);
+      isDir = st.isDirectory();
+      isFile = st.isFile();
+    }
+    if (isDir) walk(full, { root, inside }, out);
+    else if (isFile && entry.name.endsWith(".md") && entry.name.toLowerCase() !== "readme.md" && !entry.name.startsWith("_")) out.push(full);
   }
   return out;
 }
@@ -107,7 +153,11 @@ export function readProject(meta, root) {
   const files = new Map();
   const dir = join(root, config.definitionDir);
   if (existsSync(dir)) {
-    for (const full of walk(dir)) files.set(relative(root, full).split(sep).join("/"), readFileSync(full, "utf8"));
+    const real = realpathSync(root);
+    const inside = (path) => path === real || path.startsWith(real + sep);
+    const there = realpathSync(dir);
+    if (!inside(there)) throw new Error(`${config.definitionDir} is a link to ${there}, outside the project. Records must live inside the project folder.`);
+    for (const full of walk(dir, { root, inside })) files.set(relative(root, full).split(sep).join("/"), readFileSync(full, "utf8"));
   }
   return { root, config, files, problems };
 }

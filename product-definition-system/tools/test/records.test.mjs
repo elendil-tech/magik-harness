@@ -63,6 +63,13 @@ describe("readRecord", () => {
     assert.deepEqual(r.mentions.map((m) => m.id), ["ENT-a", "ENT-b"]);
   });
 
+  it("keeps the [[links]] that are not ids, rather than dropping them without a word", () => {
+    const r = readRecord("p.md", doc("id: FEAT-a", "\nOK [[ENT-a]]. Not ids: [[not-an-id]], [[ENT-Upper]], [[ENT a]], [[]], [[ENT-x#part]], [[ENT-y|label]] is fine.\nNone in `[[code]]`.\n\n```\n[[fenced]]\n```\n"));
+    assert.deepEqual(r.mentions.map((m) => m.id), ["ENT-a", "ENT-y"]);
+    assert.deepEqual(r.badLinks.map((b) => b.text), ["[[not-an-id]]", "[[ENT-Upper]]", "[[ENT a]]", "[[]]", "[[ENT-x#part]]"]);
+    assert.ok(r.badLinks.every((b) => b.line === 5), "each is placed on its line (the first line of the body is 4)");
+  });
+
   it("treats fenced text as neither prose nor headings", () => {
     const r = readRecord("p.md", doc("id: FEAT-a", "\n## Notes\n\nReal prose.\n\n```text\n## Fake heading\nfake words that must not count\n```\n"));
     assert.deepEqual(r.sections.map((s) => s.heading), ["", "Notes"]);

@@ -5,7 +5,8 @@ import { createHash } from "node:crypto";
 import { parseYaml, YamlError } from "./yaml.mjs";
 
 export const ID_RE = /^([A-Z]{2,5})-([a-z0-9]+(?:-[a-z0-9]+)*)$/;
-const MENTION_RE = /\[\[([A-Z]{2,5}-[a-z0-9]+(?:-[a-z0-9]+)*)(?:\|[^\]\n]*)?\]\]/g;
+const LINK_RE = /\[\[([^\[\]\n]*)\]\]/g;
+const MENTION_RE = /^([A-Z]{2,5}-[a-z0-9]+(?:-[a-z0-9]+)*)(?:\|.*)?$/;
 const FENCE_OPEN = /^(`{3,}|~{3,})\s*([^\s`]*)/;
 
 /** Remove HTML comments but keep every newline, so line numbers stay true. */
@@ -28,14 +29,17 @@ export function splitFrontmatter(text) {
 
 /**
  * Walk the body once: sections (level-2 headings), structured blocks (fences
- * named pds-* or gherkin) and [[ID]] mentions in prose. Fenced text never
- * counts as prose and never starts a heading.
+ * named pds-* or gherkin) and [[ID]] mentions in prose, with the [[...]] that
+ * are not shaped like an id (`badLinks`), which would otherwise point at
+ * nothing without a word. Fenced text never counts as prose and never starts a
+ * heading.
  */
 export function readBody(body, startLine = 1) {
   const lines = body.split("\n");
   const sections = [];
   const blocks = [];
   const mentions = [];
+  const badLinks = [];
   const problems = [];
   let current = { heading: "", line: startLine, prose: [], raw: [] };
   let fence = null;
@@ -79,12 +83,16 @@ export function readBody(body, startLine = 1) {
     current.prose.push({ text: line, line: lineNo });
     const noCode = line.replace(/`[^`\n]*`/g, "");
     let m;
-    MENTION_RE.lastIndex = 0;
-    while ((m = MENTION_RE.exec(noCode))) mentions.push({ id: m[1], line: lineNo });
+    LINK_RE.lastIndex = 0;
+    while ((m = LINK_RE.exec(noCode))) {
+      const id = MENTION_RE.exec(m[1]);
+      if (id) mentions.push({ id: id[1], line: lineNo });
+      else badLinks.push({ text: m[0], target: m[1].split("|")[0], line: lineNo });
+    }
   }
   if (fence) problems.push({ line: fence.line, msg: `fenced block opened here is never closed` });
   push();
-  return { sections, blocks, mentions, problems };
+  return { sections, blocks, mentions, badLinks, problems };
 }
 
 function finishSection(s) {
@@ -122,6 +130,7 @@ export function readRecord(path, rawText) {
     sections: [],
     blocks: [],
     mentions: [],
+    badLinks: [],
   };
   const split = splitFrontmatter(text);
   if (!split) {
@@ -142,6 +151,7 @@ export function readRecord(path, rawText) {
   rec.sections = parsed.sections;
   rec.blocks = parsed.blocks;
   rec.mentions = parsed.mentions;
+  rec.badLinks = parsed.badLinks;
   for (const p of parsed.problems) rec.problems.push({ id: "SCH-block", line: p.line, msg: p.msg });
   return rec;
 }

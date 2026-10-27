@@ -9,13 +9,13 @@ What exists, how it is checked, how it is extended, where it stops and what come
 | The model | `meta-model/` | Six YAML files (the model, element types, relations, rules, probes, views) and the `saas` profile with the patterns its skeleton is made from. About 2,500 lines of YAML. [02 §3](02-architecture.md#3-the-meta-model-is-data) |
 | The engine | `tools/lib/` | About 6,300 lines of JavaScript. No dependencies, no build step, Node 20 or later. [§2](#2-the-engine-module-by-module) |
 | The command line | `tools/pds.mjs`, `tools/lib/commands/` | 15 commands. [02 §4](02-architecture.md#4-the-tool) |
-| The tests | `tools/test/` | 14 test files and one helper module, more than 400 tests, all of them driving the real code on real files. [§3](#3-how-it-is-verified) |
+| The tests | `tools/test/` | 15 test files and one helper module, more than 400 tests, all of them driving the real code on real files. [§3](#3-how-it-is-verified) |
 | A worked example | `examples/ledgerly/` | An invented invoicing product, lint-clean, with what is unfinished left visible. |
 | The documents | `README.md`, `docs/` | This set, and `docs/reference/`, which is generated from the model and not edited. |
 | The agent skill | `skills/pds-define/` | One skill, and the [protocol](07-agents.md) behind it. |
 | Scripts | `scripts/` | The test runner, and three checks that are not part of the product: YAML parity, diagram rendering and scale. |
 
-The package is self-contained: it reads and writes only inside the project folder it is pointed at.
+The package is self-contained: it reads and writes inside the project folder it is pointed at, and anywhere else only where it is told to, with `--out` or the folder given to `init`.
 
 ## 2. The engine, module by module
 
@@ -27,7 +27,7 @@ Data flows one way: text in, a plain analysis out, and everything else reads the
 | `records.mjs` | Reads one record: frontmatter, sections, structured blocks, `[[wikilinks]]`, the content hash. Knows nothing of the meta-model. | |
 | `shapes.mjs` | Value checks for field types and the named block shapes. | |
 | `metamodel.mjs` | Loads and validates `meta-model/`. Nothing else in the tool names a type, a relation or a rule. | reads |
-| `project.mjs` | `pds.yaml` and the definition folder: reads the files into memory, resolves configuration, waivers and policy. | reads |
+| `project.mjs` | `pds.yaml` and the definition folder: reads the files into memory, resolves configuration, waivers and policy. Keeps the definition and views folders inside the project, and follows a link only to somewhere inside it. | reads |
 | `graph.mjs` | The model: elements, the spine, typed edges, tiers, lifecycle, facets. | |
 | `coverage.mjs` | Evaluates rules, probes and gates; computes maturity. | |
 | `checks/` | The 63 coded checks, one file per class: schema, references, coherence, quality, governance, probes. | |
@@ -37,7 +37,7 @@ Data flows one way: text in, a plain analysis out, and everything else reads the
 | `views/` | The 21 views as pure functions of the analysis, and the planner that names the files. | |
 | `templates.mjs`, `seed.mjs`, `edit.mjs` | What `pds new` and `pds init` write, and surgical edits to one frontmatter key. Text in, text out. | |
 | `refdocs.mjs` | The generated reference. | |
-| `cli.mjs`, `commands/`, `format.mjs`, `errors.mjs` | Arguments, the commands, plain-text output, exit codes. | `cli.mjs` finds the project; the commands read and write |
+| `cli.mjs`, `commands/`, `format.mjs`, `errors.mjs` | Arguments, the commands, plain-text output, exit codes, and the words for a path that cannot be used. | `cli.mjs` finds the project; the commands read and write |
 
 Two properties make the rest of the work safe, and tests hold both: `analyse()` takes files in memory and returns data, so it can be called on a project that exists only in a test; and a view is a function of that data, so the same records always give the same bytes.
 
@@ -48,6 +48,7 @@ A claim is only as good as the check that could have failed. Each layer below ca
 | Layer | How | What it holds |
 |---|---|---|
 | Behaviour | `npm test` | Every command through the real command line in process; every coded check, by breaking a private copy of the example one way and expecting the finding that deserves; maturity, approval, impact, the graph and the record reader on small models built in memory. |
+| Hostile input | `tools/test/hostile.test.mjs` | Files that point outside the project, a pds.yaml that sends output elsewhere, a rename that cannot finish, arguments no one would type. Each case was found by attacking the tool, and most of them fail on the code from before the fixes. |
 | The model | `pds meta check` | The data agrees with itself and with the engine, in both directions ([02 §3](02-architecture.md#3-the-meta-model-is-data)). Tests break the model on purpose to show the check notices. |
 | Generated files | `pds docs --check`, `pds views --check` | The reference and the example's views are exactly what the tool writes now. |
 | The prose | `tools/test/docs.test.mjs` | Every relative link and heading anchor resolves; every `pds` command and flag shown exists; every rule, check and gate named exists; every count quoted (types, relations, rules, checks, probes, views, commands, modules) is the number the model computes; the families table lists the types in each family; the numbers quoted about the example are what `pds status` prints; the skeleton is as big as the README says. |

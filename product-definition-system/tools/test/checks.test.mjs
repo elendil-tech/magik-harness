@@ -43,6 +43,7 @@ const CASES = [
   { code: "REF-target", element: "FEAT-pay-invoice-online", name: "a relation pointing at an element that does not exist", apply: (r) => editFront(r, "FEAT-pay-invoice-online", (f) => (f.rel = { ...f.rel, governed_by: ["RULE-nonexistent"] })), msg: /RULE-nonexistent/ },
   { code: "REF-target", element: "FLW-pay-invoice", name: "a flow step performed by an actor that does not exist", apply: (r) => editText(r, "FLW-pay-invoice", (t) => t.replace("actor: ACT-client", "actor: ACT-ghost")), msg: /ACT-ghost.*step view/, label: "flow step" },
   { code: "REF-mention", element: "TERM-client", name: "a [[wikilink]] to an element that does not exist", apply: (r) => editText(r, "TERM-client", append("See also [[ENT-ghost]].\n")), msg: /ENT-ghost/ },
+  { code: "REF-mention", element: "TERM-client", name: "a [[wikilink]] that is not shaped like an id, which would have linked to nothing in silence", apply: (r) => editText(r, "TERM-client", append("See also [[ENT-Invoice]].\n")), msg: /\[\[ENT-Invoice\]\] is not an element id/, label: "not an id" },
   { code: "REF-anchor-cycle", name: "anchors that lead back to where they started", apply: (r) => editFront(r, "DOM-invoicing", (f) => (f.anchor = "CAP-invoicing")) },
   { code: "REF-retired", name: "a live element that still points at a retired one", apply: (r) => editFront(r, "ENT-client", (f) => ((f.lifecycle = "retired"), (f.lifecycle_note = "Replaced by a contact record."))), msg: /ENT-client, which is retired/ },
   {

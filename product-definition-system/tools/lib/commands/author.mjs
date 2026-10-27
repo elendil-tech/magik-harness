@@ -1,8 +1,8 @@
 // Commands that write to the definition: start a project, add a record, record an approval.
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve, relative } from "node:path";
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { Failure, UsageError, closest } from "../errors.mjs";
-import { plural } from "../format.mjs";
+import { plural, shownPath } from "../format.mjs";
 import { CONFIG_FILE, resolveConfig } from "../project.mjs";
 import { expandSeeds, slugify } from "../seed.mjs";
 import { renderRecord, pathFor } from "../templates.mjs";
@@ -38,6 +38,7 @@ export const init = {
   run(ctx) {
     const { meta, flags } = ctx;
     const dir = resolve(ctx.cwd, ctx.args[0] ?? ".");
+    if (existsSync(dir) && !statSync(dir).isDirectory()) throw new UsageError(`${dir} is a file, not a folder: give the folder to start the project in`);
     if (existsSync(join(dir, CONFIG_FILE))) throw new Failure(`${dir} already has a ${CONFIG_FILE}`);
     const name = flags.name ?? basename(dir);
     const productSlug = slugify(name);
@@ -71,9 +72,7 @@ export const init = {
         written++;
       }
     }
-    // A folder outside the one the person is in would be shown as `../../../x`, which is hard to paste: give the whole path then.
-    const up = relative(ctx.cwd, dir);
-    const shown = up === "" ? "." : /^\.\.(?:[\\/]|$)/.test(up) ? dir : up;
+    const shown = shownPath(ctx.cwd, dir);
     const lines = [`Started ${name} in ${shown}: ${CONFIG_FILE} and ${plural(written, "record")} under ${config.definitionDir}/.`];
     if (patterns) lines.push(`${plural(written - 1, "skeleton record")} (origin: skeleton) are prompts to confirm, correct or delete. ${plural(skipped.length, "seed")} left out because the modules or adoption level do not call for them.`);
     lines.push("", "Next:", ...(shown === "." ? [] : [`  cd ${shown}`]), "  pds status        where things stand", "  pds next          what to write first", `  pds ask ${productId}  the questions that take the product record up the ladder`, "");
@@ -212,26 +211,43 @@ export const rename = {
     }
 
     const errorsBefore = a.counts.error;
-    for (const [path, text] of after) write(path === oldPath ? newPath : path, text);
-    unlinkSync(abs(oldPath));
-    ctx.invalidate();
-    const written = new Set(after.keys());
-    for (const e of touched) {
-      const { model: m2, config: c2 } = ctx.analysis;
-      const el2 = m2.get(e.id === oldId ? newId : e.id);
-      const hash = approvalHash(m2, c2, el2);
-      if (hash === el2.front.approval.hash) continue;
-      const file = abs(el2.path);
-      writeFileSync(file, setFrontKey(readFileSync(file, "utf8"), "approval", stringifyYaml({ approval: { ...el2.front.approval, hash } }, { flowMax: 240 }).trimEnd().split("\n")));
-      written.add(e.id === oldId ? oldPath : e.path);
+    // Everything below either completes or leaves the files exactly as they were, whether it is
+    // stopped by what the new errors say or by the file system (a read-only file, a name too long).
+    const written = new Set(after.keys()); // by the paths they had before
+    const somethingThere = existsSync(abs(newPath)); // not ours to remove if it was there already
+    const putBack = () => {
+      if (!somethingThere) rmSync(abs(newPath), { force: true });
+      for (const path of written) {
+        try {
+          write(path, before.get(path));
+        } catch {
+          // keep going: put back as much as can be put back
+        }
+      }
       ctx.invalidate();
+    };
+    let now;
+    try {
+      for (const [path, text] of after) write(path === oldPath ? newPath : path, text);
+      unlinkSync(abs(oldPath));
+      ctx.invalidate();
+      for (const e of touched) {
+        const { model: m2, config: c2 } = ctx.analysis;
+        const el2 = m2.get(e.id === oldId ? newId : e.id);
+        const hash = approvalHash(m2, c2, el2);
+        if (hash === el2.front.approval.hash) continue;
+        const file = abs(el2.path);
+        written.add(e.id === oldId ? oldPath : e.path);
+        writeFileSync(file, setFrontKey(readFileSync(file, "utf8"), "approval", stringifyYaml({ approval: { ...el2.front.approval, hash } }, { flowMax: 240 }).trimEnd().split("\n")));
+        ctx.invalidate();
+      }
+      now = ctx.analysis;
+    } catch (e) {
+      putBack();
+      throw e;
     }
-    const now = ctx.analysis;
     if (now.counts.error > errorsBefore || !now.model.has(newId) || now.model.has(oldId)) {
-      // put everything back exactly as it was
-      unlinkSync(abs(newPath));
-      for (const path of written) write(path, before.get(path));
-      ctx.invalidate();
+      putBack();
       throw new Failure(`renaming ${oldId} to ${newId} would introduce ${plural(now.counts.error - errorsBefore, "new error")}, so nothing was changed. Try --dry-run, then \`pds lint\`.`, 3);
     }
     const views = existsSync(abs(config.viewsDir));

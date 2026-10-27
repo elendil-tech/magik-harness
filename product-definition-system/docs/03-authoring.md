@@ -49,7 +49,7 @@ my-product/
 ```
 
 - **One element, one file**, in the folder of its family (`SCH-id-file` checks this). A file named `README.md` or starting with `_` is ignored, so a family folder can have a note.
-- The `definition/` and `views/` folder names can be changed in `pds.yaml` (`definition_dir`, `views_dir`).
+- The `definition/` and `views/` folder names can be changed in `pds.yaml` (`definition_dir`, `views_dir`). Both must be folders inside the project and apart from each other; `pds lint` reports anything else and the commands use the usual folders until it is put right.
 - One record per file keeps diffs small and merges clean.
 
 ## 3. Ids
@@ -120,7 +120,7 @@ rel:
 - **A fact in a structured block is not also written under `rel`.** A flow step that names `at: SCR-invoice-review` already means the flow `touches` the screen. Writing it twice would create the copy that later disagrees.
 - An active element should not depend on a retired one, except to record history (`supersedes`, `concerns`, `evidenced_by`) (`REF-retired`).
 
-**Wikilinks.** `[[FEAT-send-invoice]]` or `[[FEAT-send-invoice|the send feature]]` in prose is a `mentions` relation. It must name an existing element (`REF-mention`). Use a wikilink to point a reader at something; use `rel` for a fact the model depends on (this feature *requires* that permission).
+**Wikilinks.** `[[FEAT-send-invoice]]` or `[[FEAT-send-invoice|the send feature]]` in prose is a `mentions` relation. It must name an existing element, and what is inside the brackets must be an id (`REF-mention`): `[[FEAT-Send-Invoice]]`, `[[ENT invoice]]` and `[[]]` are reported with a guess at what was meant, not skipped. Inside backticks or a fenced block, `[[` is only text. Use a wikilink to point a reader at something; use `rel` for a fact the model depends on (this feature *requires* that permission).
 
 ## 7. Structured blocks
 

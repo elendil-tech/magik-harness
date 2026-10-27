@@ -324,7 +324,7 @@ Coded checks for what a declarative rule cannot say. `from` is the rung an eleme
 | Check | Severity | From | Reads | What it checks |
 | --- | --- | --- | --- | --- |
 | `REF-target` | error | any |  | Every relation target, field reference and block reference names an existing element of an allowed type. |
-| `REF-mention` | error | any | `mentions` | Every [[ID]] in prose names an existing element. |
+| `REF-mention` | error | any | `mentions` | Every [[...]] in prose is an element id, and names an existing element. |
 | `REF-anchor-cycle` | error | any |  | Following anchors upward always ends at the product. |
 | `REF-retired` | warn | any |  | An active element does not depend on a retired one, except to record history (supersedes, concerns, evidenced_by). |
 | `REF-depth` | warn | any |  | Domains and capabilities nest at most three levels deep. |

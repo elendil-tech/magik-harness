@@ -569,7 +569,7 @@ checks:
   - {id: SCH-summary, class: SCH, sev: error, doc: "A summary is one line of at most 200 characters."}
   # ---- REF: references resolve
   - {id: REF-target, class: REF, sev: error, doc: "Every relation target, field reference and block reference names an existing element of an allowed type."}
-  - {id: REF-mention, class: REF, sev: error, uses: [mentions], doc: "Every [[ID]] in prose names an existing element."}
+  - {id: REF-mention, class: REF, sev: error, uses: [mentions], doc: "Every [[...]] in prose is an element id, and names an existing element."}
   - {id: REF-anchor-cycle, class: REF, sev: error, doc: "Following anchors upward always ends at the product."}
   - {id: REF-retired, class: REF, sev: warn, doc: "An active element does not depend on a retired one, except to record history (supersedes, concerns, evidenced_by)."}
   - {id: REF-depth, class: REF, sev: warn, doc: "Domains and capabilities nest at most three levels deep."}

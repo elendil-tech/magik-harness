@@ -1,33 +1,32 @@
 // REF: every reference points at something real.
-const asList = (v) => (v === undefined || v === null ? [] : Array.isArray(v) ? v : [v]);
+import { distance, LONGEST_TYPO } from "../errors.mjs";
 
-function distance(a, b) {
-  const m = [...Array(b.length + 1).keys()];
-  for (let i = 1; i <= a.length; i++) {
-    let prev = m[0];
-    m[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const tmp = m[j];
-      m[j] = Math.min(m[j] + 1, m[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
-      prev = tmp;
-    }
-  }
-  return m[b.length];
-}
+const asList = (v) => (v === undefined || v === null ? [] : Array.isArray(v) ? v : [v]);
 
 /** The closest real id to a mistyped one, when it is close enough to be a typo. */
 export function suggest(model, id) {
+  if (id.length > LONGEST_TYPO) return undefined;
   const prefix = id.split("-")[0];
   let best = null;
   for (const other of model.elements.keys()) {
     const same = other.startsWith(prefix + "-");
+    const limit = same ? 4 : 2;
+    if (Math.abs(other.length - id.length) > limit) continue; // too different in length to be within the limit
     const d = distance(id, other);
-    if (d <= (same ? 4 : 2) && (!best || d < best.d)) best = { id: other, d };
+    if (d <= limit && (!best || d < best.d)) best = { id: other, d };
   }
   return best?.id;
 }
 
 const HISTORY = new Set(["supersedes", "concerns", "evidenced_by", "mentions", "resolved_by"]);
+
+/** What a link was probably meant to say: the case and spacing put right. */
+function mendedId(text) {
+  const m = /^([A-Za-z]{2,5})-(.+)$/.exec(text.trim().replace(/\s+/g, "-"));
+  return m ? `${m[1].toUpperCase()}-${m[2].toLowerCase()}` : null;
+}
+
+const clipLink = (text) => (text.length > 60 ? `${text.slice(0, 59)}…` : text);
 
 export const checks = {
   "REF-target"(ctx) {
@@ -65,6 +64,14 @@ export const checks = {
       const s = suggest(model, e.to);
       ctx.report({ element: e.from, path: from.path, line: e.line, msg: `[[${e.to}]] names no element`, hint: s ? `did you mean ${s}?` : undefined });
     }
+    // A link that is not shaped like an id would otherwise be dropped without a word: say so.
+    ctx.each(null, (el) => {
+      for (const bad of el.rec.badLinks || []) {
+        const fixed = mendedId(bad.target);
+        const hint = fixed && model.has(fixed) ? `did you mean [[${fixed}]]?` : "an id is a type prefix and lowercase words joined by hyphens, like FEAT-send-invoice";
+        ctx.report({ element: el.id, path: el.path, line: bad.line, msg: `${clipLink(bad.text)} is not an element id`, hint });
+      }
+    });
   },
 
   "REF-anchor-cycle"(ctx) {

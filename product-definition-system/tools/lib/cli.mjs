@@ -3,7 +3,7 @@
 //
 //   0  done, nothing wrong
 //   1  the work ran and found problems (lint errors, a refused approval)
-//   2  the command was used wrongly
+//   2  the command was used wrongly, including a path it was given that cannot be used
 //   3  something unexpected broke
 import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -12,7 +12,7 @@ import { readProject, CONFIG_FILE } from "./project.mjs";
 import { analyse, today as realToday } from "./lint.mjs";
 import { isDate } from "./shapes.mjs";
 import { wrap, columns } from "./format.mjs";
-import { UsageError, Failure, closest } from "./errors.mjs";
+import { UsageError, Failure, closest, clip, pathProblem } from "./errors.mjs";
 import { COMMANDS, GROUPS } from "./commands/index.mjs";
 
 export { UsageError, Failure, closest };
@@ -193,14 +193,20 @@ export async function main(argv, io = {}) {
     return (await cmd.run(ctx)) ?? 0;
   } catch (e) {
     if (e instanceof UsageError) {
-      err(`pds: ${e.message}\n`);
+      err(`pds: ${clip(e.message)}\n`);
       return 2;
     }
     if (e instanceof Failure) {
-      if (e.message) err(`pds: ${e.message}\n`);
+      if (e.message) err(`pds: ${clip(e.message)}\n`);
       return e.code;
     }
-    err(`pds: unexpected error: ${env.PDS_DEBUG ? e.stack : e.message}\n`);
+    // a path the person gave that the file system will not take: theirs to fix, not a bug
+    const refused = pathProblem(e);
+    if (refused) {
+      err(`pds: ${clip(env.PDS_DEBUG ? e.stack : refused)}\n`);
+      return 2;
+    }
+    err(`pds: unexpected error: ${clip(env.PDS_DEBUG ? e.stack : e.message)}\n`);
     return 3;
   }
 }

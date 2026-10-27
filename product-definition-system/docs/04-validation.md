@@ -130,7 +130,7 @@ A gate is why `pds init` can write 99 records and still report 0 % depth: the sk
 | Class | Count | Is about | Examples |
 |---|---|---|---|
 | **SCH** schema | 14 | Is the record well formed? | `SCH-frontmatter` parses; `SCH-id-file` file is named after the id and in its family's folder; `SCH-field-type` values match their type; `SCH-anchor` the anchor exists and may hold this type; `SCH-rel-pair` a relation connects types it allows; `SCH-block` a block parses |
-| **REF** references | 5 | Does every pointer land? | `REF-target`; `REF-mention` for `[[ID]]`; `REF-anchor-cycle`; `REF-retired`; `REF-depth` |
+| **REF** references | 5 | Does every pointer land? | `REF-target`; `REF-mention` for `[[ID]]`, which also catches a `[[...]]` that is not shaped like an id; `REF-anchor-cycle`; `REF-retired`; `REF-depth` |
 | **COH** coherence | 20 | Does the model make sense in itself? | the flow, state-machine, entity, journey, plan, rule, screen, facet, role, dependency, supersession, release and tier checks listed in [03](03-authoring.md) |
 | **QLT** quality | 12 | Is it written well enough to use? | requirement form, measurability, one obligation per requirement; vague words; placeholders; gherkin order; glossary terms to avoid; near-duplicate titles; summaries that repeat the title |
 | **GOV** governance | 9 | Is it honest and accepted? | `GOV-claim`, `GOV-skeleton`, `GOV-approval-hash`, `GOV-approval-authority`, `GOV-tier1-approval`, `GOV-freshness`, `GOV-overdue`, `GOV-blocking-question`, `GOV-lifecycle-note` |

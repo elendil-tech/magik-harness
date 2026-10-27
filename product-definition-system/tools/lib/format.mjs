@@ -1,5 +1,13 @@
 // Plain-text formatting for the command line. No colour and no cursor tricks:
 // the output has to read the same in a terminal, a log and a test.
+import { relative } from "node:path";
+
+/** A path as someone would paste it: from where they are, unless that climbs out of their folder, and then in full. */
+export function shownPath(cwd, target) {
+  const up = relative(cwd, target);
+  if (up === "") return ".";
+  return /^\.\.(?:[\\/]|$)/.test(up) ? target : up;
+}
 
 export const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
