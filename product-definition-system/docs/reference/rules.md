@@ -329,30 +329,30 @@ Coded checks for what a declarative rule cannot say. `from` is the rung an eleme
 | `REF-retired` | warn | any |  | An active element does not depend on a retired one, except to record history (supersedes, concerns, evidenced_by). |
 | `REF-depth` | warn | any |  | Domains and capabilities nest at most three levels deep. |
 
-### INT
+### COH
 
 | Check | Severity | From | Reads | What it checks |
 | --- | --- | --- | --- | --- |
-| `INT-flow-shape` | error | `outlined` |  | In a flow, step ids are unique; entry and every next or branch target exist; each step has exactly one of next, decide, end or call. |
-| `INT-flow-reach` | error | `specified` |  | Every step of a flow is reachable from its entry and every path reaches an end. A loop with no way out is a warning. |
-| `INT-flow-ends` | warn | `specified` |  | A flow of an important or critical feature has at least one success end and one failure or abort end. |
-| `INT-flow-refs` | error | `specified` | `touches`, `governed_by`, `accesses`, `emits`, `drives`, `depends_on`, `audience` | A step's actor, screen, rule, entity, event, state-machine transition and called flow exist and are of the right type; moves names a real transition. |
-| `INT-flow-size` | warn | any |  | A flow has at most 25 steps. Longer ones are split into called flows. |
-| `INT-stm-shape` | error | `specified` |  | A state machine has exactly one initial state; every transition names defined states; terminal states have no way out; every state is reachable. |
-| `INT-stm-driven` | warn | `verifiable` | `drives` | Every transition either names a system trigger or is moved by at least one flow. |
-| `INT-ent-attributes` | error | `specified` | `associates` | Attribute names are unique; associations point at entities; an entity that says it holds no personal data has no personal attribute; one holding personal data is classified confidential or higher. |
-| `INT-payload` | error | `specified` |  | Payload field names are unique and an event that says it carries no personal data has no personal field. |
-| `INT-journey` | error | `specified` | `spans`, `touches` | Journey stage ids are unique; stage flows and touchpoints exist; feeling is a number from 1 to 5. |
-| `INT-plan-entitlements` | error | `specified` | `grants` | A plan lists only entitlements that exist, with values that fit each one's kind, and a price whose model, amount and interval agree. |
-| `INT-rule-examples` | error | `specified` |  | A rule has worked examples, at least one positive and at least one negative or edge case, each with a given and a then. |
-| `INT-screen-states` | error | `specified` |  | A screen that shows data defines at least its loading, empty and error states. |
-| `INT-facets` | error | any |  | A feature does not declare false a facet the graph shows to be true. |
-| `INT-role-limits` | error | `specified` |  | A role's minimum holders do not exceed its maximum, and assignable_by never forms a loop. |
-| `INT-dependency-cycle` | warn | any | `depends_on` | Hard dependencies between capabilities or features do not form a cycle. |
-| `INT-supersedes` | error | any | `supersedes` | Supersession never loops; the element replaced is deprecated or retired. |
-| `INT-release-scope` | warn | any | `includes` | A release that is planned or in progress does not include a retired element. |
-| `INT-tier-order` | warn | any |  | A child is not more critical than the element it sits under. |
-| `INT-qst-answer` | error | any |  | A question that is no longer open is not still marked blocking, and an open question carries no answer. |
+| `COH-flow-shape` | error | `outlined` |  | In a flow, step ids are unique; entry and every next or branch target exist; each step has exactly one of next, decide, end or call. |
+| `COH-flow-reach` | error | `specified` |  | Every step of a flow is reachable from its entry and every path reaches an end. A loop with no way out is a warning. |
+| `COH-flow-ends` | warn | `specified` |  | A flow of an important or critical feature has at least one success end and one failure or abort end. |
+| `COH-flow-refs` | error | `specified` | `touches`, `governed_by`, `accesses`, `emits`, `drives`, `depends_on`, `audience` | A step's actor, screen, rule, entity, event, state-machine transition and called flow exist and are of the right type; moves names a real transition. |
+| `COH-flow-size` | warn | any |  | A flow has at most 25 steps. Longer ones are split into called flows. |
+| `COH-stm-shape` | error | `specified` |  | A state machine has exactly one initial state; every transition names defined states; terminal states have no way out; every state is reachable. |
+| `COH-stm-driven` | warn | `verifiable` | `drives` | Every transition either names a system trigger or is moved by at least one flow. |
+| `COH-ent-attributes` | error | `specified` | `associates` | Attribute names are unique; associations point at entities; an entity that says it holds no personal data has no personal attribute; one holding personal data is classified confidential or higher. |
+| `COH-payload` | error | `specified` |  | Payload field names are unique and an event that says it carries no personal data has no personal field. |
+| `COH-journey` | error | `specified` | `spans`, `touches` | Journey stage ids are unique; stage flows and touchpoints exist; feeling is a number from 1 to 5. |
+| `COH-plan-entitlements` | error | `specified` | `grants` | A plan lists only entitlements that exist, with values that fit each one's kind, and a price whose model, amount and interval agree. |
+| `COH-rule-examples` | error | `specified` |  | A rule has worked examples, at least one positive and at least one negative or edge case, each with a given and a then. |
+| `COH-screen-states` | error | `specified` |  | A screen that shows data defines at least its loading, empty and error states. |
+| `COH-facets` | error | any |  | A feature does not declare false a facet the graph shows to be true. |
+| `COH-role-limits` | error | `specified` |  | A role's minimum holders do not exceed its maximum, and assignable_by never forms a loop. |
+| `COH-dependency-cycle` | warn | any | `depends_on` | Hard dependencies between capabilities or features do not form a cycle. |
+| `COH-supersedes` | error | any | `supersedes` | Supersession never loops; the element replaced is deprecated or retired. |
+| `COH-release-scope` | warn | any | `includes` | A release that is planned or in progress does not include a retired element. |
+| `COH-tier-order` | warn | any |  | A child is not more critical than the element it sits under. |
+| `COH-qst-answer` | error | any |  | A question that is no longer open is not still marked blocking, and an open question carries no answer. |
 
 ### QLT
 

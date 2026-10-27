@@ -261,26 +261,26 @@ From the owner confirming a finished draft to the client's email being handed to
 ```mermaid
 flowchart TD
   subgraph lane_ACT_account_owner ["Account owner"]
-    s_review{"Checks the recipient, the<br/>totals and the due date, then<br/>confirms"}
+    s_review{{"Checks the recipient, the totals and the due date, then confirms"}}
   end
   subgraph lane__ ["System (no actor named)"]
-    s_check_limit{"The system checks that the<br/>workspace is under its monthly<br/>invoice limit"}
-    s_send["The system takes the next<br/>invoice number, marks the<br/>invoice sent and queues the<br/>email, in one transaction"]
-    s_deliver{"A background job hands the<br/>email with the private pay<br/>link to the delivery provider"}
-    s_done(["The owner sees the invoice as<br/>sent"])
-    s_undelivered(["The owner is told delivery<br/>failed, and can correct the<br/>address and send it again with<br/>the same number"])
-    s_blocked(["The owner sees the monthly<br/>limit and an upgrade prompt;<br/>the draft is kept"])
-    s_cancelled(["Nothing changes; the draft<br/>stays as it was"])
+    s_check_limit{{"The system checks that the workspace is under its monthly invoice limit"}}
+    s_send["The system takes the next invoice number, marks the invoice sent and queues the email, in one transaction"]
+    s_deliver{{"A background job hands the email with the private pay link to the delivery provider"}}
+    s_done(["The owner sees the invoice as sent"])
+    s_undelivered(["The owner is told delivery failed, and can correct the address and send it again with the same number"])
+    s_blocked(["The owner sees the monthly limit and an upgrade prompt; the draft is kept"])
+    s_cancelled(["Nothing changes; the draft stays as it was"])
   end
-  t_FLW_send_invoice(["The owner chooses Send on a<br/>finished draft"])
+  t_FLW_send_invoice(["The owner chooses Send on a finished draft"])
   t_FLW_send_invoice --> s_review
   s_review -->|"The owner confirms"| s_check_limit
-  s_review -->|"The owner goes back to<br/>edit"| s_cancelled
-  s_check_limit -->|"The workspace is under<br/>the limit"| s_send
-  s_check_limit -->|"The workspace is at the<br/>limit"| s_blocked
+  s_review -->|"The owner goes back to edit"| s_cancelled
+  s_check_limit -->|"The workspace is under the limit"| s_send
+  s_check_limit -->|"The workspace is at the limit"| s_blocked
   s_send --> s_deliver
-  s_deliver -->|"The provider accepts the<br/>message"| s_done
-  s_deliver -->|"The provider rejects it<br/>or the address bounces"| s_undelivered
+  s_deliver -->|"The provider accepts the message"| s_done
+  s_deliver -->|"The provider rejects it or the address bounces"| s_undelivered
   classDef success fill:#d4f4dd,stroke:#2e7d32;
   classDef failure fill:#f8d7da,stroke:#c62828;
   classDef abort fill:#fff3cd,stroke:#b8860b;

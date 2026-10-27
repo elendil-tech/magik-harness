@@ -12,7 +12,7 @@ export const DEFAULT_META_DIR = join(HERE, "..", "..", "meta-model");
 
 export const FIELD_TYPES = ["string", "text", "int", "number", "bool", "date", "enum", "ref", "refs", "strings", "any", "shape"];
 export const SHAPES = ["price", "examples", "entitlements", "links", "facets", "probes", "approval", "rel"];
-export const CHECK_CLASSES = ["SCH", "REF", "INT", "QLT", "GOV", "PRB"];
+export const CHECK_CLASSES = ["SCH", "REF", "COH", "QLT", "GOV", "PRB"];
 export const SEVERITIES = ["error", "warn", "info"];
 const IMPACT = ["strong", "weak", "none"];
 export const BLOCK_NAMES = ["pds-flow", "pds-states", "pds-attributes", "pds-journey", "pds-payload", "gherkin"];

@@ -347,6 +347,20 @@ describe("the entity-relationship view", () => {
     assert.match(diagram, /INVOICE \|\|--o\{ PAYMENT : "paid by"/);
   });
 
+  test("a relationship that both entities declare is drawn once, as the first end declared it", () => {
+    const [diagram] = fences(er, "mermaid");
+    const between = diagram.split("\n").filter((l) => /\b(INVOICE|PAYMENT)\b.*[|}][o|]--[o|][|{].*\b(INVOICE|PAYMENT)\b/.test(l));
+    assert.deepEqual(between, ['  INVOICE ||--o{ PAYMENT : "paid by"'], "the invoice says it is paid by payments, and the payment says it pays an invoice: one line");
+  });
+
+  test("a relationship with no label on either end says only that it relates", () => {
+    const root = copyExample();
+    editText(root, "ENT-invoice", (t) => t.replace("{to: ENT-payment, kind: one_to_many, label: paid by}", "{to: ENT-payment, kind: one_to_many}"));
+    editText(root, "ENT-payment", (t) => t.replace("{to: ENT-invoice, kind: many_to_one, label: pays}", "{to: ENT-invoice, kind: many_to_one}"));
+    const [diagram] = fences(renderView(analyseRoot(root), "er"), "mermaid");
+    assert.match(diagram, /INVOICE \|\|--o\{ PAYMENT : "relates to"/);
+  });
+
   test("an entity with no attributes is drawn by name only: nothing is invented to fill it", async () => {
     const root = copyExample();
     addRecord(root, "ENT-note", { title: "Note", maturity: "stub", anchor: "DOM-invoicing", origin: "human" });

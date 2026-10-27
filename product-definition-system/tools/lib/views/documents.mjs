@@ -53,7 +53,8 @@ export function renderProductMap(V, target) {
   const all = [root, ...model.descendants(root.id).filter((e) => spineTypes.has(e.type) && !model.isRetired(e.id))];
   const limited = all.length > 120;
   const shown = limited ? all.filter((e) => e.type !== "FEAT") : all;
-  const lines = ["flowchart TD"];
+  // left to right: a tree grows downward by the number of leaves, which a page has room for, instead of sideways, which it does not
+  const lines = ["flowchart LR"];
   for (const e of shown) lines.push(`  ${mid("n_", e.id)}["${q(e.title, 24)}<br/>${e.type} · ${V.computed(e.id) || "retired"}"]:::${V.computed(e.id) || "stub"}`);
   const ids = new Set(shown.map((e) => e.id));
   for (const e of shown) if (e.anchor && ids.has(e.anchor) && e.id !== root.id) lines.push(`  ${mid("n_", e.anchor)} --> ${mid("n_", e.id)}`);

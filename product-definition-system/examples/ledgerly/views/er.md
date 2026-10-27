@@ -38,7 +38,6 @@ erDiagram
   }
   INVOICE }o--|| CLIENT : "billed to"
   INVOICE ||--o{ PAYMENT : "paid by"
-  PAYMENT }o--|| INVOICE : "pays"
 ```
 
 ## Invoice

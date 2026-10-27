@@ -57,13 +57,13 @@ const CASES = [
     msg: /nested 4 levels/,
   },
 
-  // ---- integrity
-  { code: "INT-flow-shape", element: "FLW-pay-invoice", name: "a step that continues to a step that does not exist", apply: (r) => editText(r, "FLW-pay-invoice", (t) => t.replace("    next: choose-amount", "    next: nowhere")), msg: /nowhere/ },
-  { code: "INT-flow-reach", element: "FLW-pay-invoice", name: "a flow step nothing leads to", apply: (r) => editText(r, "FLW-pay-invoice", (t) => t.replace("    end: abort\n```", "    end: abort\n  - id: orphan\n    does: Never reached\n    end: abort\n```")), msg: /orphan/ },
-  { code: "INT-flow-ends", element: "FLW-pay-invoice", name: "a critical flow with no way of failing", apply: (r) => editText(r, "FLW-pay-invoice", (t) => t.replace("end: failure", "end: success").replace("end: abort", "end: success")), msg: /no failure or abort end/ },
-  { code: "INT-flow-refs", element: "FLW-pay-invoice", name: "a flow step that moves a transition the state machine does not have", apply: (r) => editText(r, "FLW-pay-invoice", (t) => t.replace('"sent->paid"', '"sent->refunded"')), msg: /sent->refunded/ },
+  // ---- coherence
+  { code: "COH-flow-shape", element: "FLW-pay-invoice", name: "a step that continues to a step that does not exist", apply: (r) => editText(r, "FLW-pay-invoice", (t) => t.replace("    next: choose-amount", "    next: nowhere")), msg: /nowhere/ },
+  { code: "COH-flow-reach", element: "FLW-pay-invoice", name: "a flow step nothing leads to", apply: (r) => editText(r, "FLW-pay-invoice", (t) => t.replace("    end: abort\n```", "    end: abort\n  - id: orphan\n    does: Never reached\n    end: abort\n```")), msg: /orphan/ },
+  { code: "COH-flow-ends", element: "FLW-pay-invoice", name: "a critical flow with no way of failing", apply: (r) => editText(r, "FLW-pay-invoice", (t) => t.replace("end: failure", "end: success").replace("end: abort", "end: success")), msg: /no failure or abort end/ },
+  { code: "COH-flow-refs", element: "FLW-pay-invoice", name: "a flow step that moves a transition the state machine does not have", apply: (r) => editText(r, "FLW-pay-invoice", (t) => t.replace('"sent->paid"', '"sent->refunded"')), msg: /sent->refunded/ },
   {
-    code: "INT-flow-size",
+    code: "COH-flow-size",
     element: "FLW-big",
     name: "a flow with more steps than a person can follow",
     apply: (r) => {
@@ -72,9 +72,9 @@ const CASES = [
     },
     msg: /26 steps/,
   },
-  { code: "INT-stm-shape", element: "STM-invoice-lifecycle", name: "a transition into a state that does not exist", apply: (r) => editText(r, "STM-invoice-lifecycle", (t) => t.replace("from: sent, to: void", "from: sent, to: cancelled")), msg: /cancelled/ },
+  { code: "COH-stm-shape", element: "STM-invoice-lifecycle", name: "a transition into a state that does not exist", apply: (r) => editText(r, "STM-invoice-lifecycle", (t) => t.replace("from: sent, to: void", "from: sent, to: cancelled")), msg: /cancelled/ },
   {
-    code: "INT-stm-driven",
+    code: "COH-stm-driven",
     element: "STM-invoice-lifecycle",
     name: "a transition caused by an actor, when no flow performs it",
     apply: (r) => {
@@ -83,16 +83,16 @@ const CASES = [
     },
     msg: /draft->sent is caused by ACT-account-owner but no flow moves it/,
   },
-  { code: "INT-ent-attributes", element: "ENT-client", name: "an entity that says it holds no personal data, with a personal attribute", apply: (r) => editFront(r, "ENT-client", (f) => (f.pii = false)), msg: /holds no personal data/ },
-  { code: "INT-payload", element: "EVT-invoice-sent", name: "an event that says it carries no personal data, with a personal field", apply: (r) => editFront(r, "EVT-invoice-sent", (f) => (f.pii = false)), msg: /carries no personal data/ },
-  { code: "INT-journey", element: "JRN-first-invoice", name: "a feeling outside the 1 to 5 scale", apply: (r) => editText(r, "JRN-first-invoice", (t) => t.replace("feeling: 3", "feeling: 9")), msg: /feeling must be/ },
-  { code: "INT-plan-entitlements", element: "PLAN-team", name: "a limit granted a value that is not a number", apply: (r) => editText(r, "PLAN-team", (t) => t.replace("value: unlimited", "value: lots")), msg: /whole number/ },
-  { code: "INT-rule-examples", element: "RULE-invoice-total", name: "a rule shown only where it holds", apply: (r) => editFront(r, "RULE-invoice-total", (f) => (f.examples = f.examples.filter((e) => e.case === "positive"))), msg: /negative or edge/ },
-  { code: "INT-screen-states", element: "SCR-invoice-review", name: "a data screen that does not say what loading, empty and error look like", apply: (r) => editFront(r, "SCR-invoice-review", (f) => (f.states = ["ready"])), msg: /loading, empty, error/ },
-  { code: "INT-facets", element: "FEAT-send-invoice", name: "a feature declaring false a facet its relations make true", apply: (r) => editFront(r, "FEAT-send-invoice", (f) => (f.facets = { ...f.facets, handles_money: false })), msg: /handles_money/ },
-  { code: "INT-role-limits", element: "ROLE-owner", name: "a role needing at least one holder and allowing none", apply: (r) => editFront(r, "ROLE-owner", (f) => (f.max_holders = 0)), msg: /exceeds max_holders/ },
+  { code: "COH-ent-attributes", element: "ENT-client", name: "an entity that says it holds no personal data, with a personal attribute", apply: (r) => editFront(r, "ENT-client", (f) => (f.pii = false)), msg: /holds no personal data/ },
+  { code: "COH-payload", element: "EVT-invoice-sent", name: "an event that says it carries no personal data, with a personal field", apply: (r) => editFront(r, "EVT-invoice-sent", (f) => (f.pii = false)), msg: /carries no personal data/ },
+  { code: "COH-journey", element: "JRN-first-invoice", name: "a feeling outside the 1 to 5 scale", apply: (r) => editText(r, "JRN-first-invoice", (t) => t.replace("feeling: 3", "feeling: 9")), msg: /feeling must be/ },
+  { code: "COH-plan-entitlements", element: "PLAN-team", name: "a limit granted a value that is not a number", apply: (r) => editText(r, "PLAN-team", (t) => t.replace("value: unlimited", "value: lots")), msg: /whole number/ },
+  { code: "COH-rule-examples", element: "RULE-invoice-total", name: "a rule shown only where it holds", apply: (r) => editFront(r, "RULE-invoice-total", (f) => (f.examples = f.examples.filter((e) => e.case === "positive"))), msg: /negative or edge/ },
+  { code: "COH-screen-states", element: "SCR-invoice-review", name: "a data screen that does not say what loading, empty and error look like", apply: (r) => editFront(r, "SCR-invoice-review", (f) => (f.states = ["ready"])), msg: /loading, empty, error/ },
+  { code: "COH-facets", element: "FEAT-send-invoice", name: "a feature declaring false a facet its relations make true", apply: (r) => editFront(r, "FEAT-send-invoice", (f) => (f.facets = { ...f.facets, handles_money: false })), msg: /handles_money/ },
+  { code: "COH-role-limits", element: "ROLE-owner", name: "a role needing at least one holder and allowing none", apply: (r) => editFront(r, "ROLE-owner", (f) => (f.max_holders = 0)), msg: /exceeds max_holders/ },
   {
-    code: "INT-dependency-cycle",
+    code: "COH-dependency-cycle",
     name: "two features that each hard-depend on the other",
     apply: (r) => {
       editFront(r, "FEAT-send-invoice", (f) => (f.rel.depends_on = ["FEAT-pay-invoice-online"]));
@@ -100,10 +100,10 @@ const CASES = [
     },
     msg: /form a cycle/,
   },
-  { code: "INT-supersedes", element: "FEAT-send-invoice", name: "an element superseded by a successor while it is still active", apply: (r) => editFront(r, "FEAT-draft-invoice", (f) => (f.rel = { ...f.rel, supersedes: ["FEAT-send-invoice"] })), msg: /still active/ },
-  { code: "INT-release-scope", element: "RLS-first-release", name: "a release that includes a retired element", apply: (r) => editFront(r, "FEAT-draft-invoice", (f) => ((f.lifecycle = "retired"), (f.lifecycle_note = "Folded into sending."))), msg: /FEAT-draft-invoice, which is retired/ },
-  { code: "INT-tier-order", element: "FEAT-send-invoice", name: "a critical feature under a capability marked less important", apply: (r) => editFront(r, "CAP-invoicing", (f) => (f.tier = 3)), msg: /tier 1 but sits under CAP-invoicing, tier 3/ },
-  { code: "INT-qst-answer", element: "QST-overpayment", name: "an open question that already carries an answer", apply: (r) => editFront(r, "QST-overpayment", (f) => (f.answer = "Refuse the second payment.")), msg: /open but carries an answer/ },
+  { code: "COH-supersedes", element: "FEAT-send-invoice", name: "an element superseded by a successor while it is still active", apply: (r) => editFront(r, "FEAT-draft-invoice", (f) => (f.rel = { ...f.rel, supersedes: ["FEAT-send-invoice"] })), msg: /still active/ },
+  { code: "COH-release-scope", element: "RLS-first-release", name: "a release that includes a retired element", apply: (r) => editFront(r, "FEAT-draft-invoice", (f) => ((f.lifecycle = "retired"), (f.lifecycle_note = "Folded into sending."))), msg: /FEAT-draft-invoice, which is retired/ },
+  { code: "COH-tier-order", element: "FEAT-send-invoice", name: "a critical feature under a capability marked less important", apply: (r) => editFront(r, "CAP-invoicing", (f) => (f.tier = 3)), msg: /tier 1 but sits under CAP-invoicing, tier 3/ },
+  { code: "COH-qst-answer", element: "QST-overpayment", name: "an open question that already carries an answer", apply: (r) => editFront(r, "QST-overpayment", (f) => (f.answer = "Refuse the second payment.")), msg: /open but carries an answer/ },
 
   // ---- quality
   { code: "QLT-req-form", element: "REQ-pay-page-load-time", name: "a requirement that is not in shall form", apply: (r) => editFront(r, "REQ-pay-page-load-time", (f) => (f.statement = "Invoices appear in 2 seconds.")) },

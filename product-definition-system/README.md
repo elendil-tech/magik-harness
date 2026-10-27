@@ -57,9 +57,9 @@ pds next        # the queue: everything is outlined before anything is specified
 
 | | |
 |---|---|
-| **A model** | 42 element types in 11 families, 36 typed relations, 4 maturity rungs, 3 criticality tiers, 9 optional modules. [Reference](docs/reference/README.md). |
+| **A model** | 42 element types in 11 families, 36 typed relations, 4 maturity rungs, 3 criticality tiers, 9 modules (the core and eight optional ones). [Reference](docs/reference/README.md). |
 | **Coverage that is computed** | 279 rules say what each element must contain at each rung. 27 *concern probes* (failure behaviour, concurrency, tenancy, audit, ...) must each be answered, marked not applicable with a reason, or deferred with a date. Silence is not an answer. |
-| **Consistency checks** | 63 coded checks in six classes: schema, references, integrity (dead-end flows, unreachable states, permissions nobody holds), quality, governance, probes. |
+| **Consistency checks** | 63 coded checks in six classes: schema, references, coherence (flows that cannot finish, states that cannot be reached, a rule with no counter-example), quality, governance, probes. |
 | **Honest status** | Maturity (how complete), approval (who accepted what, bound to a content hash) and lifecycle (active, deprecated, retired) are separate. A claim above what the content supports is an error. |
 | **Views** | 21 generated views: product map, flows, state machines, ER, journeys, screens, touchpoints, permission, CRUD and entitlement matrices, traceability, registers, glossary, coverage, dependencies, releases, obligations, events, and a full specification per feature. Mermaid and Markdown tables, rendered on GitHub. |
 | **Impact analysis** | What has to be re-reviewed if this element changes, strength-weighted, with approvals that go stale. |

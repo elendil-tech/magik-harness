@@ -68,8 +68,8 @@ A family is an aspect of the product, and it is also the **folder** the records 
 | Commercial (`commercial`) | How is access packaged and paid for? | `PLAN` `ENTL` |
 | Realisation (`realisation`) | What implements it? Reference only. | `SYS` |
 | Assurance (`assurance`) | How well must it work, how is that proven? | `OBL` `TST` `RISK` |
-| Operations (`operations`) | How do we know it works, keep it running? | `MET` `RUN` |
-| Change (`change`) | What did we decide, assume, ask, learn, ship? | `DEC` `ASM` `QST` `EVD` `RLS` |
+| Measurement and operations (`operations`) | How do we know it works, keep it running? | `MET` `RUN` |
+| Change and evidence (`change`) | What did we decide, assume, ask, learn, ship? | `DEC` `ASM` `QST` `EVD` `RLS` |
 
 Forty-two types in all, in three **adoption levels**: `core` (17), `standard` (adds 21, 38 in total), `full` (adds 4, 42 in total). A project chooses a level in `pds.yaml`; types above it are unavailable and the rules and probes that depend on them go quiet. Moving up a level rewrites nothing. See [reference/element-types.md](reference/element-types.md).
 
@@ -93,7 +93,7 @@ One element is one **Markdown file** with a **YAML frontmatter** header.
 - The **frontmatter** holds the envelope (id, title, summary, anchor, maturity, tier, approval, lifecycle, origin, owner, reviewed, links, rel) and the fields the type defines.
 - The **body** is `##` sections. A type says which sections it needs, from which rung, and the question each must answer.
 - **Structured blocks** are fenced code in the body, for the content that has to be machine-readable: `pds-flow`, `pds-states`, `pds-attributes`, `pds-journey`, `pds-payload` (and `gherkin` for tests, kept as text).
-- The YAML is a **strict subset** that refuses the values and keys on which parsers disagree (`yes`, `no`, `on`, `off`, `007`, `1:30`, `1e3`). It is parity-tested against PyYAML. See [03](03-authoring.md#the-yaml-subset).
+- The YAML is a **strict subset** that refuses the values and keys on which parsers disagree (`yes`, `no`, `on`, `off`, `007`, `1:30`, `1e3`). It is parity-tested against PyYAML. See [03](03-authoring.md#13-the-yaml-subset).
 
 ### 2.5 Four separate statuses
 
@@ -108,7 +108,7 @@ The most common failure of definition systems is one status field that tries to 
 
 Maturity is *definition completeness*, not delivery status: a feature can be `verifiable` and not built, or built and `stub`. Delivery belongs in a tracker; the definition says what is to be built and how it will be known to work.
 
-**Tiers** are a fifth, orthogonal setting on the element, not a status: 1 critical, 2 important, 3 supporting. They set how deep a definition has to go in proportion to the cost of being wrong, which probes apply, how often it must be reviewed (60, 120, 240 days), and whether approval is required. A tier is inherited down the anchor chain when not set; a child cannot be more critical than what it sits under (`INT-tier-order`).
+**Tiers** are a fifth, orthogonal setting on the element, not a status: 1 critical, 2 important, 3 supporting. They set how deep a definition has to go in proportion to the cost of being wrong, which probes apply, how often it must be reviewed (60, 120, 240 days), and whether approval is required. A tier is inherited down the anchor chain when not set; a child cannot be more critical than what it sits under (`COH-tier-order`).
 
 ### 2.6 Approval units
 
@@ -203,9 +203,9 @@ Four mechanisms, each in its own module, each configured by data. [04](04-valida
 1. **Coverage rules** (`coverage.mjs`). For each element, every rule that applies is evaluated. A rule is bound to a rung. **Computed maturity is the highest rung for which every error-severity rule at that rung and below holds**, capped by the gates and by a ceiling: only a type that has a rule at the top rung can be computed `verifiable`.
 2. **Probes.** A concern probe applies to a feature by tier, kind and facet, and needs a disposition (`addressed`, `na` with a reason, `deferred` with a date). A missing one is an error-severity rule at `specified`, so it holds the feature back.
 3. **Gates.** `GATE-skeleton` and `GATE-blocking-question` cap an element at `outlined`. `GATE-retired` removes a retired element from coverage and the queue.
-4. **Checks** (`checks/`). Sixty-three coded checks, in six classes, over the graph and the records. They produce findings rather than a rung; the one that ties them together is `GOV-claim`, which makes a declared maturity above the computed one an error.
+4. **Checks** (`checks/`). 63 coded checks, in six classes, over the graph and the records. They produce findings rather than a rung; the one that ties them together is `GOV-claim`, which makes a declared maturity above the computed one an error.
 
-**Facets** connect the model to the probes. A facet is a yes/no characteristic of a feature (`has_ui`, `writes_data`, `handles_pii`, `handles_money`, `tenant_data`, `stateful`, `external_dependency`, `sends_messages`, and so on) **derived from the graph** when it can be, and **declared** when it cannot (`async`, `user_content`, `public`). Declaring a derived facet false when the graph says true is an error (`INT-facets`). That is what makes the probes automatic: nobody has to remember that a feature touching personal data needs the privacy question.
+**Facets** connect the model to the probes. A facet is a yes/no characteristic of a feature (`has_ui`, `writes_data`, `handles_pii`, `handles_money`, `tenant_data`, `stateful`, `external_dependency`, `sends_messages`, and so on) **derived from the graph** when it can be, and **declared** when it cannot (`async`, `user_content`, `public`). Declaring a derived facet false when the graph says true is an error (`COH-facets`). That is what makes the probes automatic: nobody has to remember that a feature touching personal data needs the privacy question.
 
 ## 6. Impact analysis
 
@@ -222,7 +222,7 @@ The parameters are in `relation-types.yaml`, so they can be tuned without code.
 
 ## 7. Views
 
-A view is a function from the analysis to Markdown, usually with a Mermaid diagram or a table. The 21 views are declared in `views.yaml` (what each is for and what it can be scoped to) and implemented in `tools/lib/views/` in three modules: diagrams, matrices, documents. See [05](05-views.md).
+A view is a function from the analysis to Markdown, usually with a Mermaid diagram or a table. The 21 views are declared in `views.yaml` (what each is for and what it can be scoped to) and implemented in `tools/lib/views/` in three files: diagrams, matrices, documents. See [05](05-views.md).
 
 `pds view NAME [ID]` prints one; `pds views` writes all of them, plus one specification per capability and feature, into the project's `views/` folder; `pds views --check` fails if any is out of date. Links between generated files are computed from where each file is written, so they resolve wherever the output goes.
 
@@ -244,7 +244,7 @@ Extending is editing data, with `pds meta check` and `pds docs` as the safety ne
 
 `--meta DIR` points the tool at a different meta-model folder, so a team can keep its own model next to its own definition.
 
-**Versioning.** `pds: 1` in `pds.yaml` is the format version. A change to the model that renames or removes something changes the content hash of records that use it, and so invalidates approvals; a `pds migrate` command that applies a rename across records and re-seals the approvals is on the [roadmap](08-buildout.md#roadmap) and is not yet built.
+**Versioning.** `pds: 1` in `pds.yaml` is the format version. A change to the model that renames or removes something changes the content hash of records that use it, and so invalidates approvals; a migration command that applies a rename across records and re-seals the approvals is on the [roadmap](08-buildout.md#roadmap) and is not yet built.
 
 ## 9. What it is not
 

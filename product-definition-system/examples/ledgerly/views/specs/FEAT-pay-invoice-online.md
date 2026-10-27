@@ -48,26 +48,26 @@ From the client opening the private link to a recorded payment and a receipt.
 ```mermaid
 flowchart TD
   subgraph lane_ACT_client ["Client"]
-    s_view["Reads the invoice and chooses<br/>Pay"]
-    s_choose_amount{"Keeps the full balance or<br/>enters a smaller amount"}
-    s_receipt(["Sees the receipt and is<br/>emailed a copy"])
+    s_view["Reads the invoice and chooses Pay"]
+    s_choose_amount{{"Keeps the full balance or enters a smaller amount"}}
+    s_receipt(["Sees the receipt and is emailed a copy"])
   end
   subgraph lane__ ["System (no actor named)"]
-    s_invalid_amount["The page explains the allowed<br/>range and asks again"]
-    s_pay{"The client is taken to the<br/>payment provider's page and<br/>enters card details there"}
-    s_record["The system records the<br/>payment, reduces the balance<br/>and marks the invoice paid<br/>when nothing is left"]
-    s_declined(["The page shows what happened<br/>and offers to try again with<br/>the same link"])
-    s_provider_down(["The page says paying is<br/>unavailable and shows the<br/>owner's bank details"])
+    s_invalid_amount["The page explains the allowed range and asks again"]
+    s_pay{{"The client is taken to the payment provider's page and enters card details there"}}
+    s_record["The system records the payment, reduces the balance and marks the invoice paid when nothing is left"]
+    s_declined(["The page shows what happened and offers to try again with the same link"])
+    s_provider_down(["The page says paying is unavailable and shows the owner's bank details"])
   end
-  t_FLW_pay_invoice(["The client opens the private<br/>link in the invoice email"])
+  t_FLW_pay_invoice(["The client opens the private link in the invoice email"])
   t_FLW_pay_invoice --> s_view
   s_view --> s_choose_amount
   s_choose_amount -->|"The amount is valid"| s_pay
-  s_choose_amount -->|"The amount is above the<br/>balance or not positive"| s_invalid_amount
+  s_choose_amount -->|"The amount is above the balance or not positive"| s_invalid_amount
   s_invalid_amount --> s_choose_amount
-  s_pay -->|"The provider reports the<br/>card was charged"| s_record
-  s_pay -->|"The card is declined or<br/>the client leaves"| s_declined
-  s_pay -->|"The provider is<br/>unavailable"| s_provider_down
+  s_pay -->|"The provider reports the card was charged"| s_record
+  s_pay -->|"The card is declined or the client leaves"| s_declined
+  s_pay -->|"The provider is unavailable"| s_provider_down
   s_record --> s_receipt
   classDef success fill:#d4f4dd,stroke:#2e7d32;
   classDef failure fill:#f8d7da,stroke:#c62828;
@@ -175,7 +175,6 @@ erDiagram
   }
   INVOICE }o--|| CLIENT : "billed to"
   INVOICE ||--o{ PAYMENT : "paid by"
-  PAYMENT }o--|| INVOICE : "pays"
 ```
 
 ## 8. Events and integrations

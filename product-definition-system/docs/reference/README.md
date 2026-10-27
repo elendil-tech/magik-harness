@@ -12,7 +12,7 @@ Generated from the meta-model in `meta-model/`. The counts and tables below are 
 | Coverage rules written by hand | 73 |
 | Coverage rules generated from element types | 206 |
 | Concern probes | 27 |
-| Coded checks | 63 (SCH 14, REF 5, INT 20, QLT 12, GOV 9, PRB 3) |
+| Coded checks | 63 (SCH 14, REF 5, COH 20, QLT 12, GOV 9, PRB 3) |
 | Gates | 3 |
 | Views | 21 |
 | Modules | 9 |

@@ -154,11 +154,11 @@ steps:
 
 Each step has an `id` and exactly one of `next`, `decide` (a list of `when` and `next`), `end` (`success`, `failure` or `abort`) or `call` (another flow). Optionally: `does` (what happens, in a sentence), `actor` (an actor, role or persona), `at` (the touchpoint: a screen, message, surface, API or external system), `uses` (rules, integrations, APIs), `accesses` (entities, each with operations from `create`, `read`, `update`, `delete`), `moves` (a state-machine transition, written `"from->to"`) and `emits` (events). The tool derives from this the relations `audience`, `touches`, `governed_by`, `depends_on`, `accesses`, `drives` and `emits`, draws the flow, and checks it:
 
-- ids are unique, every `next` exists, and the entry exists (`INT-flow-shape`);
-- every step is reachable from the entry and every path reaches an end (`INT-flow-reach`);
-- a flow of an important or critical feature has a success end and a failure or abort end (`INT-flow-ends`);
-- every actor, screen, rule, entity, event and transition named exists and has the right type, and `moves` names a real transition (`INT-flow-refs`);
-- no more than 25 steps; split longer flows into called flows (`INT-flow-size`).
+- ids are unique, every `next` exists, and the entry exists (`COH-flow-shape`);
+- every step is reachable from the entry and every path reaches an end (`COH-flow-reach`);
+- a flow of an important or critical feature has a success end and a failure or abort end (`COH-flow-ends`);
+- every actor, screen, rule, entity, event and transition named exists and has the right type, and `moves` names a real transition (`COH-flow-refs`);
+- no more than 25 steps; split longer flows into called flows (`COH-flow-size`).
 
 ### `pds-states`, in a state machine (`STM`)
 
@@ -172,7 +172,7 @@ transitions:
   - {from: sent, to: paid, trigger: A payment brings the balance to zero, by: system}
 ```
 
-Exactly one `initial` state; every transition names defined states; a terminal state has no way out; every state is reachable (`INT-stm-shape`). Every transition says who or what causes it (`by`): `system`, or an actor. One caused by an actor must be moved by at least one flow step, through `moves` (`INT-stm-driven`), so a state machine cannot describe a transition that nothing in the product ever performs. `trigger` says in words what causes the move. The key is `trigger`, not `on`; see [§13](#13-the-yaml-subset).
+Exactly one `initial` state; every transition names defined states; a terminal state has no way out; every state is reachable (`COH-stm-shape`). Every transition says who or what causes it (`by`): `system`, or an actor. One caused by an actor must be moved by at least one flow step, through `moves` (`COH-stm-driven`), so a state machine cannot describe a transition that nothing in the product ever performs. `trigger` says in words what causes the move. The key is `trigger`, not `on`; see [§13](#13-the-yaml-subset).
 
 ### `pds-attributes`, in an entity (`ENT`)
 
@@ -185,15 +185,15 @@ associations:
   - {to: ENT-client, kind: many_to_one, label: billed to}
 ```
 
-Names are unique and associations point at entities. An entity whose fields say it holds no personal data cannot have a personal attribute, and one that does hold personal data must be classified `confidential` or higher (`INT-ent-attributes`). The entity's own flags (`pii`, `monetary`, `tenant_scoped`, `has_lifecycle`) are what derive a feature's facets and so which probes apply.
+Names are unique and associations point at entities. An entity whose fields say it holds no personal data cannot have a personal attribute, and one that does hold personal data must be classified `confidential` or higher (`COH-ent-attributes`). The entity's own flags (`pii`, `monetary`, `tenant_scoped`, `has_lifecycle`) are what derive a feature's facets and so which probes apply.
 
 ### `pds-journey`, in a journey (`JRN`)
 
-A list of stages, each with `id`, `name`, `goal`, `actions`, the `flows` it spans, the `touchpoints` involved (screens, messages, surfaces), a `feeling` from 1 to 5, and a `pain` and `opportunity`. The journey map is drawn from it, and `feeling` is plotted as the score of the stage (1 the worst moment, 5 the best). Stage ids are unique, and the flows and touchpoints named exist (`INT-journey`).
+A list of stages, each with `id`, `name`, `goal`, `actions`, the `flows` it spans, the `touchpoints` involved (screens, messages, surfaces), a `feeling` from 1 to 5, and a `pain` and `opportunity`. The journey map is drawn from it, and `feeling` is plotted as the score of the stage (1 the worst moment, 5 the best). Stage ids are unique, and the flows and touchpoints named exist (`COH-journey`).
 
 ### `pds-payload`, in an event (`EVT`)
 
-A list of `fields` with `name`, `type`, `required` and `pii`. An event that says it carries no personal data cannot have a personal field (`INT-payload`).
+A list of `fields` with `name`, `type`, `required` and `pii`. An event that says it carries no personal data cannot have a personal field (`COH-payload`).
 
 ### `gherkin`, in a test (`TST`)
 
@@ -213,7 +213,7 @@ Kept as text: a `Feature:` with scenarios, each `Given`, `When`, `Then` in that 
 
 A **quality** requirement (speed, availability, security, accessibility) needs a number, a unit or a threshold that can be tested (`QLT-req-measurable`). "The system shall be fast" fails; "The system shall return the first page of invoices within 400 ms at the 95th percentile for workspaces of up to 10,000 invoices" passes. A constraint says where it comes from; a requirement that is not tested says how it will be shown to hold.
 
-**A business rule (`RULE`)** states a calculation, validation, limit or decision, and carries **worked examples**: at least one positive and at least one negative or edge case, each with a `given` and a `then` (`INT-rule-examples`).
+**A business rule (`RULE`)** states a calculation, validation, limit or decision, and carries **worked examples**: at least one positive and at least one negative or edge case, each with a `given` and a `then` (`COH-rule-examples`).
 
 ```yaml
 statement: A line amount is its quantity times its unit price rounded half up to the cent; …
@@ -273,7 +273,7 @@ Where each type may live (what it may be anchored on) is in the [reference](refe
 
 ## 10. Probes and facets on a feature
 
-A feature declares the **facets** it cannot derive and answers the **probes** that apply to it (see [04](04-validation.md#probes)):
+A feature declares the **facets** it cannot derive and answers the **probes** that apply to it (see [04](04-validation.md#3-probes)):
 
 ```yaml
 facets: {async: true, user_content: true, public: false}
@@ -288,7 +288,7 @@ probes:
 - **`na`** says why it does not apply. A reason is required (`PRB-disposition`).
 - **`deferred`** says why, and until when: an open question, a release or a decision, or a date (`PRB-disposition`). A deferral is visible, and a question it waits on is chased by its own due date (`GOV-overdue`).
 - Exactly one of the three per probe, and only probes that exist (`PRB-unknown`).
-- A facet the graph shows to be true cannot be declared false (`INT-facets`).
+- A facet the graph shows to be true cannot be declared false (`COH-facets`).
 
 ## 11. Saying what you do not know
 
@@ -306,7 +306,7 @@ The system is honest about gaps only if the author is. Three records exist for i
 |---|---|
 | Change the wording of something approved | Edit it, run `pds impact ID` to see what else to review, then `pds approve` again. Until then `GOV-approval-hash` shows. |
 | Rename an id | `pds rename OLD NEW` |
-| Stop using something but keep the history | `lifecycle: deprecated`, then `retired`, each with `lifecycle_note` saying why and what replaces it; the replacement says `supersedes: [OLD]` (`INT-supersedes`) |
+| Stop using something but keep the history | `lifecycle: deprecated`, then `retired`, each with `lifecycle_note` saying why and what replaces it; the replacement says `supersedes: [OLD]` (`COH-supersedes`) |
 | Remove something that was wrong from the start | Delete the file, and fix what referenced it (`pds lint` lists them) |
 | Move something to another home | Change `anchor`, and move the file if its family changed (`SCH-id-file`) |
 | Split a feature | Create the new ones, move the satellites by changing their anchors, then retire the old one with a note naming its successors |

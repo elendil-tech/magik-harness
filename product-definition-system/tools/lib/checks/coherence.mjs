@@ -1,4 +1,4 @@
-// INT: the definition agrees with itself. Flows lead somewhere, state machines
+// COH: the definition is coherent, it agrees with itself. Flows lead somewhere, state machines
 // are closed, data flags are consistent, and nothing contradicts the graph.
 const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
 const asList = (v) => (v === undefined || v === null ? [] : Array.isArray(v) ? v : [v]);
@@ -64,7 +64,7 @@ function sccs(nodes, edgesOf) {
 }
 
 export const checks = {
-  "INT-flow-shape"(ctx) {
+  "COH-flow-shape"(ctx) {
     ctx.each("FLW", (el) => {
       const b = block(el, "pds-flow");
       if (!b) return;
@@ -98,7 +98,7 @@ export const checks = {
     });
   },
 
-  "INT-flow-reach"(ctx) {
+  "COH-flow-reach"(ctx) {
     ctx.each("FLW", (el) => {
       const b = block(el, "pds-flow");
       if (!b || typeof b.data.entry !== "string") return;
@@ -119,7 +119,7 @@ export const checks = {
     });
   },
 
-  "INT-flow-ends"(ctx) {
+  "COH-flow-ends"(ctx) {
     ctx.each("FLW", (el) => {
       const b = block(el, "pds-flow");
       if (!b || ctx.model.tierOf(el.id) > 2) return;
@@ -129,7 +129,7 @@ export const checks = {
     });
   },
 
-  "INT-flow-refs"(ctx) {
+  "COH-flow-refs"(ctx) {
     const { model, meta } = ctx;
     ctx.each("FLW", (el) => {
       const b = block(el, "pds-flow");
@@ -167,7 +167,7 @@ export const checks = {
     });
   },
 
-  "INT-flow-size"(ctx) {
+  "COH-flow-size"(ctx) {
     ctx.each("FLW", (el) => {
       const b = block(el, "pds-flow");
       const n = b ? maps(b.data.steps).length : 0;
@@ -175,7 +175,7 @@ export const checks = {
     });
   },
 
-  "INT-stm-shape"(ctx) {
+  "COH-stm-shape"(ctx) {
     ctx.each("STM", (el) => {
       const b = block(el, "pds-states");
       if (!b) return;
@@ -210,7 +210,7 @@ export const checks = {
     });
   },
 
-  "INT-stm-driven"(ctx) {
+  "COH-stm-driven"(ctx) {
     const { model } = ctx;
     ctx.each("STM", (el) => {
       const b = block(el, "pds-states");
@@ -224,7 +224,7 @@ export const checks = {
     });
   },
 
-  "INT-ent-attributes"(ctx) {
+  "COH-ent-attributes"(ctx) {
     const { meta } = ctx;
     ctx.each("ENT", (el) => {
       const b = block(el, "pds-attributes");
@@ -252,7 +252,7 @@ export const checks = {
     });
   },
 
-  "INT-payload"(ctx) {
+  "COH-payload"(ctx) {
     const { meta } = ctx;
     ctx.each("EVT", (el) => {
       const b = block(el, "pds-payload");
@@ -272,7 +272,7 @@ export const checks = {
     });
   },
 
-  "INT-journey"(ctx) {
+  "COH-journey"(ctx) {
     ctx.each("JRN", (el) => {
       const b = block(el, "pds-journey");
       if (!b) return;
@@ -288,7 +288,7 @@ export const checks = {
     });
   },
 
-  "INT-plan-entitlements"(ctx) {
+  "COH-plan-entitlements"(ctx) {
     const { model, meta } = ctx;
     ctx.each("PLAN", (el) => {
       const at = (msg) => ctx.report({ element: el.id, path: el.path, msg });
@@ -319,7 +319,7 @@ export const checks = {
     });
   },
 
-  "INT-rule-examples"(ctx) {
+  "COH-rule-examples"(ctx) {
     ctx.each("RULE", (el) => {
       const ex = maps(el.front.examples);
       if (el.front.examples === undefined) return; // missing is a coverage gap, not an inconsistency
@@ -328,7 +328,7 @@ export const checks = {
     });
   },
 
-  "INT-screen-states"(ctx) {
+  "COH-screen-states"(ctx) {
     ctx.each("SCR", (el) => {
       if (ctx.meta.field(el, "data_bound") !== true) return;
       const have = new Set(asList(el.front.states).map((s) => String(s).trim().toLowerCase()));
@@ -337,7 +337,7 @@ export const checks = {
     });
   },
 
-  "INT-facets"(ctx) {
+  "COH-facets"(ctx) {
     ctx.each("FEAT", (el) => {
       const f = ctx.model.facets(el.id);
       for (const [name, declared] of Object.entries(f.declared)) {
@@ -346,7 +346,7 @@ export const checks = {
     });
   },
 
-  "INT-role-limits"(ctx) {
+  "COH-role-limits"(ctx) {
     const { model } = ctx;
     ctx.each("ROLE", (el) => {
       const { min_holders: min, max_holders: max } = el.front;
@@ -364,7 +364,7 @@ export const checks = {
     });
   },
 
-  "INT-dependency-cycle"(ctx) {
+  "COH-dependency-cycle"(ctx) {
     const { model } = ctx;
     const nodes = model.all(["CAP", "FEAT"]).filter((e) => !model.isRetired(e.id)).map((e) => e.id);
     const edgesOf = (id) =>
@@ -380,7 +380,7 @@ export const checks = {
     }
   },
 
-  "INT-supersedes"(ctx) {
+  "COH-supersedes"(ctx) {
     const { model } = ctx;
     const nodes = [...new Set(model.edges.filter((e) => e.rel === "supersedes").flatMap((e) => [e.from, e.to]))].filter((i) => model.has(i));
     const edgesOf = (id) => model.out(id, "supersedes").map((e) => e.to).filter((i) => model.has(i));
@@ -396,7 +396,7 @@ export const checks = {
     }
   },
 
-  "INT-release-scope"(ctx) {
+  "COH-release-scope"(ctx) {
     const { model, meta } = ctx;
     ctx.each("RLS", (el) => {
       if (!["planned", "in_progress"].includes(meta.field(el, "stage"))) return;
@@ -406,7 +406,7 @@ export const checks = {
     });
   },
 
-  "INT-tier-order"(ctx) {
+  "COH-tier-order"(ctx) {
     const { model } = ctx;
     ctx.each(["CAP", "FEAT"], (el) => {
       const own = Number(el.front.tier);
@@ -416,7 +416,7 @@ export const checks = {
     });
   },
 
-  "INT-qst-answer"(ctx) {
+  "COH-qst-answer"(ctx) {
     const { meta } = ctx;
     ctx.each("QST", (el) => {
       const status = meta.field(el, "status");

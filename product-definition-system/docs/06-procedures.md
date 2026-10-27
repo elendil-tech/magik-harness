@@ -174,7 +174,7 @@ Set `lifecycle: deprecated` (still in use, going away) or `retired` (gone), and 
 
 ### Changing your mind about a decision
 
-Do not rewrite a decision; replace it. Write a new `DEC` with the reasons, and record `supersedes` from it to the old one. Then mark the old one `status: superseded` and `lifecycle: deprecated`, with a `lifecycle_note` pointing at the new one. The tool insists on that last step (`INT-supersedes`, `GOV-lifecycle-note`), and the old record stays as what was believed at the time.
+Do not rewrite a decision; replace it. Write a new `DEC` with the reasons, and record `supersedes` from it to the old one. Then mark the old one `status: superseded` and `lifecycle: deprecated`, with a `lifecycle_note` pointing at the new one. The tool insists on that last step (`COH-supersedes`, `GOV-lifecycle-note`), and the old record stays as what was believed at the time.
 
 ### Releases
 

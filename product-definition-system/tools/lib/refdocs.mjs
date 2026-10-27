@@ -67,7 +67,7 @@ function overview(meta) {
       ["Coverage rules written by hand", coverage],
       ["Coverage rules generated from element types", generated],
       ["Concern probes", meta.probes.length],
-      ["Coded checks", `${meta.checks.length} (${["SCH", "REF", "INT", "QLT", "GOV", "PRB"].map((c) => `${c} ${byClass(c)}`).join(", ")})`],
+      ["Coded checks", `${meta.checks.length} (${["SCH", "REF", "COH", "QLT", "GOV", "PRB"].map((c) => `${c} ${byClass(c)}`).join(", ")})`],
       ["Gates", meta.gates.length],
       ["Views", meta.views.size],
       ["Modules", Object.keys(meta.modules).length],
@@ -141,7 +141,7 @@ function rules(meta) {
   }
   out.push("## Coverage rules generated from element types\n", "Every field, section and block with a `required_at` in `element-types.yaml` becomes a rule named `FLD-TYPE-field`, `SEC-TYPE-heading` or `BLK-TYPE-block`. They are not listed one by one; `pds explain TYPE` shows them with the type.\n", table(["Type", "Generated rules"], [...gen].sort(([a], [b]) => String(a).localeCompare(String(b))).map(([t, n]) => [t === "*" ? "every type (envelope)" : `\`${t}\``, n])));
   out.push("## Checks\n", "Coded checks for what a declarative rule cannot say. `from` is the rung an element must claim before the check applies to it.\n");
-  for (const c of ["SCH", "REF", "INT", "QLT", "GOV", "PRB"]) {
+  for (const c of ["SCH", "REF", "COH", "QLT", "GOV", "PRB"]) {
     const cs = meta.checks.filter((x) => x.class === c);
     out.push(`### ${c}\n`, table(["Check", "Severity", "From", "Reads", "What it checks"], cs.map((x) => [`\`${x.id}\``, x.sev, x.from ? `\`${x.from}\`` : "any", code(x.uses || []), x.doc])));
   }

@@ -19,10 +19,11 @@ export function flowMermaid(V, el) {
   }
   const node = (s) => {
     const id = mid("s_", s.id);
-    const label = q(s.name || s.does || s.id, 30);
-    if ("decide" in s) return `${id}{"${label}"}`;
+    const label = q(s.name || s.does || s.id); // no forced breaks: the renderer wraps to its own width, and a second wrap at ours leaves orphan words
+    // a hexagon, not a diamond: a diamond grows without limit around a sentence, a hexagon stays readable
+    if ("decide" in s) return `${id}{{"${label}"}}`;
     if ("end" in s) return `${id}(["${label}"])`;
-    if (typeof s.call === "string") return `${id}[["${label}<br/>${q(V.title(s.call), 30)}"]]`;
+    if (typeof s.call === "string") return `${id}[["${label}<br/>${q(V.title(s.call))}"]]`;
     return `${id}["${label}"]`;
   };
   const laned = lanes.size > 1 || !lanes.has("_");
@@ -34,14 +35,14 @@ export function flowMermaid(V, el) {
   const entry = isObj(V.blockData(el, "pds-flow")) ? V.blockData(el, "pds-flow").entry : undefined;
   if (ids.has(entry)) {
     const trigger = V.field(el, "trigger");
-    lines.push(`  ${mid("t_", el.id)}(["${q(trigger || "Start", 30)}"])`);
+    lines.push(`  ${mid("t_", el.id)}(["${q(trigger || "Start")}"])`);
     lines.push(`  ${mid("t_", el.id)} --> ${mid("s_", entry)}`);
   }
   const ends = { success: [], failure: [], abort: [] };
   for (const s of steps) {
     const from = mid("s_", s.id);
     if (typeof s.next === "string" && ids.has(s.next)) lines.push(`  ${from} --> ${mid("s_", s.next)}`);
-    for (const d of asList(s.decide)) if (isObj(d) && ids.has(d.next)) lines.push(`  ${from} -->|"${q(d.when, 24)}"| ${mid("s_", d.next)}`);
+    for (const d of asList(s.decide)) if (isObj(d) && ids.has(d.next)) lines.push(`  ${from} -->|"${q(d.when)}"| ${mid("s_", d.next)}`);
     if (s.end in ends) ends[s.end].push(from);
   }
   lines.push("  classDef success fill:#d4f4dd,stroke:#2e7d32;", "  classDef failure fill:#f8d7da,stroke:#c62828;", "  classDef abort fill:#fff3cd,stroke:#b8860b;", "  classDef decision fill:#e7f0fe,stroke:#3b6fb6;");
@@ -119,6 +120,7 @@ export function renderState(V, target) {
 
 const entName = (id) => id.replace(/^[A-Z]+-/, "").replace(/[^A-Za-z0-9]+/g, "_").toUpperCase();
 const CARD = { one_to_one: "||--||", one_to_many: "||--o{", many_to_one: "}o--||", many_to_many: "}o--o{" };
+const INVERSE = { one_to_one: "one_to_one", one_to_many: "many_to_one", many_to_one: "one_to_many", many_to_many: "many_to_many" };
 
 /** One entity as ER lines: its real attributes, or just its name when none are defined (nothing is invented). */
 function entityLines(V, e) {
@@ -139,17 +141,25 @@ export function erMermaid(V, ents) {
   const ids = new Set(ents.map((e) => e.id));
   const lines = ["erDiagram"];
   const extra = new Set(); // entities that are related to but outside the scope shown
-  const rels = [];
+  // A relationship is usually declared from both ends ("invoice has many payments", "payment belongs to an
+  // invoice"). They are one relationship, so it is drawn once, the way the first end declared it.
+  const rels = new Map();
   for (const e of ents) {
     for (const edge of V.model.out(e.id, "associates")) {
       if (!V.get(edge.to)) continue;
       if (!ids.has(edge.to)) extra.add(edge.to);
-      rels.push(`  ${entName(e.id)} ${CARD[edge.attrs.kind] || "}o--o{"} ${entName(edge.to)} : "${q(edge.attrs.label || "relates to")}"`);
+      const kind = CARD[edge.attrs.kind] ? edge.attrs.kind : "many_to_many";
+      const forward = e.id <= edge.to;
+      const key = `${forward ? e.id : edge.to}|${forward ? edge.to : e.id}|${forward ? kind : INVERSE[kind]}`;
+      const label = edge.attrs.label ? q(edge.attrs.label) : "";
+      if (!rels.has(key)) rels.set(key, { from: e.id, to: edge.to, kind, label });
+      else if (!rels.get(key).label) rels.get(key).label = label;
     }
   }
   for (const e of ents) lines.push(...entityLines(V, e));
   for (const id of extra) lines.push(...entityLines(V, V.get(id)));
-  return [...lines, ...new Set(rels)].join("\n");
+  for (const r of rels.values()) lines.push(`  ${entName(r.from)} ${CARD[r.kind]} ${entName(r.to)} : "${r.label || "relates to"}"`);
+  return lines.join("\n");
 }
 
 export function renderEr(V, target) {

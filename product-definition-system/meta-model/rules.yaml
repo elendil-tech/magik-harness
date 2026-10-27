@@ -6,7 +6,7 @@
 #   rules   declarative coverage rules. Each says: for elements like this, from
 #           this rung on, this relation, child or field must exist. They are
 #           what the maturity computation reads. They never run on code.
-#   checks  coded checks: integrity, quality and governance conditions that a
+#   checks  coded checks: coherence, quality and governance conditions that a
 #           declarative rule cannot express. They are documented here and
 #           implemented in tools/lib/checks/; a test keeps the two in step.
 #   gates   conditions that cap how far an element can climb, whatever else
@@ -573,27 +573,27 @@ checks:
   - {id: REF-anchor-cycle, class: REF, sev: error, doc: "Following anchors upward always ends at the product."}
   - {id: REF-retired, class: REF, sev: warn, doc: "An active element does not depend on a retired one, except to record history (supersedes, concerns, evidenced_by)."}
   - {id: REF-depth, class: REF, sev: warn, doc: "Domains and capabilities nest at most three levels deep."}
-  # ---- INT: internal consistency
-  - {id: INT-flow-shape, class: INT, sev: error, from: outlined, doc: "In a flow, step ids are unique; entry and every next or branch target exist; each step has exactly one of next, decide, end or call."}
-  - {id: INT-flow-reach, class: INT, sev: error, from: specified, doc: "Every step of a flow is reachable from its entry and every path reaches an end. A loop with no way out is a warning."}
-  - {id: INT-flow-ends, class: INT, sev: warn, from: specified, doc: "A flow of an important or critical feature has at least one success end and one failure or abort end."}
-  - {id: INT-flow-refs, class: INT, sev: error, from: specified, uses: [touches, governed_by, accesses, emits, drives, depends_on, audience], doc: "A step's actor, screen, rule, entity, event, state-machine transition and called flow exist and are of the right type; moves names a real transition."}
-  - {id: INT-flow-size, class: INT, sev: warn, doc: "A flow has at most 25 steps. Longer ones are split into called flows."}
-  - {id: INT-stm-shape, class: INT, sev: error, from: specified, doc: "A state machine has exactly one initial state; every transition names defined states; terminal states have no way out; every state is reachable."}
-  - {id: INT-stm-driven, class: INT, sev: warn, from: verifiable, uses: [drives], doc: "Every transition either names a system trigger or is moved by at least one flow."}
-  - {id: INT-ent-attributes, class: INT, sev: error, from: specified, uses: [associates], doc: "Attribute names are unique; associations point at entities; an entity that says it holds no personal data has no personal attribute; one holding personal data is classified confidential or higher."}
-  - {id: INT-payload, class: INT, sev: error, from: specified, doc: "Payload field names are unique and an event that says it carries no personal data has no personal field."}
-  - {id: INT-journey, class: INT, sev: error, from: specified, uses: [spans, touches], doc: "Journey stage ids are unique; stage flows and touchpoints exist; feeling is a number from 1 to 5."}
-  - {id: INT-plan-entitlements, class: INT, sev: error, from: specified, uses: [grants], doc: "A plan lists only entitlements that exist, with values that fit each one's kind, and a price whose model, amount and interval agree."}
-  - {id: INT-rule-examples, class: INT, sev: error, from: specified, doc: "A rule has worked examples, at least one positive and at least one negative or edge case, each with a given and a then."}
-  - {id: INT-screen-states, class: INT, sev: error, from: specified, doc: "A screen that shows data defines at least its loading, empty and error states."}
-  - {id: INT-facets, class: INT, sev: error, doc: "A feature does not declare false a facet the graph shows to be true."}
-  - {id: INT-role-limits, class: INT, sev: error, from: specified, doc: "A role's minimum holders do not exceed its maximum, and assignable_by never forms a loop."}
-  - {id: INT-dependency-cycle, class: INT, sev: warn, uses: [depends_on], doc: "Hard dependencies between capabilities or features do not form a cycle."}
-  - {id: INT-supersedes, class: INT, sev: error, uses: [supersedes], doc: "Supersession never loops; the element replaced is deprecated or retired."}
-  - {id: INT-release-scope, class: INT, sev: warn, uses: [includes], doc: "A release that is planned or in progress does not include a retired element."}
-  - {id: INT-tier-order, class: INT, sev: warn, doc: "A child is not more critical than the element it sits under."}
-  - {id: INT-qst-answer, class: INT, sev: error, doc: "A question that is no longer open is not still marked blocking, and an open question carries no answer."}
+  # ---- COH: coherence, the model makes sense in itself
+  - {id: COH-flow-shape, class: COH, sev: error, from: outlined, doc: "In a flow, step ids are unique; entry and every next or branch target exist; each step has exactly one of next, decide, end or call."}
+  - {id: COH-flow-reach, class: COH, sev: error, from: specified, doc: "Every step of a flow is reachable from its entry and every path reaches an end. A loop with no way out is a warning."}
+  - {id: COH-flow-ends, class: COH, sev: warn, from: specified, doc: "A flow of an important or critical feature has at least one success end and one failure or abort end."}
+  - {id: COH-flow-refs, class: COH, sev: error, from: specified, uses: [touches, governed_by, accesses, emits, drives, depends_on, audience], doc: "A step's actor, screen, rule, entity, event, state-machine transition and called flow exist and are of the right type; moves names a real transition."}
+  - {id: COH-flow-size, class: COH, sev: warn, doc: "A flow has at most 25 steps. Longer ones are split into called flows."}
+  - {id: COH-stm-shape, class: COH, sev: error, from: specified, doc: "A state machine has exactly one initial state; every transition names defined states; terminal states have no way out; every state is reachable."}
+  - {id: COH-stm-driven, class: COH, sev: warn, from: verifiable, uses: [drives], doc: "Every transition either names a system trigger or is moved by at least one flow."}
+  - {id: COH-ent-attributes, class: COH, sev: error, from: specified, uses: [associates], doc: "Attribute names are unique; associations point at entities; an entity that says it holds no personal data has no personal attribute; one holding personal data is classified confidential or higher."}
+  - {id: COH-payload, class: COH, sev: error, from: specified, doc: "Payload field names are unique and an event that says it carries no personal data has no personal field."}
+  - {id: COH-journey, class: COH, sev: error, from: specified, uses: [spans, touches], doc: "Journey stage ids are unique; stage flows and touchpoints exist; feeling is a number from 1 to 5."}
+  - {id: COH-plan-entitlements, class: COH, sev: error, from: specified, uses: [grants], doc: "A plan lists only entitlements that exist, with values that fit each one's kind, and a price whose model, amount and interval agree."}
+  - {id: COH-rule-examples, class: COH, sev: error, from: specified, doc: "A rule has worked examples, at least one positive and at least one negative or edge case, each with a given and a then."}
+  - {id: COH-screen-states, class: COH, sev: error, from: specified, doc: "A screen that shows data defines at least its loading, empty and error states."}
+  - {id: COH-facets, class: COH, sev: error, doc: "A feature does not declare false a facet the graph shows to be true."}
+  - {id: COH-role-limits, class: COH, sev: error, from: specified, doc: "A role's minimum holders do not exceed its maximum, and assignable_by never forms a loop."}
+  - {id: COH-dependency-cycle, class: COH, sev: warn, uses: [depends_on], doc: "Hard dependencies between capabilities or features do not form a cycle."}
+  - {id: COH-supersedes, class: COH, sev: error, uses: [supersedes], doc: "Supersession never loops; the element replaced is deprecated or retired."}
+  - {id: COH-release-scope, class: COH, sev: warn, uses: [includes], doc: "A release that is planned or in progress does not include a retired element."}
+  - {id: COH-tier-order, class: COH, sev: warn, doc: "A child is not more critical than the element it sits under."}
+  - {id: COH-qst-answer, class: COH, sev: error, doc: "A question that is no longer open is not still marked blocking, and an open question carries no answer."}
   # ---- QLT: quality of what is written
   - {id: QLT-req-form, class: QLT, sev: warn, from: outlined, doc: "A requirement is one sentence with 'shall' and begins with The, When, While, If or Where."}
   - {id: QLT-req-measurable, class: QLT, sev: error, from: specified, doc: "A quality requirement contains a number, a unit or a threshold that can be tested."}

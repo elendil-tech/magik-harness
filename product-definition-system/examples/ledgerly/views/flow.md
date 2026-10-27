@@ -9,26 +9,26 @@
 ```mermaid
 flowchart TD
   subgraph lane_ACT_account_owner ["Account owner"]
-    s_review{"Checks the recipient, the<br/>totals and the due date, then<br/>confirms"}
+    s_review{{"Checks the recipient, the totals and the due date, then confirms"}}
   end
   subgraph lane__ ["System (no actor named)"]
-    s_check_limit{"The system checks that the<br/>workspace is under its monthly<br/>invoice limit"}
-    s_send["The system takes the next<br/>invoice number, marks the<br/>invoice sent and queues the<br/>email, in one transaction"]
-    s_deliver{"A background job hands the<br/>email with the private pay<br/>link to the delivery provider"}
-    s_done(["The owner sees the invoice as<br/>sent"])
-    s_undelivered(["The owner is told delivery<br/>failed, and can correct the<br/>address and send it again with<br/>the same number"])
-    s_blocked(["The owner sees the monthly<br/>limit and an upgrade prompt;<br/>the draft is kept"])
-    s_cancelled(["Nothing changes; the draft<br/>stays as it was"])
+    s_check_limit{{"The system checks that the workspace is under its monthly invoice limit"}}
+    s_send["The system takes the next invoice number, marks the invoice sent and queues the email, in one transaction"]
+    s_deliver{{"A background job hands the email with the private pay link to the delivery provider"}}
+    s_done(["The owner sees the invoice as sent"])
+    s_undelivered(["The owner is told delivery failed, and can correct the address and send it again with the same number"])
+    s_blocked(["The owner sees the monthly limit and an upgrade prompt; the draft is kept"])
+    s_cancelled(["Nothing changes; the draft stays as it was"])
   end
-  t_FLW_send_invoice(["The owner chooses Send on a<br/>finished draft"])
+  t_FLW_send_invoice(["The owner chooses Send on a finished draft"])
   t_FLW_send_invoice --> s_review
   s_review -->|"The owner confirms"| s_check_limit
-  s_review -->|"The owner goes back to<br/>edit"| s_cancelled
-  s_check_limit -->|"The workspace is under<br/>the limit"| s_send
-  s_check_limit -->|"The workspace is at the<br/>limit"| s_blocked
+  s_review -->|"The owner goes back to edit"| s_cancelled
+  s_check_limit -->|"The workspace is under the limit"| s_send
+  s_check_limit -->|"The workspace is at the limit"| s_blocked
   s_send --> s_deliver
-  s_deliver -->|"The provider accepts the<br/>message"| s_done
-  s_deliver -->|"The provider rejects it<br/>or the address bounces"| s_undelivered
+  s_deliver -->|"The provider accepts the message"| s_done
+  s_deliver -->|"The provider rejects it or the address bounces"| s_undelivered
   classDef success fill:#d4f4dd,stroke:#2e7d32;
   classDef failure fill:#f8d7da,stroke:#c62828;
   classDef abort fill:#fff3cd,stroke:#b8860b;
@@ -57,26 +57,26 @@ flowchart TD
 ```mermaid
 flowchart TD
   subgraph lane_ACT_client ["Client"]
-    s_view["Reads the invoice and chooses<br/>Pay"]
-    s_choose_amount{"Keeps the full balance or<br/>enters a smaller amount"}
-    s_receipt(["Sees the receipt and is<br/>emailed a copy"])
+    s_view["Reads the invoice and chooses Pay"]
+    s_choose_amount{{"Keeps the full balance or enters a smaller amount"}}
+    s_receipt(["Sees the receipt and is emailed a copy"])
   end
   subgraph lane__ ["System (no actor named)"]
-    s_invalid_amount["The page explains the allowed<br/>range and asks again"]
-    s_pay{"The client is taken to the<br/>payment provider's page and<br/>enters card details there"}
-    s_record["The system records the<br/>payment, reduces the balance<br/>and marks the invoice paid<br/>when nothing is left"]
-    s_declined(["The page shows what happened<br/>and offers to try again with<br/>the same link"])
-    s_provider_down(["The page says paying is<br/>unavailable and shows the<br/>owner's bank details"])
+    s_invalid_amount["The page explains the allowed range and asks again"]
+    s_pay{{"The client is taken to the payment provider's page and enters card details there"}}
+    s_record["The system records the payment, reduces the balance and marks the invoice paid when nothing is left"]
+    s_declined(["The page shows what happened and offers to try again with the same link"])
+    s_provider_down(["The page says paying is unavailable and shows the owner's bank details"])
   end
-  t_FLW_pay_invoice(["The client opens the private<br/>link in the invoice email"])
+  t_FLW_pay_invoice(["The client opens the private link in the invoice email"])
   t_FLW_pay_invoice --> s_view
   s_view --> s_choose_amount
   s_choose_amount -->|"The amount is valid"| s_pay
-  s_choose_amount -->|"The amount is above the<br/>balance or not positive"| s_invalid_amount
+  s_choose_amount -->|"The amount is above the balance or not positive"| s_invalid_amount
   s_invalid_amount --> s_choose_amount
-  s_pay -->|"The provider reports the<br/>card was charged"| s_record
-  s_pay -->|"The card is declined or<br/>the client leaves"| s_declined
-  s_pay -->|"The provider is<br/>unavailable"| s_provider_down
+  s_pay -->|"The provider reports the card was charged"| s_record
+  s_pay -->|"The card is declined or the client leaves"| s_declined
+  s_pay -->|"The provider is unavailable"| s_provider_down
   s_record --> s_receipt
   classDef success fill:#d4f4dd,stroke:#2e7d32;
   classDef failure fill:#f8d7da,stroke:#c62828;

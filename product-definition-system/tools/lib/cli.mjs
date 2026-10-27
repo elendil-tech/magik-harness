@@ -19,7 +19,7 @@ export { UsageError, Failure, closest };
 
 export const PDS_VERSION = "0.1.0";
 
-const COMMON_FLAGS = {
+export const COMMON_FLAGS = {
   root: { type: "string", doc: "The project folder (the one with pds.yaml). Default: the nearest one above the current folder." },
   meta: { type: "string", doc: "Use a different meta-model folder." },
   today: { type: "string", doc: "Treat this date (YYYY-MM-DD) as today, for repeatable review-age checks." },

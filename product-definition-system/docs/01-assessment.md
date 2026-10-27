@@ -79,7 +79,7 @@ A checklist the author ticks measures the author's confidence. Nothing distingui
 
 **F2. The layers are never checked against each other.**
 A flow names actors, screens, rules, entities, events and states. A permission matrix names roles and actions. Nothing says the flow's screen exists, that the actor in step 3 may do what step 3 does, that the state machine has a way in, that a rule is used anywhere. Documents agree on the day they are written and diverge afterwards.
-*Remedy.* A typed graph, 63 coded checks in six classes (schema 14, references 5, integrity 20, quality 12, governance 9, probes 3) and 73 hand-written coverage rules that read the graph. The checks catch what only a model can: a reference to something that does not exist (with a "did you mean"), flow steps no path reaches, a flow with no failure end, a state machine with an unreachable state or a transition nothing drives, an entity that says it holds no personal data and has a personal attribute, a rule with no worked examples, hard dependencies that form a cycle. The coverage rules catch what is missing across the layers: a permission no role grants, a role no actor holds, an entity nothing creates, an event nothing emits, an entitlement no plan grants, an obligation nothing satisfies.
+*Remedy.* A typed graph, 63 coded checks in six classes (schema 14, references 5, coherence 20, quality 12, governance 9, probes 3) and 73 hand-written coverage rules that read the graph. The checks catch what only a model can: a reference to something that does not exist (with a "did you mean"), flow steps no path reaches, a flow with no failure end, a state machine with an unreachable state or a transition nothing drives, an entity that says it holds no personal data and has a personal attribute, a rule with no worked examples, hard dependencies that form a cycle. The coverage rules catch what is missing across the layers: a permission no role grants, a role no actor holds, an entity nothing creates, an event nothing emits, an entitlement no plan grants, an obligation nothing satisfies.
 *Check.* Every one of the 63 checks has a test that breaks the example in exactly one way and asserts that check fires (`tools/test/checks.test.mjs`). `pds meta check` proves the reverse: every relation, rule and view is read by something.
 
 **F3. Omissions are invisible.**
@@ -123,7 +123,7 @@ A flow diagram is correct on the day it is drawn.
 
 **F10. One size for every product and every element.**
 A single template set is too heavy for a three-person product and too shallow for the payment flow.
-*Remedy.* Three levels of **adoption** (core 17 element types, standard 38, full 42), nine optional **modules** (tenancy, identity, commercial, integrations, public API, compliance, back office, lifecycle messaging), and three **tiers** that set how deep each element must go in proportion to the cost of being wrong. Rules and probes that depend on something a project has not adopted go quiet instead of failing. A project can move up a level without rewriting anything.
+*Remedy.* Three levels of **adoption** (core 17 element types, standard 38, full 42), eight optional **modules** on top of the core (tenancy, identity, commercial, integrations, public API, compliance, back office, lifecycle messaging), and three **tiers** that set how deep each element must go in proportion to the cost of being wrong. Rules and probes that depend on something a project has not adopted go quiet instead of failing. A project can move up a level without rewriting anything.
 
 **F11. A linear procedure for work that is a loop.**
 Nine steps, once. Real definition work is a queue: write the top, find what is thin, deepen the important thing, discover a missing domain, repeat.
@@ -148,9 +148,9 @@ definition/experience/FLW-send-invoice.md
 A branch that goes nowhere:
 
 ```
-  error  INT-flow-shape  line 17  step check-limit: decide[0] next "sendd" is not a step
-  error  INT-flow-reach  line 17  step send cannot be reached from the entry
-  error  INT-flow-reach  line 17  step deliver cannot be reached from the entry
+  error  COH-flow-shape  line 17  step check-limit: decide[0] next "sendd" is not a step
+  error  COH-flow-reach  line 17  step send cannot be reached from the entry
+  error  COH-flow-reach  line 17  step deliver cannot be reached from the entry
 ```
 
 A claim the content does not support:
@@ -233,22 +233,22 @@ These are the areas easiest to under-cover in a document catalogue. Each has fir
 |---|---|---|---|
 | Multi-tenancy and data isolation | `TEN`, `REQ`, `TST` | tenancy | probes `tenant-isolation` and `tenant-states` on features that touch tenant-scoped data |
 | Identity, roles, permissions | `ACT`, `ROLE`, `PERM` | identity | `COV-PERM-granted`, `COV-ROLE-held`, `COV-ACT-role`, `COV-FEAT-permission`; probe `session-and-revocation` |
-| Plans, entitlements, metering | `PLAN`, `ENTL` | commercial | `COV-ENTL-granted`, `COV-ENTL-gates`, `INT-plan-entitlements`; probes `plan-gating`, `billing-impact`, `usage-metering` |
+| Plans, entitlements, metering | `PLAN`, `ENTL` | commercial | `COV-ENTL-granted`, `COV-ENTL-gates`, `COH-plan-entitlements`; probes `plan-gating`, `billing-impact`, `usage-metering` |
 | Legal and regulatory duties | `OBL` | compliance | `COV-OBL-satisfied`, `COV-OBL-verified` |
-| Personal data and money | `ENT` fields `pii` and `monetary`; the `handles_pii` and `handles_money` facets | compliance, commercial | `INT-ent-attributes`; probe `personal-data`; probes that apply to any feature that moves money |
+| Personal data and money | `ENT` fields `pii` and `monetary`; the `handles_pii` and `handles_money` facets | compliance, commercial | `COH-ent-attributes`; probe `personal-data`; probes that apply to any feature that moves money |
 | Integrations and failure behaviour | `EXT`, `INT`, `API`, `EVT` | integrations, public-api | `COV-EXT-integration`, `COV-EVT-emitted`; probes `dependency-failure`, `event-delivery`, `api-contract` |
 | Messages to people | `MSG` | lifecycle-comms | probe `messaging-preferences` on any feature that sends a message |
-| State and lifecycle | `STM` | core | `INT-stm-shape`, `INT-stm-driven`, `COV-ENT-lifecycle` |
+| State and lifecycle | `STM` | core | `COH-stm-shape`, `COH-stm-driven`, `COV-ENT-lifecycle` |
 | Measuring and operating | `MET`, `RUN`, `SYS` | core, full | `COV-MET-source`, `COV-MET-used`; probes `observability`, `analytics`, `rollout` |
 | What was decided, assumed, asked, learned | `DEC`, `ASM`, `QST`, `EVD` | core | `GATE-blocking-question`, `GOV-overdue`, `COV-ASM-evidence`, `COV-EVD-cited` |
-| What ships when | `RLS` | core | `COV-FEAT-planned`, `COV-RLS-scope`, `INT-release-scope`; the `release` view |
+| What ships when | `RLS` | core | `COV-FEAT-planned`, `COV-RLS-scope`, `COH-release-scope`; the `release` view |
 | Staff and support surfaces | `SRF`, `ROLE` | back-office | probe `support-access` |
 
 ## 7. What is still open
 
 An honest account, so that nothing here is mistaken for done.
 
-**In the tool.** Not built, and none of it changes the model: baselines and diffs between releases (the `RLS` record and the content hashes are the foundation); `pds migrate` for schema changes, which will be needed the first time an element type is renamed (`pds: 1` in `pds.yaml` is the version hook); import from existing documents and trackers; a browser viewer; links from tests and code back into the definition; more than one product in one repository; localisation of the definition itself. [08 Build-out](08-buildout.md) has the roadmap.
+**In the tool.** Not built, and none of it changes the model: baselines and diffs between releases (the `RLS` record and the content hashes are the foundation); a migration command for schema changes, which will be needed the first time an element type is renamed (`pds: 1` in `pds.yaml` is the version hook); import from existing documents and trackers; a browser viewer; links from tests and code back into the definition; more than one product in one repository; localisation of the definition itself. [08 Build-out](08-buildout.md) has the roadmap.
 
 **In what a tool can know.** It checks that a requirement is *well formed* (it uses an EARS form, names its actor, has a verification), not that it is *wise*. It checks that a probe is answered, not that the answer is good. It checks that an element has an owner, not that the owner agrees. It compares prose to a short list of vague words, and cannot read it. The checks make a bad definition hard to hide. They do not make a good one.
 

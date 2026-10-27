@@ -16,7 +16,7 @@ const distribution = (a) => {
 // ----------------------------------------------------------------------- lint
 
 export const lint = {
-  summary: "Check the definition: schema, references, integrity, quality, governance",
+  summary: "Check the definition: schema, references, coherence, quality, governance",
   usage: "lint [--json] [--verbose] [--strict] [--element ID]",
   help: "Exits 1 when there is any error, or, with --strict, any warning. Notes (info) are hidden unless --verbose.",
   flags: {
@@ -220,7 +220,7 @@ function relationText(r, meta) {
 export const explain = {
   summary: "What a rule, check, probe, element type, relation or view means",
   usage: "explain NAME",
-  help: "NAME is an id such as COV-FEAT-flow, INT-flow-refs, GATE-skeleton, a probe id, an element type such as FEAT, a relation such as accesses, or a view.",
+  help: "NAME is an id such as COV-FEAT-flow, COH-flow-refs, GATE-skeleton, a probe id, an element type such as FEAT, a relation such as accesses, or a view.",
   flags: {},
   run(ctx) {
     const [raw] = ctx.args;

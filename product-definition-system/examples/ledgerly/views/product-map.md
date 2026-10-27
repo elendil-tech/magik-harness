@@ -5,7 +5,7 @@
 PROD = zoom 0, DOM = zoom 1, CAP = zoom 2, FEAT = zoom 3, everything anchored on a feature = zoom 4. The colour is the maturity the definition supports, not the one claimed.
 
 ```mermaid
-flowchart TD
+flowchart LR
   n_PROD_ledgerly["Ledgerly<br/>PROD · specified"]:::specified
   n_DOM_workspaces_and_teams["Workspaces and teams<br/>DOM · stub"]:::stub
   n_CAP_workspace_settings["Workspace settings and<br/>branding<br/>CAP · stub"]:::stub
