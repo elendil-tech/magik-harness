@@ -427,15 +427,15 @@ types:
     blocks:
       pds-states:
         required_at: specified
-        doc: "states: list of {id, label, kind (initial, normal, terminal), note}. transitions: list of {from, to, on, by, guard, emits}."
+        doc: "states: list of {id, label, kind (initial, normal, terminal), note}. transitions: list of {from, to, trigger, by, guard, emits}; trigger says what causes the move."
         example: |
           states:
             - {id: draft, label: Draft, kind: initial, note: Being written; the client cannot see it}
             - {id: sent, label: Sent}
             - {id: paid, label: Paid, kind: terminal}
           transitions:
-            - {from: draft, to: sent, on: The owner sends it, by: ACT-owner}
-            - {from: sent, to: paid, on: Payment is received, by: system, emits: [EVT-invoice-paid]}
+            - {from: draft, to: sent, trigger: The owner sends it, by: ACT-owner}
+            - {from: sent, to: paid, trigger: Payment is received, by: system, emits: [EVT-invoice-paid]}
     sections:
       - {heading: Notes, required_at: outlined, ask: "What lifecycle is this, and why do these states exist?"}
       - {heading: Edge cases, required_at: specified, ask: "Concurrent transitions, retries, timeouts, reversals and what happens when two things try to move it at once."}

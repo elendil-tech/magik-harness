@@ -90,7 +90,7 @@ export function stateMermaid(V, el) {
   if (init) lines.push(`  [*] --> ${mid("st_", init.id)}`);
   const clean = (t) => String(t ?? "").replace(/[:;{}]/g, " ").replace(/\s+/g, " ").trim();
   for (const t of asList(d.transitions).filter(isObj)) {
-    const label = [clean(t.on), t.by && t.by !== "system" ? `by ${clean(V.title(t.by))}` : ""].filter(Boolean).join(" · ");
+    const label = [clean(t.trigger), t.by && t.by !== "system" ? `by ${clean(V.title(t.by))}` : ""].filter(Boolean).join(" · ");
     lines.push(`  ${mid("st_", t.from)} --> ${mid("st_", t.to)}${label ? ": " + label : ""}`);
   }
   for (const s of states) if (s.kind === "terminal") lines.push(`  ${mid("st_", s.id)} --> [*]`);
@@ -109,7 +109,7 @@ export function renderState(V, target) {
     out.push(m ? fence(m) : "_No structured states yet._\n");
     if (d) {
       out.push("**States**\n", table(["State", "Kind", "Meaning"], asList(d.states).filter(isObj).map((x) => [`\`${x.id}\``, x.kind || "normal", [x.label, x.note].filter(Boolean).join(": ")])));
-      out.push("**Transitions**\n", table(["From", "To", "Caused by", "Who", "Guard", "Emits"], asList(d.transitions).filter(isObj).map((t) => [`\`${t.from}\``, `\`${t.to}\``, t.on || "", t.by ? (t.by === "system" ? "system" : V.title(t.by)) : "", asList(t.guard).map((g) => (V.get(g) ? V.title(g) : g)).join(", "), asList(t.emits).map((e) => V.title(e)).join(", ")])));
+      out.push("**Transitions**\n", table(["From", "To", "Caused by", "Who", "Guard", "Emits"], asList(d.transitions).filter(isObj).map((t) => [`\`${t.from}\``, `\`${t.to}\``, t.trigger || "", t.by ? (t.by === "system" ? "system" : V.title(t.by)) : "", asList(t.guard).map((g) => (V.get(g) ? V.title(g) : g)).join(", "), asList(t.emits).map((e) => V.title(e)).join(", ")])));
     }
   }
   return out.join("\n");
@@ -266,7 +266,7 @@ export function renderScreens(V, target) {
   for (const s of screens) {
     for (const e of V.model.out(s.id, "navigates_to")) {
       if (!ids.has(e.to)) continue;
-      const label = [e.attrs.on, e.attrs.when].filter(Boolean).join(", ");
+      const label = [e.attrs.trigger, e.attrs.when].filter(Boolean).join(", ");
       lines.push(`  ${mid("c_", s.id)} -->${label ? `|"${q(label, 22)}"|` : ""} ${mid("c_", e.to)}`);
       seen.add(`${s.id}>${e.to}`);
     }

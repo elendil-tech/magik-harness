@@ -261,7 +261,7 @@ function readEdges(model, el) {
       for (const t of asList(b.data.transitions)) {
         if (!isObj(t)) continue;
         for (const g of asList(t.guard)) if (meta.typeOfId(g) === "RULE") edge("governed_by", g, {}, via, line);
-        for (const ev of asList(t.emits)) edge("emits", ev, { on: t.on }, via, line);
+        for (const ev of asList(t.emits)) edge("emits", ev, { trigger: t.trigger }, via, line);
       }
     } else if (b.name === "pds-attributes" && el.type === "ENT") {
       for (const a of asList(b.data.associations)) {

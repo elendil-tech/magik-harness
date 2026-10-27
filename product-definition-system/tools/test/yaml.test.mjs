@@ -56,6 +56,21 @@ describe("PDS-YAML parse", () => {
     for (const v of ["yes", "No", "ON", "off", "True", "NULL", "007", "0x1F", "1_000", "1e3", "1:30", ".inf"]) bad(`k: ${v}`, /quote|means different|number/);
   });
 
+  it("rejects a plain key that another YAML parser would not read as text, in a block or in a flow mapping", () => {
+    for (const k of ["on", "Off", "yes", "NO", "true", "False", "null", "~"]) {
+      bad(`${k}: x`, /would be read as a boolean or null by a YAML parser: put it in quotes, or use another name/);
+      bad(`{a: 1, ${k}: x}`, /would be read as a boolean or null/);
+      bad(`outer:\n  ${k}: x`, /would be read as a boolean or null/);
+    }
+    for (const k of ["1", "1.5", "-3"]) bad(`${k}: x`, /would be read as a number by a YAML parser/);
+    bad("007: x", /leading zero/);
+  });
+
+  it("accepts the same words as keys once they are quoted, and as parts of longer keys", () => {
+    assert.deepEqual(parseYaml('"on": 1\n\'yes\': 2\n"1": 3\nonward: 4\nno-op: 5\nnote: 6'), { on: 1, yes: 2, 1: 3, onward: 4, "no-op": 5, note: 6 });
+    assert.deepEqual(parseYaml('{"on": 1, \'off\': 2, onto: 3}'), { on: 1, off: 2, onto: 3 });
+  });
+
   it("rejects structures it does not support", () => {
     bad("a:\n\tb: 1", /tabs/);
     bad("a: &x 1", /anchors|indicator/);
@@ -92,6 +107,11 @@ describe("PDS-YAML write", () => {
       flag: false,
       n: 3.25,
     });
+  });
+
+  it("writes a key that a YAML 1.1 parser would misread in quotes, so what is written reads the same everywhere", () => {
+    roundtrip({ on: 1, yes: 2, no: 3, off: 4, true: 5, null: 6, 7: 8, "1.5": 9, plain: 10 });
+    assert.equal(stringifyYaml({ on: 1, plain: 2 }), '"on": 1\nplain: 2\n');
   });
 
   it("writes a stable, readable layout", () => {

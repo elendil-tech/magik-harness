@@ -21,12 +21,12 @@ states:
   - {id: paid, label: Paid, kind: terminal, note: The balance is zero}
   - {id: void, label: Void, kind: terminal, note: Cancelled by the owner and the number is kept}
 transitions:
-  - {from: draft, to: sent, on: The owner sends it, by: ACT-account-owner, guard: [RULE-invoice-number-sequence], emits: [EVT-invoice-sent]}
-  - {from: sent, to: paid, on: A payment brings the balance to zero, by: system, emits: [EVT-invoice-paid]}
-  - {from: sent, to: overdue, on: The due date passes with a balance outstanding, by: system}
-  - {from: overdue, to: paid, on: A payment brings the balance to zero, by: system, emits: [EVT-invoice-paid]}
-  - {from: sent, to: void, on: The owner voids it, by: ACT-account-owner}
-  - {from: overdue, to: void, on: The owner voids it, by: ACT-account-owner}
+  - {from: draft, to: sent, trigger: The owner sends it, by: ACT-account-owner, guard: [RULE-invoice-number-sequence], emits: [EVT-invoice-sent]}
+  - {from: sent, to: paid, trigger: A payment brings the balance to zero, by: system, emits: [EVT-invoice-paid]}
+  - {from: sent, to: overdue, trigger: The due date passes with a balance outstanding, by: system}
+  - {from: overdue, to: paid, trigger: A payment brings the balance to zero, by: system, emits: [EVT-invoice-paid]}
+  - {from: sent, to: void, trigger: The owner voids it, by: ACT-account-owner}
+  - {from: overdue, to: void, trigger: The owner voids it, by: ACT-account-owner}
 ```
 
 ## Edge cases

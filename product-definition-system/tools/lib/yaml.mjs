@@ -20,7 +20,8 @@
  *   - tabs for indentation, anchors, aliases, tags, merge keys, directives,
  *     multiple documents, multi-line plain or quoted scalars, duplicate keys
  *   - plain scalars that mean different things in YAML 1.1 and 1.2: yes/no/on/off,
- *     True/NULL, 007, 0x1F, 1_000, 1e3, 1:30, .inf. Quote them.
+ *     True/NULL, 007, 0x1F, 1_000, 1e3, 1:30, .inf. Quote them. The same goes for a
+ *     plain key: `on:` is the boolean true to a 1.1 parser, so `trigger:` is used, not `on:`.
  *
  * Dates such as 2026-10-27 stay strings; the caller validates their shape.
  */
@@ -149,6 +150,18 @@ function resolvePlain(text, fail) {
   return text;
 }
 
+/**
+ * A plain (unquoted) key. A key is read as text here, but a YAML 1.1 parser reads `on:` as the boolean
+ * true and `1:` as the number one, so a key that any parser could read as something other than a
+ * string is refused, with the same advice as for a value.
+ */
+function plainKey(text, fail) {
+  if (/^(?:yes|no|on|off|true|false|null|~)$/i.test(text)) fail(`the key ${text} would be read as a boolean or null by a YAML parser: put it in quotes, or use another name`);
+  const v = resolvePlain(text, fail);
+  if (typeof v !== "string") fail(`the key ${text} would be read as a number by a YAML parser: put it in quotes, or use another name`);
+  return text;
+}
+
 class Flow {
   constructor(s, fail) {
     this.s = s;
@@ -241,7 +254,7 @@ class Flow {
     const k = this.s.slice(this.p, q).trim();
     if (k === "") this.fail("empty key in a flow mapping");
     this.p = q;
-    return k;
+    return plainKey(k, this.fail);
   }
 
   map() {
@@ -333,6 +346,7 @@ class Parser {
     if (keyRaw[0] === '"') key = readDouble(keyRaw, 0, this.failAt(idx))[0];
     else if (keyRaw[0] === "'") key = readSingle(keyRaw, 0, this.failAt(idx))[0];
     else if ("&*!%@`?|>#".includes(keyRaw[0])) this.failAt(idx)(`unsupported YAML indicator "${keyRaw[0]}" at the start of a key`);
+    else key = plainKey(keyRaw, this.failAt(idx));
     if (key === "") this.failAt(idx)("empty key");
     if (key === "__proto__") this.failAt(idx)('the key "__proto__" is not allowed');
     return { key, rest: text.slice(c + 1).trim() };

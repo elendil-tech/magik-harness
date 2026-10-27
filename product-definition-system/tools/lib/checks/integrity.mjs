@@ -194,7 +194,7 @@ export const checks = {
       const outgoing = new Map([...ids].map((i) => [i, []]));
       trs.forEach((t, i) => {
         for (const k of ["from", "to"]) if (typeof t[k] === "string" && !ids.has(t[k])) at(`transitions[${i}]: ${k} ${t[k]} is not a state`);
-        if (typeof t.on !== "string" || !t.on.trim()) at(`transitions[${i}] ${t.from}->${t.to} needs \`on\`: what causes it`);
+        if (typeof t.trigger !== "string" || !t.trigger.trim()) at(`transitions[${i}] ${t.from}->${t.to} needs \`trigger\`: what causes it`);
         if (outgoing.has(t.from)) outgoing.get(t.from).push(t.to);
       });
       for (const s of states) {

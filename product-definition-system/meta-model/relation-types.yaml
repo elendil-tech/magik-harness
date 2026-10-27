@@ -304,7 +304,7 @@ relations:
     allow:
       - {from: [SCR], to: [SCR]}
     attrs:
-      on: {type: string}
+      trigger: {type: string}
       when: {type: string}
     impacts: {to: none, from: weak}
 

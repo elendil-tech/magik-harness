@@ -14,7 +14,7 @@ const BLOCK_SHAPE = {
   "pds-states": (d, add) => {
     listOfMaps(d.states, "states", "id", add);
     if (!Array.isArray(d.transitions)) add("needs `transitions`, a list (it may be empty)");
-    else d.transitions.forEach((t, i) => (isObj(t) ? ["from", "to", "on"].forEach((k) => typeof t[k] !== "string" && add(`transitions[${i}] needs \`${k}\``)) : add(`transitions[${i}] must be a mapping`)));
+    else d.transitions.forEach((t, i) => (isObj(t) ? ["from", "to", "trigger"].forEach((k) => typeof t[k] !== "string" && add(`transitions[${i}] needs \`${k}\``)) : add(`transitions[${i}] must be a mapping`)));
   },
   "pds-attributes": (d, add) => {
     listOfMaps(d.attributes, "attributes", "name", add);

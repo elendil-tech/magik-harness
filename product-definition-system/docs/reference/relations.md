@@ -41,6 +41,6 @@ Impact walks follow strong edges up to 2 hops and weak edges up to 1. The spine 
 | `depends_on` | `depended_on_by` | `CAP`, `FEAT`, `FLW`, `API`, `INT`, `MSG`, `SYS` → `CAP`, `FEAT`, `FLW`, `API`, `INT`, `EXT`, `SYS` | `kind`, `note` | none / strong | The source cannot work without the target: one feature on another, a capability on a system, a flow on an integration. |
 | `spans` | `spanned_by` | `JRN` → `FLW`, `UC` | `stage` | none / weak | A journey passes through these flows and use cases. |
 | `touches` | `touched_by` | `FLW`, `JRN` → `SCR`, `MSG`, `SRF`, `API`, `EXT` | `stage` | none / weak | The flow or journey meets the person or system at this touchpoint: a screen, a message, a surface, an API or an external system. |
-| `navigates_to` | `navigated_from` | `SCR` → `SCR` | `on`, `when` | none / weak | The person can move from one screen to another. |
+| `navigates_to` | `navigated_from` | `SCR` → `SCR` | `trigger`, `when` | none / weak | The person can move from one screen to another. |
 | `drives` | `driven_by` | `FLW` → `STM` | `transitions` | weak / strong | The flow moves the state machine through the listed transitions. |
 | `mentions` | `mentioned_by` | `*` → `*` |  | none / weak | The prose of the source names the target with [[ID]]. Derived, never authored. |

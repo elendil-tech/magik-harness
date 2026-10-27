@@ -47,9 +47,9 @@ maturity:
 # Tiers set how deep a definition has to go, in proportion to the cost of
 # being wrong. Tier 1 elements need the most; tier 3 the least.
 tiers:
-  1: {name: Critical, review_every_days: 60, test: "Money moves, access is granted, data can be lost or exposed, a legal duty applies, or the core promise of the product depends on it."}
-  2: {name: Important, review_every_days: 120, test: "A common workflow, or a visible part of the core experience."}
-  3: {name: Supporting, review_every_days: 240, test: "Low risk, easy to reverse, or cosmetic."}
+  "1": {name: Critical, review_every_days: 60, test: "Money moves, access is granted, data can be lost or exposed, a legal duty applies, or the core promise of the product depends on it."}
+  "2": {name: Important, review_every_days: 120, test: "A common workflow, or a visible part of the core experience."}
+  "3": {name: Supporting, review_every_days: 240, test: "Low risk, easy to reverse, or cosmetic."}
 
 # Approval is authority, separate from completeness. Agents may draft and
 # propose; only a named human approver can approve, and the approval is bound

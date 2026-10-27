@@ -524,7 +524,7 @@ Adoption: `standard`. Lives under: `DOM`, `CAP`, `FEAT`.
 
 | Block | Needed for | Contents |
 | --- | --- | --- |
-| `pds-states` | `specified` | states: list of {id, label, kind (initial, normal, terminal), note}. transitions: list of {from, to, on, by, guard, emits}. |
+| `pds-states` | `specified` | states: list of {id, label, kind (initial, normal, terminal), note}. transitions: list of {from, to, trigger, by, guard, emits}; trigger says what causes the move. |
 
 ## Information
 
