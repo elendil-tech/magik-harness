@@ -553,7 +553,7 @@ rules:
 # plain statement of what it enforces. `class` groups them in reports.
 checks:
   # ---- SCH: structure of the records themselves
-  - {id: SCH-project, class: SCH, sev: error, doc: "pds.yaml has only known keys, a known profile, adoption and modules, and every rule or probe it switches off exists and has a reason."}
+  - {id: SCH-project, class: SCH, sev: error, doc: "pds.yaml has only known keys, a known profile, adoption and modules, and every rule, advisory check or probe it switches off exists, may be switched off (an error-level check may not) and has a stated reason."}
   - {id: SCH-frontmatter, class: SCH, sev: error, doc: "A record opens with a frontmatter block that parses as PDS-YAML."}
   - {id: SCH-id-form, class: SCH, sev: error, doc: "An id is a known type prefix, a hyphen and a lowercase kebab slug (FEAT-send-invoice)."}
   - {id: SCH-id-file, class: SCH, sev: error, doc: "The file is named after the id and sits in the folder of its family."}

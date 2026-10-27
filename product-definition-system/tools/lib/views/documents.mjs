@@ -11,10 +11,10 @@ const live = (V, type) => V.model.all(type).filter((e) => !V.model.isRetired(e.i
 const names = (V, ids) => [...new Set(ids)].map((i) => V.title(i)).join(", ");
 const demote = (md) => md.replace(/^(#{1,5}) /gm, "$1# ");
 
-/** Body text of a named section, or "" when absent. */
-function section(el, heading) {
+/** Body text of a named section, with its [[ID]] references as links, or "" when absent. */
+function section(V, el, heading) {
   const s = el.rec.sections.find((x) => x.heading.toLowerCase() === heading.toLowerCase());
-  return s && s.prose.trim() ? s.prose.trim() : "";
+  return s && s.prose.trim() ? V.link(s.prose.trim()) : "";
 }
 
 function counts(V, id) {
@@ -111,7 +111,7 @@ export function renderCard(V, target) {
   const mine = a.findings.filter((f) => f.element === el.id);
   if (mine.length) out.push("## Findings\n", mine.map((f) => `- ${f.sev}: \`${f.id}\` ${f.msg}`).join("\n") + "\n");
   const body = el.rec.sections.filter((s) => s.prose.trim());
-  if (body.length) out.push("## Content\n", body.map((s) => (s.heading ? `### ${s.heading}\n\n` : "") + s.prose.trim()).join("\n\n") + "\n");
+  if (body.length) out.push("## Content\n", body.map((s) => (s.heading ? `### ${s.heading}\n\n` : "") + V.link(s.prose.trim())).join("\n\n") + "\n");
   return out.join("\n");
 }
 
@@ -127,12 +127,12 @@ function specFeature(V, f) {
   out.push(table(["", ""], [["Id", V.code(f.id)], ["Belongs to", V.path(f.id)], ["Kind", V.field(f, "kind") || ""], ["Tier", model.tierOf(f.id)], ["Owner", f.front.owner || ""], ["Maturity", m ? `${m.computed} supported · ${m.declared} claimed` : ""], ["Approval", approvalText(V, f)], ["Reviewed", f.front.reviewed || ""]].filter(([, v]) => v !== "")));
 
   const serves = [...new Set([...model.out(f.id, "serves"), ...model.out(f.anchor, "serves")].map((e) => e.to))];
-  out.push("## 1. Purpose and value\n", section(f, "Purpose and value") || "_Not written yet._", "");
+  out.push("## 1. Purpose and value\n", section(V, f, "Purpose and value") || "_Not written yet._", "");
   out.push(`**Serves:** ${serves.length ? serves.map((s) => V.ref(s)).join("; ") : "_nothing recorded_"}\n`);
   const aud = [...new Set([...model.out(f.id, "audience"), ...kids.flatMap((k) => model.out(k.id, "audience"))].map((e) => e.to))];
   out.push(`**For:** ${aud.length ? aud.map((s) => V.title(s)).join(", ") : "_not stated_"}\n`);
 
-  out.push("## 2. Entry and access\n", section(f, "Entry conditions") || "_Entry conditions not written yet._", "");
+  out.push("## 2. Entry and access\n", section(V, f, "Entry conditions") || "_Entry conditions not written yet._", "");
   const reqs = [...new Set(V.scopeOut(f.id, "requires").map((e) => e.to))];
   out.push("**Permissions needed**\n", table(["Permission", "Roles that hold it"], reqs.map((p) => [V.ref(p), names(V, model.in(p, "grants").map((e) => e.from))])));
   const gates = [...new Set(V.scopeOut(f.id, "gated_by").map((e) => e.to))];
@@ -143,7 +143,7 @@ function specFeature(V, f) {
   if (!flows.length) out.push("_No flow yet._\n");
   for (const fl of flows) {
     const d = flowMermaid(V, fl);
-    out.push(`### ${fl.title}\n`, fl.front.summary ? fl.front.summary + "\n" : "", d ? fence(d) : "_No structured steps yet._\n", section(fl, "Notes"));
+    out.push(`### ${fl.title}\n`, fl.front.summary ? fl.front.summary + "\n" : "", d ? fence(d) : "_No structured steps yet._\n", section(V, fl, "Notes"), "");
   }
 
   out.push("## 4. Screens and messages\n");
@@ -181,27 +181,34 @@ function specFeature(V, f) {
   if (ents.length) out.push(fence(erMermaid(V, ents)));
 
   out.push("## 8. Events and integrations\n");
-  out.push(table(["Direction", "Event"], [...V.scopeOut(f.id, "emits").map((e) => ["emits", V.ref(e.to)]), ...V.scopeOut(f.id, "consumes").map((e) => ["consumes", V.ref(e.to)])]));
+  const events = new Map(); // "emits|EVT-x" -> who emits or consumes it, within this feature
+  for (const dir of ["emits", "consumes"]) {
+    for (const e of V.scopeOut(f.id, dir)) {
+      const key = `${dir}|${e.to}`;
+      events.set(key, [...(events.get(key) || []), e.from]);
+    }
+  }
+  out.push(table(["Direction", "Event", "By"], [...events].map(([key, by]) => { const [dir, ev] = key.split("|"); return [dir, V.ref(ev), V.refs(by)]; })));
   const deps = [...new Set(V.scopeOut(f.id, "depends_on").map((e) => e.to))];
   out.push("**Depends on**\n", table(["Element", "Type"], deps.map((d) => [V.ref(d), V.get(d)?.type || ""])));
   const exposed = [...new Set(V.scopeOut(f.id, "exposed_via").map((e) => e.to))];
   if (exposed.length) out.push("**Exposed through**\n", table(["API", "Audience"], exposed.map((x) => [V.ref(x), V.get(x) ? V.field(V.get(x), "audience") || "" : ""])));
 
-  out.push("## 9. Requirements\n", table(["Requirement", "Kind", "Priority", "Verification", "Statement"], of("REQ").map((r) => [V.code(r.id), V.field(r, "kind") === "quality" ? `quality: ${V.field(r, "attribute") || ""}` : V.field(r, "kind") || "", V.field(r, "priority") || "", V.field(r, "verification") || "", V.field(r, "statement") || ""])));
+  out.push("## 9. Requirements\n", table(["Requirement", "Kind", "Priority", "Verification", "Statement"], of("REQ").map((r) => [V.refs([r.id]), V.field(r, "kind") === "quality" ? `quality: ${V.field(r, "attribute") || ""}` : V.field(r, "kind") || "", V.field(r, "priority") || "", V.field(r, "verification") || "", V.field(r, "statement") || ""])));
 
   out.push("## 10. Concerns\n");
   const probes = applicableProbes(model, f);
-  out.push(table(["Probe", "Disposition", "Detail"], probes.map((p) => { const d = dispositionOf(f, p.id); return [p.title, d ? d.kind : "**not answered**", d ? (d.kind === "addressed" ? d.by.map((b) => V.title(b)).join(", ") : d.reason + (d.until ? ` (until ${d.until})` : "")) : p.ask]; })));
+  out.push(table(["Probe", "Disposition", "Detail"], probes.map((p) => { const d = dispositionOf(f, p.id); return [p.title, d ? d.kind : "**not answered**", d ? (d.kind === "addressed" ? V.refs(d.by) : d.reason + (d.until ? ` (until ${V.model.has(String(d.until)) ? V.refs([String(d.until)]) : d.until})` : "")) : p.ask]; })));
 
   out.push("## 11. Verification\n");
   const tests = [...new Set([...of("TST"), ...[f, ...kids].flatMap((k) => model.in(k.id, "verifies").map((e) => V.get(e.from)))].filter(Boolean))];
-  out.push(table(["Test", "Kind", "Level", "Automation", "Result", "Verifies"], tests.map((t) => [V.ref(t.id), V.field(t, "kind") || "", V.field(t, "level") || "", V.field(t, "automation") || "", V.field(t, "result") || "", names(V, model.out(t.id, "verifies").map((e) => e.to))])));
+  out.push(table(["Test", "Kind", "Level", "Automation", "Result", "Verifies"], tests.map((t) => [V.ref(t.id), V.field(t, "kind") || "", V.field(t, "level") || "", V.field(t, "automation") || "", V.field(t, "result") || "", V.refs(model.out(t.id, "verifies").map((e) => e.to))])));
 
   out.push("## 12. Decisions, assumptions, questions and risks\n");
   const reg = live(V, undefined).filter((e) => ["DEC", "ASM", "QST", "RISK"].includes(e.type) && model.out(e.id, "concerns").some((c) => c.to === f.id || kids.some((k) => k.id === c.to)));
   out.push(table(["Type", "Entry", "Status"], reg.map((r) => [r.type, V.ref(r.id), V.field(r, "status") || (r.type === "RISK" ? "" : "")])));
 
-  out.push("## 13. Release and maintenance\n", section(f, "Release and maintenance") || "_Not written yet._", "");
+  out.push("## 13. Release and maintenance\n", section(V, f, "Release and maintenance") || "_Not written yet._", "");
   const rls = model.in(f.id, "includes").map((e) => e.from);
   out.push(`**Planned in:** ${rls.length ? rls.map((r) => V.ref(r)).join("; ") : "_no release_"}\n`);
 
@@ -217,7 +224,7 @@ export function renderSpec(V, target) {
   if (el.type === "FEAT") return specFeature(V, el);
   if (el.type === "CAP") {
     const feats = V.model.children(el.id, "FEAT").filter((f) => !V.model.isRetired(f.id));
-    const out = [`# Capability specification: ${el.title}\n`, el.front.summary ? `> ${el.front.summary}\n` : "", "## Purpose and outcome\n", section(el, "Purpose and outcome") || "_Not written yet._", "", "## Features\n", table(["Feature", "Kind", "Tier", "Maturity"], feats.map((f) => [V.ref(f.id), V.field(f, "kind") || "", V.model.tierOf(f.id), V.maturity(f.id)]))];
+    const out = [`# Capability specification: ${el.title}\n`, el.front.summary ? `> ${el.front.summary}\n` : "", "## Purpose and outcome\n", section(V, el, "Purpose and outcome") || "_Not written yet._", "", "## Features\n", table(["Feature", "Kind", "Tier", "Maturity"], feats.map((f) => [V.ref(f.id), V.field(f, "kind") || "", V.model.tierOf(f.id), V.maturity(f.id)]))];
     for (const f of feats) out.push(demote(specFeature(V, f)));
     return out.join("\n");
   }
@@ -320,7 +327,7 @@ export function renderRelease(V, target) {
     const behind = items.filter((e) => meta.rung(a.maturity.get(e.id)?.computed ?? "stub") < meta.rung("specified")).length;
     out.push(`**Readiness:** ${items.length} elements · ${meta.ladder.map((l) => `${dist[l]} ${l}`).join(" · ")}\n`);
     out.push(behind ? `Not ready to build: ${behind} element${behind > 1 ? "s are" : " is"} below specified.\n` : items.length ? "Everything in scope is specified or better.\n" : "_The scope is empty._\n");
-    const exit = section(r, "Exit criteria");
+    const exit = section(V, r, "Exit criteria");
     if (exit) out.push("## Exit criteria\n", exit, "");
   }
   return out.join("\n");

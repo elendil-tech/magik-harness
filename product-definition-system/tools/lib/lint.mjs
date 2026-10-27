@@ -49,7 +49,7 @@ export function analyse({ meta, project, today: now = today() }) {
 
   for (const c of meta.checks) {
     const impl = IMPLEMENTATIONS[c.id];
-    if (!impl) continue;
+    if (!impl || config.disabledRules.has(c.id)) continue; // an advisory check a project has waived, with a reason
     ctx.current = c;
     try {
       impl(ctx);

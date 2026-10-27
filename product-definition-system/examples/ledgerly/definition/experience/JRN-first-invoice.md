@@ -4,6 +4,8 @@ title: From finished work to a paid invoice
 summary: Mara finishes a project, sends the invoice and watches the client pay it within days.
 anchor: DOM-invoicing
 maturity: specified
+reviewed: 2026-10-27
+approval: {state: approved, by: Dana Whitfield, at: 2026-10-27, hash: sha256:2112946ed700e53b}
 persona: PERS-solo-designer
 outcome: The first invoice is sent in minutes and paid in days, with no chasing.
 ---

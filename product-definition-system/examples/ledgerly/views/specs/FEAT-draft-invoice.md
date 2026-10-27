@@ -15,7 +15,7 @@
 
 ## 1. Purpose and value
 
-Where an invoice is made: pick or add a client, add lines, set tax and a due date, save as often as needed. A draft has no number and can be changed or deleted freely. Sending it is a separate, deliberate step ([[FEAT-send-invoice]]).
+Where an invoice is made: pick or add a client, add lines, set tax and a due date, save as often as needed. A draft has no number and can be changed or deleted freely. Sending it is a separate, deliberate step ([`FEAT-send-invoice`](../definition/structure/FEAT-send-invoice.md)).
 
 **Serves:** [`OBJ-first-value`](../definition/intent/OBJ-first-value.md) New customers send an invoice in their first week; [`OPP-late-payment`](../definition/intent/OPP-late-payment.md) Freelancers wait weeks for money they have already earned
 
@@ -107,7 +107,12 @@ erDiagram
     int payment_terms_days
   }
   PAYMENT {
-    string id
+    id id PK
+    id invoice_id
+    money amount
+    text currency
+    text provider_reference UK
+    datetime confirmed_at
   }
   INVOICE }o--|| CLIENT : "billed to"
   INVOICE ||--o{ PAYMENT : "paid by"

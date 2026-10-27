@@ -35,20 +35,26 @@ export function resolveConfig(meta, raw) {
   const approvers = raw.approvers ?? [];
   if (!Array.isArray(approvers) || approvers.some((a) => typeof a !== "string")) bad("approvers must be a list of names");
 
-  const disabled = (key, known) => {
+  const disabled = (key, known, refused = new Map()) => {
     const out = new Map();
     for (const item of raw[key]?.disable ?? []) {
       if (!item || typeof item.id !== "string") {
         bad(`${key}.disable entries need an id`);
         continue;
       }
-      if (!known.has(item.id)) bad(`${key}.disable: unknown id ${item.id}`);
+      if (refused.has(item.id)) bad(`${key}.disable: ${item.id} ${refused.get(item.id)}`);
+      else if (!known.has(item.id)) bad(`${key}.disable: unknown id ${item.id}`);
       if (typeof item.reason !== "string" || item.reason.trim().length < 8) bad(`${key}.disable ${item.id}: give a reason (at least a short sentence)`);
       out.set(item.id, item.reason);
     }
     return out;
   };
+  // A project may waive a coverage rule or an advisory check, with a reason. It may not waive an
+  // error-level check: those are what keep a definition consistent and honest.
   const ruleIds = new Set([...meta.rules, ...meta.implicitRules].map((r) => r.id));
+  const waivable = new Set(meta.checks.filter((c) => c.sev !== "error").map((c) => c.id));
+  for (const id of waivable) ruleIds.add(id);
+  const unwaivable = new Map(meta.checks.filter((c) => c.sev === "error").map((c) => [c.id, "is an error-level check and cannot be switched off: it keeps the definition consistent (only warnings and coverage rules can be waived)"]));
   const probeIds = new Set(meta.probes.map((p) => p.id));
 
   // Approval policy: which tiers need a person's sign-off, from which rung, and which element types
@@ -74,7 +80,7 @@ export function resolveConfig(meta, raw) {
     definitionDir: raw.definition_dir ?? "definition",
     viewsDir: raw.views_dir ?? "views",
     approvers: Array.isArray(approvers) ? approvers : [],
-    disabledRules: disabled("rules", ruleIds),
+    disabledRules: disabled("rules", ruleIds, unwaivable),
     disabledProbes: disabled("probes", probeIds),
     policy: { approval: approvalPolicy },
   };

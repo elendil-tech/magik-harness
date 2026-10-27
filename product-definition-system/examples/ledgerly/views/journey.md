@@ -8,12 +8,12 @@
 journey
   title From finished work to a paid invoice
   section Finishes the work
-    Opens the workspace: 3: Mara, freelance brand designer
-    Adds the client and the line items: 3: Mara, freelance brand designer
+    Opens the workspace: 3: Mara
+    Adds the client and the line items: 3: Mara
   section Sends the invoice
-    Be sure it is right, then send it: 4: Mara, freelance brand designer
+    Be sure it is right, then send it: 4: Mara
   section The client pays
-    Be paid without chasing: 5: Mara, freelance brand designer
+    Be paid without chasing: 5: Mara
 ```
 
 | Stage | Goal | Touchpoints | Flows | Feeling | Pain | Opportunity |

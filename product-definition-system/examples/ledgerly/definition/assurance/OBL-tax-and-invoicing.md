@@ -4,6 +4,8 @@ title: Tax and invoicing rules
 summary: An invoice must carry the content and the unbroken numbering that EU VAT rules require.
 anchor: PROD-ledgerly
 maturity: specified
+reviewed: 2026-10-27
+approval: {state: approved, by: Dana Whitfield, at: 2026-10-27, hash: sha256:13c7863ca4632668}
 source: law
 reference: Council Directive 2006/112/EC, article 226, and the invoicing rules of the seller's member state
 applies_when: A workspace in the EU sends an invoice for services

@@ -6,10 +6,10 @@
 
 | Element | Type | Supported maturity | Approval | Errors | Held back by |
 | --- | --- | --- | --- | --- | --- |
-| [`CAP-invoicing`](../definition/structure/CAP-invoicing.md) Invoicing | CAP | specified | draft |  |  |
+| [`CAP-invoicing`](../definition/structure/CAP-invoicing.md) Invoicing | CAP | specified | approved |  |  |
 | [`CAP-collect-payments`](../definition/structure/CAP-collect-payments.md) Collect payments | CAP | specified | draft |  |  |
 | [`FEAT-draft-invoice`](../definition/structure/FEAT-draft-invoice.md) Draft an invoice | FEAT | outlined | draft |  |  |
-| [`FEAT-send-invoice`](../definition/structure/FEAT-send-invoice.md) Send an invoice | FEAT | verifiable | draft |  |  |
+| [`FEAT-send-invoice`](../definition/structure/FEAT-send-invoice.md) Send an invoice | FEAT | verifiable | approved |  |  |
 | [`FEAT-pay-invoice-online`](../definition/structure/FEAT-pay-invoice-online.md) Pay an invoice online | FEAT | verifiable | draft |  |  |
 | [`FLW-send-invoice`](../definition/experience/FLW-send-invoice.md) Send an invoice | FLW | verifiable | draft |  |  |
 | [`FLW-pay-invoice`](../definition/experience/FLW-pay-invoice.md) Pay an invoice online | FLW | verifiable | draft |  |  |
@@ -23,4 +23,4 @@ Not ready to build: 1 element is below specified.
 
 ## Exit criteria
 
-Closed beta ends when twenty real workspaces have sent at least one invoice, no invoice has been sent to the wrong client and no number has been skipped or repeated. General launch needs the accountant's confirmation for each launch country ([[OBL-tax-and-invoicing]]), the provider's compliance attestation on file ([[OBL-payment-card-security]]) and activation of at least 40% in the beta cohorts ([[MET-activation-rate]]).
+Closed beta ends when twenty real workspaces have sent at least one invoice, no invoice has been sent to the wrong client and no number has been skipped or repeated. General launch needs the accountant's confirmation for each launch country ([`OBL-tax-and-invoicing`](../definition/assurance/OBL-tax-and-invoicing.md)), the provider's compliance attestation on file ([`OBL-payment-card-security`](../definition/assurance/OBL-payment-card-security.md)) and activation of at least 40% in the beta cohorts ([`MET-activation-rate`](../definition/operations/MET-activation-rate.md)).

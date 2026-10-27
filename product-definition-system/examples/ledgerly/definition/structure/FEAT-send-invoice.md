@@ -4,10 +4,11 @@ title: Send an invoice
 summary: Finish a draft, check who it goes to and what it totals, and send it with a private pay link.
 anchor: CAP-invoicing
 maturity: specified
+approval: {state: approved, by: Dana Whitfield, at: 2026-10-27, hash: sha256:35ff7b4c9728971f}
 kind: user_facing
 tier: 1
 owner: Dana Whitfield
-reviewed: 2026-10-20
+reviewed: 2026-10-27
 facets: {async: true, user_content: true, public: false}
 rel:
   audience: [ACT-account-owner]

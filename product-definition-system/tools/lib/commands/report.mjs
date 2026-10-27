@@ -3,6 +3,7 @@ import { Failure, UsageError, closest } from "../errors.mjs";
 import { formatFindings, formatGaps, plural, bar, wrap, columns, maturityPhrase } from "../format.mjs";
 import { computeStats } from "../views/index.mjs";
 import { atomRefs } from "../metamodel.mjs";
+import { ID_RE } from "../records.mjs";
 import { stringifyYaml } from "../yaml.mjs";
 
 const distribution = (a) => {
@@ -239,6 +240,8 @@ export const explain = {
     else if (rel) lines = relationText(rel, meta);
     else if (view) lines = [`${raw}  (view: ${view.title})`, "", `Answers: ${view.answers}`, `Scope: ${view.scope}`, `Form: ${view.form}`, `Reads: ${(view.uses || []).join(", ") || "nothing but the elements"}`, "", `Try: pds view ${raw}`];
     else {
+      const prefix = ID_RE.exec(raw)?.[1];
+      if (prefix && meta.types.has(prefix)) throw new Failure(`${raw} is an element id, and explain is about what rules, checks, types and relations mean; for the element itself try: pds ask ${raw}, pds spec ${raw} or pds impact ${raw}`, 2);
       const all = [...meta.rules.map((r) => r.id), ...meta.implicitRules.map((r) => r.id), ...meta.checks.map((c) => c.id), ...meta.gates.map((g) => g.id), ...meta.probes.map((p) => p.id), ...meta.types.keys(), ...meta.relations.keys(), ...meta.views.keys()];
       const near = closest(raw, all);
       throw new Failure(`nothing called ${raw}${near ? `; did you mean ${near}?` : ""}`, 2);

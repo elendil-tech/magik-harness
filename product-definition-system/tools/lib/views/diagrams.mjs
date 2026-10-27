@@ -120,10 +120,25 @@ export function renderState(V, target) {
 const entName = (id) => id.replace(/^[A-Z]+-/, "").replace(/[^A-Za-z0-9]+/g, "_").toUpperCase();
 const CARD = { one_to_one: "||--||", one_to_many: "||--o{", many_to_one: "}o--||", many_to_many: "}o--o{" };
 
+/** One entity as ER lines: its real attributes, or just its name when none are defined (nothing is invented). */
+function entityLines(V, e) {
+  const d = V.blockData(e, "pds-attributes");
+  const attrs = d ? asList(d.attributes).filter(isObj) : [];
+  if (!attrs.length) return [`  ${entName(e.id)}`];
+  const lines = [`  ${entName(e.id)} {`];
+  for (const a of attrs) {
+    const type = String(a.type || "string").split(/[\s(<]/)[0].replace(/[^A-Za-z0-9_]/g, "") || "string";
+    const name = String(a.name).replace(/[^A-Za-z0-9_]/g, "_");
+    lines.push(`    ${type} ${name}${a.name === "id" ? " PK" : a.unique ? " UK" : ""}`);
+  }
+  lines.push("  }");
+  return lines;
+}
+
 export function erMermaid(V, ents) {
   const ids = new Set(ents.map((e) => e.id));
   const lines = ["erDiagram"];
-  const extra = new Set();
+  const extra = new Set(); // entities that are related to but outside the scope shown
   const rels = [];
   for (const e of ents) {
     for (const edge of V.model.out(e.id, "associates")) {
@@ -132,22 +147,8 @@ export function erMermaid(V, ents) {
       rels.push(`  ${entName(e.id)} ${CARD[edge.attrs.kind] || "}o--o{"} ${entName(edge.to)} : "${q(edge.attrs.label || "relates to")}"`);
     }
   }
-  for (const e of ents) {
-    const d = V.blockData(e, "pds-attributes");
-    const attrs = d ? asList(d.attributes).filter(isObj) : [];
-    if (!attrs.length) {
-      lines.push(`  ${entName(e.id)} {\n    string id\n  }`);
-      continue;
-    }
-    lines.push(`  ${entName(e.id)} {`);
-    for (const a of attrs) {
-      const type = String(a.type || "string").split(/[\s(<]/)[0].replace(/[^A-Za-z0-9_]/g, "") || "string";
-      const name = String(a.name).replace(/[^A-Za-z0-9_]/g, "_");
-      lines.push(`    ${type} ${name}${a.name === "id" ? " PK" : a.unique ? " UK" : ""}`);
-    }
-    lines.push("  }");
-  }
-  for (const id of extra) lines.push(`  ${entName(id)} {\n    string id\n  }`);
+  for (const e of ents) lines.push(...entityLines(V, e));
+  for (const id of extra) lines.push(...entityLines(V, V.get(id)));
   return [...lines, ...new Set(rels)].join("\n");
 }
 
@@ -225,11 +226,14 @@ export function renderJourney(V, target) {
     }
     const stages = asList(d.stages).filter(isObj);
     const clean = (t) => String(t ?? "").replace(/[:;#]/g, " ").replace(/\s+/g, " ").trim();
+    // Mermaid separates a task's actors with commas, so a persona titled "Mara, freelance designer"
+    // would become two actors; the diagram uses the name before the comma and the table has the rest.
+    const actor = clean(who.split(",")[0]) || "Person";
     const lines = ["journey", `  title ${clean(j.title)}`];
     for (const s of stages) {
       lines.push(`  section ${clean(s.name)}`);
       const acts = asList(s.actions).length ? asList(s.actions) : [s.goal || s.name];
-      for (const a of acts) lines.push(`    ${clean(a)}: ${Number.isInteger(s.feeling) ? s.feeling : 3}: ${clean(who)}`);
+      for (const a of acts) lines.push(`    ${clean(a)}: ${Number.isInteger(s.feeling) ? s.feeling : 3}: ${actor}`);
     }
     out.push(fence(lines.join("\n")));
     out.push(table(["Stage", "Goal", "Touchpoints", "Flows", "Feeling", "Pain", "Opportunity"], stages.map((s) => [s.name, s.goal || "", asList(s.touchpoints).map((t) => V.title(t)).join(", "), asList(s.flows).map((t) => V.title(t)).join(", "), s.feeling ?? "", s.pain || "", s.opportunity || ""])));

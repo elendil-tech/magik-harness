@@ -241,7 +241,7 @@ function readEdges(model, el) {
       for (const s of asList(b.data.steps)) {
         if (!isObj(s)) continue;
         const stage = s.id;
-        edge("audience", s.actor, {}, via, line);
+        edge("audience", s.actor, { step: stage }, via, line);
         edge("touches", s.at, { step: stage }, via, line);
         for (const u of asList(s.uses)) {
           const t = meta.typeOfId(u);

@@ -10,8 +10,16 @@
 const RANK = { none: 0, weak: 1, strong: 2 };
 const NAME = ["none", "weak", "strong"];
 
-/** One step away from an element: who is affected, how strongly, and why. */
-function neighbours(model, id) {
+/**
+ * One step away from an element: who is affected, how strongly, and why.
+ *
+ * `container` says whether the element is itself what changed, or was reached only by
+ * walking down the anchor chain from it. Then what it contains changes with it, and
+ * the anchor's `down` strength applies. An element reached through any other relation
+ * is only a neighbour: that a rule governs a feature does not make every risk, metric
+ * and screen inside the feature a must-review, so what it contains is at most weak.
+ */
+function neighbours(model, id, container) {
   const { meta } = model;
   const anchor = meta.impactConfig.anchor || { down: "strong", up: "weak" };
   const out = [];
@@ -19,7 +27,8 @@ function neighbours(model, id) {
   for (const e of model.in(id)) out.push({ id: e.from, strength: meta.relations.get(e.rel)?.impacts.from ?? "none", rel: e.rel, dir: "in" });
   const el = model.get(id);
   if (el?.anchor && model.has(el.anchor)) out.push({ id: el.anchor, strength: anchor.up, rel: "anchor", dir: "up" });
-  for (const k of model.children(id)) out.push({ id: k.id, strength: anchor.down, rel: "anchor", dir: "down" });
+  const down = container || RANK[anchor.down] <= RANK.weak ? anchor.down : "weak";
+  for (const k of model.children(id)) out.push({ id: k.id, strength: down, rel: "anchor", dir: "down" });
   return out.sort((a, b) => a.id.localeCompare(b.id) || a.rel.localeCompare(b.rel));
 }
 
@@ -42,11 +51,13 @@ export function impactOf(model, id, opts = {}) {
     const next = new Set();
     for (const from of frontier.sort()) {
       const cur = best.get(from);
-      for (const n of neighbours(model, from)) {
+      const container = cur.path.every((s) => s.rel === "anchor" && s.dir === "down");
+      for (const n of neighbours(model, from, container)) {
         const r = RANK[n.strength];
-        if (!r || hop > (r === RANK.strong ? strongHops : weakHops)) continue;
+        if (!r) continue;
+        const rank = Math.min(cur.rank, r); // a path is as strong as its weakest edge, and goes as far as that strength allows
+        if (hop > (rank === RANK.strong ? strongHops : weakHops)) continue;
         if (!model.has(n.id) || model.isRetired(n.id)) continue;
-        const rank = Math.min(cur.rank, r);
         const seen = best.get(n.id);
         if (seen && seen.rank >= rank) continue;
         best.set(n.id, { rank, hops: hop, path: [...cur.path, { from, to: n.id, rel: n.rel, dir: n.dir }] });

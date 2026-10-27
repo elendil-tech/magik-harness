@@ -4,10 +4,11 @@ title: Invoicing
 summary: Create an invoice for a client, number it correctly and send it so the client can read and pay it.
 anchor: DOM-invoicing
 maturity: specified
+approval: {state: approved, by: Dana Whitfield, at: 2026-10-27, hash: sha256:cb2719ca0da228d3}
 tier: 1
 outcome: An owner turns finished work into a correct, numbered invoice in the client's inbox within minutes.
 owner: Dana Whitfield
-reviewed: 2026-10-20
+reviewed: 2026-10-27
 rel:
   serves: [OBJ-first-value, OPP-late-payment]
   measured_by: [MET-activation-rate]

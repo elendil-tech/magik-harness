@@ -12,14 +12,14 @@
 | Tier | 1 |
 | Owner | Dana Whitfield |
 | Maturity | verifiable supported · specified claimed |
-| Approval | draft |
-| Reviewed | 2026-10-20 |
+| Approval | approved by Dana Whitfield on 2026-10-27, covering the 13 elements beneath it |
+| Reviewed | 2026-10-27 |
 
 ## 1. Purpose and value
 
-An owner who has finished a draft sends it to the client in one confirmed action. The product's first value moment ([[OBJ-first-value]]) is this action succeeding for a real invoice.
+An owner who has finished a draft sends it to the client in one confirmed action. The product's first value moment ([`OBJ-first-value`](../definition/intent/OBJ-first-value.md)) is this action succeeding for a real invoice.
 
-Out of scope here: creating the draft itself ([[FEAT-draft-invoice]]), taking payment ([[FEAT-pay-invoice-online]]), reminders, and sending on a schedule.
+Out of scope here: creating the draft itself ([`FEAT-draft-invoice`](../definition/structure/FEAT-draft-invoice.md)), taking payment ([`FEAT-pay-invoice-online`](../definition/structure/FEAT-pay-invoice-online.md)), reminders, and sending on a schedule.
 
 **Serves:** [`OBJ-first-value`](../definition/intent/OBJ-first-value.md) New customers send an invoice in their first week; [`OPP-late-payment`](../definition/intent/OPP-late-payment.md) Freelancers wait weeks for money they have already earned
 
@@ -27,7 +27,7 @@ Out of scope here: creating the draft itself ([[FEAT-draft-invoice]]), taking pa
 
 ## 2. Entry and access
 
-Reached from a draft invoice. The invoice must have a client with an email address and at least one line. The owner must hold [[PERM-send-invoice]]. If the workspace is at its monthly limit ([[ENTL-monthly-invoices]]) the action is replaced by an upgrade prompt ([[FEAT-upgrade-plan]]). The first thing the owner sees is the review screen ([[SCR-invoice-review]]).
+Reached from a draft invoice. The invoice must have a client with an email address and at least one line. The owner must hold [`PERM-send-invoice`](../definition/actors/PERM-send-invoice.md). If the workspace is at its monthly limit ([`ENTL-monthly-invoices`](../definition/commercial/ENTL-monthly-invoices.md)) the action is replaced by an upgrade prompt ([`FEAT-upgrade-plan`](../definition/structure/FEAT-upgrade-plan.md)). The first thing the owner sees is the review screen ([`SCR-invoice-review`](../definition/experience/SCR-invoice-review.md)).
 
 **Permissions needed**
 
@@ -80,7 +80,8 @@ flowchart TD
   class s_review,s_check_limit,s_deliver decision;
 ```
 
-The number is assigned and the email queued in one transaction, so a delivery problem can never waste an invoice number ([[DEC-sequential-invoice-numbers]]). Delivery is a background step: the owner sees "sent" as soon as the transaction commits and is told afterwards if the email cannot be delivered.
+The number is assigned and the email queued in one transaction, so a delivery problem can never waste an invoice number ([`DEC-sequential-invoice-numbers`](../definition/change/DEC-sequential-invoice-numbers.md)). Delivery is a background step: the owner sees "sent" as soon as the transaction commits and is told afterwards if the email cannot be delivered.
+
 ## 4. Screens and messages
 
 **Screens**
@@ -181,10 +182,21 @@ erDiagram
     text pay_token UK
   }
   CLIENT {
-    string id
+    id id PK
+    id workspace_id
+    text name
+    email email
+    text address
+    text vat_number
+    int payment_terms_days
   }
   PAYMENT {
-    string id
+    id id PK
+    id invoice_id
+    money amount
+    text currency
+    text provider_reference UK
+    datetime confirmed_at
   }
   INVOICE }o--|| CLIENT : "billed to"
   INVOICE ||--o{ PAYMENT : "paid by"
@@ -192,11 +204,10 @@ erDiagram
 
 ## 8. Events and integrations
 
-| Direction | Event |
-| --- | --- |
-| emits | [`EVT-invoice-sent`](../definition/information/EVT-invoice-sent.md) Invoice sent |
-| emits | [`EVT-invoice-sent`](../definition/information/EVT-invoice-sent.md) Invoice sent |
-| consumes | [`EVT-invoice-sent`](../definition/information/EVT-invoice-sent.md) Invoice sent |
+| Direction | Event | By |
+| --- | --- | --- |
+| emits | [`EVT-invoice-sent`](../definition/information/EVT-invoice-sent.md) Invoice sent | [`FEAT-send-invoice`](../definition/structure/FEAT-send-invoice.md), [`FLW-send-invoice`](../definition/experience/FLW-send-invoice.md) |
+| consumes | [`EVT-invoice-sent`](../definition/information/EVT-invoice-sent.md) Invoice sent | [`MSG-invoice-email`](../definition/experience/MSG-invoice-email.md) |
 
 **Depends on**
 
@@ -208,47 +219,47 @@ erDiagram
 
 | Requirement | Kind | Priority | Verification | Statement |
 | --- | --- | --- | --- | --- |
-| `REQ-confirm-recipient` | functional | must | test | When the owner chooses Send, the system shall require explicit confirmation on a screen that shows the recipient's name, email address and the invoice total. |
-| `REQ-email-handoff-time` | quality: performance | should | test | When an invoice is sent, the system shall hand its email to the delivery provider within 30 seconds in at least 99% of sends. |
-| `REQ-send-checks-permission` | functional | must | test | When the owner confirms sending, the system shall check that the owner still holds permission to send invoices in that workspace at that moment. |
+| [`REQ-confirm-recipient`](../definition/behaviour/REQ-confirm-recipient.md) | functional | must | test | When the owner chooses Send, the system shall require explicit confirmation on a screen that shows the recipient's name, email address and the invoice total. |
+| [`REQ-email-handoff-time`](../definition/behaviour/REQ-email-handoff-time.md) | quality: performance | should | test | When an invoice is sent, the system shall hand its email to the delivery provider within 30 seconds in at least 99% of sends. |
+| [`REQ-send-checks-permission`](../definition/behaviour/REQ-send-checks-permission.md) | functional | must | test | When the owner confirms sending, the system shall check that the owner still holds permission to send invoices in that workspace at that moment. |
 
 ## 10. Concerns
 
 | Probe | Disposition | Detail |
 | --- | --- | --- |
-| Failure paths | addressed | Send an invoice |
-| First use and empty state | addressed | Invoice review |
-| Concurrency and duplicates | addressed | How an invoice number is formed, Send an invoice |
-| Deletion and retention | addressed | Invoice lifecycle |
-| Audit trail | deferred | The first release keeps an invoice's state and dates but no log of who did what. (until QST-audit-log) |
-| Limits and quotas | addressed | Invoices sent per month |
+| Failure paths | addressed | [`FLW-send-invoice`](../definition/experience/FLW-send-invoice.md) |
+| First use and empty state | addressed | [`SCR-invoice-review`](../definition/experience/SCR-invoice-review.md) |
+| Concurrency and duplicates | addressed | [`RULE-invoice-number-sequence`](../definition/behaviour/RULE-invoice-number-sequence.md), [`FLW-send-invoice`](../definition/experience/FLW-send-invoice.md) |
+| Deletion and retention | addressed | [`STM-invoice-lifecycle`](../definition/behaviour/STM-invoice-lifecycle.md) |
+| Audit trail | deferred | The first release keeps an invoice's state and dates but no log of who did what. (until [`QST-audit-log`](../definition/change/QST-audit-log.md)) |
+| Limits and quotas | addressed | [`ENTL-monthly-invoices`](../definition/commercial/ENTL-monthly-invoices.md) |
 | Lists, search and bulk actions | na | Sending acts on one invoice from its own review screen; finding and filtering invoices is a separate feature. |
 | Getting data in and out | na | Sending has no data of its own to bring in or take out; exporting invoices belongs with the invoice list. |
-| Accessibility | addressed | Invoice review, Accessibility standards and law |
+| Accessibility | addressed | [`SCR-invoice-review`](../definition/experience/SCR-invoice-review.md), [`OBL-accessibility`](../definition/assurance/OBL-accessibility.md) |
 | Localisation | deferred | The first release is English only; amounts and dates follow the workspace's country format. (until 2027-06-30) |
-| Performance and volume | addressed | The invoice email is handed over within 30 seconds |
-| Observability | addressed | Delivery rate |
-| Rollout and migration | addressed | First release |
-| Product analytics | addressed | Activation rate |
-| Abuse and misuse | addressed | Sending is used to spam or phish strangers |
-| Personal data | deferred | How owners answer a client's request to see, correct or erase their data is not decided. (until QST-client-data-requests) |
-| Tenant isolation | addressed | A workspace's data never appears in another's, One workspace cannot read another's data |
-| Tenant states | addressed | When a plan change affects sending |
-| Sessions and revoked access | addressed | Permission is checked at the moment of sending |
-| Plan gating | addressed | Invoices sent per month |
-| Billing impact | addressed | How an invoice total is calculated, Invoice totals are calculated and rounded as specified |
-| Usage metering | addressed | Invoices sent per month, Invoice sent |
-| When a dependency fails | addressed | Send an invoice |
-| Event delivery | addressed | Invoice sent |
-| Message preferences and delivery | addressed | Invoice email |
+| Performance and volume | addressed | [`REQ-email-handoff-time`](../definition/behaviour/REQ-email-handoff-time.md) |
+| Observability | addressed | [`MET-delivery-rate`](../definition/operations/MET-delivery-rate.md) |
+| Rollout and migration | addressed | [`RLS-first-release`](../definition/change/RLS-first-release.md) |
+| Product analytics | addressed | [`MET-activation-rate`](../definition/operations/MET-activation-rate.md) |
+| Abuse and misuse | addressed | [`RISK-invoice-abuse`](../definition/assurance/RISK-invoice-abuse.md) |
+| Personal data | deferred | How owners answer a client's request to see, correct or erase their data is not decided. (until [`QST-client-data-requests`](../definition/change/QST-client-data-requests.md)) |
+| Tenant isolation | addressed | [`REQ-workspace-data-isolation`](../definition/behaviour/REQ-workspace-data-isolation.md), [`TST-workspace-isolation`](../definition/assurance/TST-workspace-isolation.md) |
+| Tenant states | addressed | [`RULE-plan-change-timing`](../definition/behaviour/RULE-plan-change-timing.md) |
+| Sessions and revoked access | addressed | [`REQ-send-checks-permission`](../definition/behaviour/REQ-send-checks-permission.md) |
+| Plan gating | addressed | [`ENTL-monthly-invoices`](../definition/commercial/ENTL-monthly-invoices.md) |
+| Billing impact | addressed | [`RULE-invoice-total`](../definition/behaviour/RULE-invoice-total.md), [`TST-invoice-total`](../definition/assurance/TST-invoice-total.md) |
+| Usage metering | addressed | [`ENTL-monthly-invoices`](../definition/commercial/ENTL-monthly-invoices.md), [`EVT-invoice-sent`](../definition/information/EVT-invoice-sent.md) |
+| When a dependency fails | addressed | [`FLW-send-invoice`](../definition/experience/FLW-send-invoice.md) |
+| Event delivery | addressed | [`EVT-invoice-sent`](../definition/information/EVT-invoice-sent.md) |
+| Message preferences and delivery | addressed | [`MSG-invoice-email`](../definition/experience/MSG-invoice-email.md) |
 
 ## 11. Verification
 
 | Test | Kind | Level | Automation | Result | Verifies |
 | --- | --- | --- | --- | --- | --- |
-| [`TST-confirm-and-send`](../definition/assurance/TST-confirm-and-send.md) Confirming sends the invoice exactly once | scenario | e2e | planned | unknown | Send an invoice, The owner confirms the recipient before sending, Permission is checked at the moment of sending, Send an invoice, Invoice review |
-| [`TST-email-handoff-time`](../definition/assurance/TST-email-handoff-time.md) Invoice emails reach the provider within 30 seconds | performance | monitoring | planned | unknown | The invoice email is handed over within 30 seconds |
-| [`TST-plan-change-timing`](../definition/assurance/TST-plan-change-timing.md) A plan change affects sending only when it should | scenario | integration | planned | unknown | When a plan change affects sending |
+| [`TST-confirm-and-send`](../definition/assurance/TST-confirm-and-send.md) Confirming sends the invoice exactly once | scenario | e2e | planned | unknown | [`FEAT-send-invoice`](../definition/structure/FEAT-send-invoice.md), [`REQ-confirm-recipient`](../definition/behaviour/REQ-confirm-recipient.md), [`REQ-send-checks-permission`](../definition/behaviour/REQ-send-checks-permission.md), [`FLW-send-invoice`](../definition/experience/FLW-send-invoice.md), [`SCR-invoice-review`](../definition/experience/SCR-invoice-review.md) |
+| [`TST-email-handoff-time`](../definition/assurance/TST-email-handoff-time.md) Invoice emails reach the provider within 30 seconds | performance | monitoring | planned | unknown | [`REQ-email-handoff-time`](../definition/behaviour/REQ-email-handoff-time.md) |
+| [`TST-plan-change-timing`](../definition/assurance/TST-plan-change-timing.md) A plan change affects sending only when it should | scenario | integration | planned | unknown | [`RULE-plan-change-timing`](../definition/behaviour/RULE-plan-change-timing.md) |
 
 ## 12. Decisions, assumptions, questions and risks
 

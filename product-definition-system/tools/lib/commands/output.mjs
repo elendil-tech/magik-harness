@@ -30,7 +30,8 @@ function emitView(ctx, name, target) {
     const file = resolve(ctx.cwd, ctx.flags.out);
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, text);
-    ctx.out(`Wrote ${relative(ctx.cwd, file)}`);
+    const near = relative(ctx.cwd, file);
+    ctx.out(`Wrote ${near.startsWith("..") ? file : near}`); // a path that climbs out of the folder is clearer in full
   } else ctx.out(text);
   return 0;
 }

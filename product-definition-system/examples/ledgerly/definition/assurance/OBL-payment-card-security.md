@@ -4,6 +4,8 @@ title: Payment card security
 summary: Card data must be protected; Ledgerly meets the duty by never handling it.
 anchor: PROD-ledgerly
 maturity: specified
+reviewed: 2026-10-27
+approval: {state: approved, by: Dana Whitfield, at: 2026-10-27, hash: sha256:1def7f5c22d28c91}
 source: standard
 reference: PCI DSS, self-assessment questionnaire A for merchants that fully outsource card data
 applies_when: The product accepts card payments through a provider

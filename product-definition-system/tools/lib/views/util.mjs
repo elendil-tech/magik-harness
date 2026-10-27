@@ -60,6 +60,20 @@ export function bind(a) {
       return el ? `[\`${id}\`](${up}${el.path}) ${el.title}` : `\`${id}\` _(missing)_`;
     },
     code: (id) => `\`${id}\``,
+    /** Compact links to several records, by id only: `ID`, `ID`. Titles repeat across types, ids never do. */
+    refs(ids) {
+      return [...new Set(ids)].map((id) => {
+        const el = model.get(id);
+        return el ? `[\`${id}\`](${up}${el.path})` : `\`${id}\``;
+      }).join(", ");
+    },
+    /** Prose with each [[ID]] turned into a link to its record; an unknown id is left as written. */
+    link(text) {
+      return String(text).replace(/\[\[([A-Z]{2,5}-[a-z0-9]+(?:-[a-z0-9]+)*)\]\]/g, (whole, id) => {
+        const el = model.get(id);
+        return el ? `[\`${id}\`](${up}${el.path})` : whole;
+      });
+    },
     maturity(id) {
       const m = a.maturity.get(id);
       if (!m) return model.has(id) ? "retired" : "";

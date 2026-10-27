@@ -8,11 +8,11 @@ Profile saas · adoption standard · modules core, tenancy, identity, commercial
 | --- | --- |
 | Elements | 181 |
 | Overall depth | 41% █████░░░░░░░ |
-| Errors / warnings | 0 / 6 |
+| Errors / warnings | 0 / 2 |
 | Claims above what the definition supports | 0 |
 | Unconfirmed skeleton elements | 79 |
 | Gaps to the next rung | 484 |
-| Approvals asked for (tier 1 claiming specified or better) | 6: 0 current · 0 stale · 6 not yet given |
+| Approvals asked for (tier 1 claiming specified or better) | 6: 4 current · 0 stale · 2 not yet given |
 
 Depth is how far up the ladder what exists has climbed. It says nothing about what has not been written at all: see _Blind spots_ below.
 
