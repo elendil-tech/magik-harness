@@ -43,11 +43,14 @@ export const MATURITY_STYLE = {
 };
 export const maturityClassDefs = () => Object.entries(MATURITY_STYLE).map(([k, v]) => `  classDef ${k} ${v};`).join("\n");
 
-/** Helpers bound to one analysis. */
-export function bind(a) {
+/**
+ * Helpers bound to one analysis. `up` is what a link needs in front of a record's path to
+ * reach it from where the output will live (the views folder, unless the caller says otherwise).
+ */
+export function bind(a, upFrom) {
   const { model, meta, config } = a;
   const depth = config.viewsDir.split("/").filter(Boolean).length;
-  const up = "../".repeat(depth);
+  const up = upFrom ?? "../".repeat(depth);
   const V = {
     a,
     model,
@@ -99,6 +102,19 @@ export function bind(a) {
     isObj,
     inScope(rootId) {
       return rootId ? [model.get(rootId), ...model.descendants(rootId)].filter(Boolean) : model.all();
+    },
+    /** The entities a scope works with: anchored under it, or accessed by anything under it. */
+    entitiesIn(rootId) {
+      const scope = V.inScope(rootId);
+      const ids = new Set(scope.filter((e) => e.type === "ENT").map((e) => e.id));
+      for (const el of scope) for (const e of model.out(el.id, "accesses")) if (model.get(e.to)?.type === "ENT") ids.add(e.to);
+      return [...ids].map((id) => model.get(id)).filter((e) => e && !model.isRetired(e.id));
+    },
+    /** The state machines of a scope: anchored under it, or describing an entity it works with. */
+    statesIn(rootId) {
+      const ids = new Set(V.inScope(rootId).filter((e) => e.type === "STM").map((e) => e.id));
+      for (const ent of V.entitiesIn(rootId)) for (const l of model.in(ent.id, "lifecycle_of")) ids.add(l.from);
+      return [...ids].map((id) => model.get(id)).filter((e) => e && e.type === "STM" && !model.isRetired(e.id));
     },
     stepsOf(el) {
       const b = el.rec.blocks.find((x) => x.name === "pds-flow" && x.data && !x.error);

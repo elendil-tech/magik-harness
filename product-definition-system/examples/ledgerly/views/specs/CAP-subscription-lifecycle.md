@@ -10,7 +10,7 @@ _Not written yet._
 
 | Feature | Kind | Tier | Maturity |
 | --- | --- | --- | --- |
-| [`FEAT-upgrade-plan`](../definition/structure/FEAT-upgrade-plan.md) Upgrade to the Team plan | user_facing | 2 | outlined |
+| [`FEAT-upgrade-plan`](../../definition/structure/FEAT-upgrade-plan.md) Upgrade to the Team plan | user_facing | 2 | outlined |
 
 ## Feature specification: Upgrade to the Team plan
 

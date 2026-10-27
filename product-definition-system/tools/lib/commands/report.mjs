@@ -218,7 +218,7 @@ function relationText(r, meta) {
 export const explain = {
   summary: "What a rule, check, probe, element type, relation or view means",
   usage: "explain NAME",
-  help: "NAME is an id such as COV-FEAT-flow, INT-flow-step-ref, GATE-skeleton, a probe id, an element type such as FEAT, a relation such as accesses, or a view.",
+  help: "NAME is an id such as COV-FEAT-flow, INT-flow-refs, GATE-skeleton, a probe id, an element type such as FEAT, a relation such as accesses, or a view.",
   flags: {},
   run(ctx) {
     const [raw] = ctx.args;

@@ -6,9 +6,10 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { main } from "../lib/cli.mjs";
+import { buildModel } from "../lib/graph.mjs";
 import { analyse } from "../lib/lint.mjs";
 import { DEFAULT_META_DIR, loadMeta } from "../lib/metamodel.mjs";
-import { readProject } from "../lib/project.mjs";
+import { readProject, resolveConfig } from "../lib/project.mjs";
 import { splitFrontmatter } from "../lib/records.mjs";
 import { parseYaml, stringifyYaml } from "../lib/yaml.mjs";
 
@@ -83,6 +84,27 @@ export function editFront(root, id, fn) {
     fn(front);
     return `---\n${stringifyYaml(front).trimEnd()}\n---\n${split.body}`;
   });
+}
+
+/** The text of a record: `front` as data, `body` as Markdown. */
+export function rec(front, body = "") {
+  return `---\n${stringifyYaml(front).trimEnd()}\n---\n\n${body}\n`;
+}
+
+/**
+ * A model built in memory from a handful of records, for tests about the graph
+ * rather than the files. Each value is the frontmatter, or [frontmatter, body].
+ * No linting happens: the records need only be readable. `extraFiles` adds raw
+ * files by path, for records that are broken or misplaced on purpose.
+ */
+export function modelOf(records, { adoption = "full", extraFiles = {} } = {}) {
+  const { config } = resolveConfig(meta, { pds: 1, name: "Test", profile: "saas", adoption });
+  const files = new Map(Object.entries(extraFiles));
+  for (const [id, value] of Object.entries(records)) {
+    const [front, body] = Array.isArray(value) ? value : [value, ""];
+    files.set(`definition/${meta.familyOf(meta.typeOfId(id))}/${id}.md`, rec({ id, title: id, maturity: "stub", ...front }, body));
+  }
+  return buildModel(meta, config, files);
 }
 
 /** Add a new record to a project: `front` is the frontmatter as data, `body` the Markdown after it. */

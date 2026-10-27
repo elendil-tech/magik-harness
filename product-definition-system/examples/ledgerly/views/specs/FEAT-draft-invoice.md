@@ -15,9 +15,9 @@
 
 ## 1. Purpose and value
 
-Where an invoice is made: pick or add a client, add lines, set tax and a due date, save as often as needed. A draft has no number and can be changed or deleted freely. Sending it is a separate, deliberate step ([`FEAT-send-invoice`](../definition/structure/FEAT-send-invoice.md)).
+Where an invoice is made: pick or add a client, add lines, set tax and a due date, save as often as needed. A draft has no number and can be changed or deleted freely. Sending it is a separate, deliberate step ([`FEAT-send-invoice`](../../definition/structure/FEAT-send-invoice.md)).
 
-**Serves:** [`OBJ-first-value`](../definition/intent/OBJ-first-value.md) New customers send an invoice in their first week; [`OPP-late-payment`](../definition/intent/OPP-late-payment.md) Freelancers wait weeks for money they have already earned
+**Serves:** [`OBJ-first-value`](../../definition/intent/OBJ-first-value.md) New customers send an invoice in their first week; [`OPP-late-payment`](../../definition/intent/OPP-late-payment.md) Freelancers wait weeks for money they have already earned
 
 **For:** Account owner, Member
 
@@ -77,8 +77,8 @@ stateDiagram-v2
 
 | Entity | Operations | Personal data | Classification | Retention |
 | --- | --- | --- | --- | --- |
-| [`ENT-invoice`](../definition/information/ENT-invoice.md) Invoice | create, read, update, delete | yes | confidential | Seven years from the end of the financial year of the invoice, as tax law requires |
-| [`ENT-client`](../definition/information/ENT-client.md) Client | create, read, update | yes | confidential | Until the owner deletes the client or the workspace is closed; invoices already sent keep their own copy |
+| [`ENT-invoice`](../../definition/information/ENT-invoice.md) Invoice | create, read, update, delete | yes | confidential | Seven years from the end of the financial year of the invoice, as tax law requires |
+| [`ENT-client`](../../definition/information/ENT-client.md) Client | create, read, update | yes | confidential | Until the owner deletes the client or the workspace is closed; invoices already sent keep their own copy |
 
 ```mermaid
 erDiagram
@@ -163,7 +163,7 @@ _None._
 
 _Not written yet._
 
-**Planned in:** [`RLS-first-release`](../definition/change/RLS-first-release.md) First release
+**Planned in:** [`RLS-first-release`](../../definition/change/RLS-first-release.md) First release
 
 ## Completeness
 

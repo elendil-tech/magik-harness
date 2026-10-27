@@ -17,29 +17,29 @@
 
 ## 1. Purpose and value
 
-An owner who has finished a draft sends it to the client in one confirmed action. The product's first value moment ([`OBJ-first-value`](../definition/intent/OBJ-first-value.md)) is this action succeeding for a real invoice.
+An owner who has finished a draft sends it to the client in one confirmed action. The product's first value moment ([`OBJ-first-value`](../../definition/intent/OBJ-first-value.md)) is this action succeeding for a real invoice.
 
-Out of scope here: creating the draft itself ([`FEAT-draft-invoice`](../definition/structure/FEAT-draft-invoice.md)), taking payment ([`FEAT-pay-invoice-online`](../definition/structure/FEAT-pay-invoice-online.md)), reminders, and sending on a schedule.
+Out of scope here: creating the draft itself ([`FEAT-draft-invoice`](../../definition/structure/FEAT-draft-invoice.md)), taking payment ([`FEAT-pay-invoice-online`](../../definition/structure/FEAT-pay-invoice-online.md)), reminders, and sending on a schedule.
 
-**Serves:** [`OBJ-first-value`](../definition/intent/OBJ-first-value.md) New customers send an invoice in their first week; [`OPP-late-payment`](../definition/intent/OPP-late-payment.md) Freelancers wait weeks for money they have already earned
+**Serves:** [`OBJ-first-value`](../../definition/intent/OBJ-first-value.md) New customers send an invoice in their first week; [`OPP-late-payment`](../../definition/intent/OPP-late-payment.md) Freelancers wait weeks for money they have already earned
 
 **For:** Account owner, Client
 
 ## 2. Entry and access
 
-Reached from a draft invoice. The invoice must have a client with an email address and at least one line. The owner must hold [`PERM-send-invoice`](../definition/actors/PERM-send-invoice.md). If the workspace is at its monthly limit ([`ENTL-monthly-invoices`](../definition/commercial/ENTL-monthly-invoices.md)) the action is replaced by an upgrade prompt ([`FEAT-upgrade-plan`](../definition/structure/FEAT-upgrade-plan.md)). The first thing the owner sees is the review screen ([`SCR-invoice-review`](../definition/experience/SCR-invoice-review.md)).
+Reached from a draft invoice. The invoice must have a client with an email address and at least one line. The owner must hold [`PERM-send-invoice`](../../definition/actors/PERM-send-invoice.md). If the workspace is at its monthly limit ([`ENTL-monthly-invoices`](../../definition/commercial/ENTL-monthly-invoices.md)) the action is replaced by an upgrade prompt ([`FEAT-upgrade-plan`](../../definition/structure/FEAT-upgrade-plan.md)). The first thing the owner sees is the review screen ([`SCR-invoice-review`](../../definition/experience/SCR-invoice-review.md)).
 
 **Permissions needed**
 
 | Permission | Roles that hold it |
 | --- | --- |
-| [`PERM-send-invoice`](../definition/actors/PERM-send-invoice.md) Send an invoice | Owner |
+| [`PERM-send-invoice`](../../definition/actors/PERM-send-invoice.md) Send an invoice | Owner |
 
 **Plan gating**
 
 | Entitlement | Kind | Plans and values |
 | --- | --- | --- |
-| [`ENTL-monthly-invoices`](../definition/commercial/ENTL-monthly-invoices.md) Invoices sent per month | limit | Free: 5; Team: unlimited |
+| [`ENTL-monthly-invoices`](../../definition/commercial/ENTL-monthly-invoices.md) Invoices sent per month | limit | Free: 5; Team: unlimited |
 
 ## 3. Flows
 
@@ -80,7 +80,7 @@ flowchart TD
   class s_review,s_check_limit,s_deliver decision;
 ```
 
-The number is assigned and the email queued in one transaction, so a delivery problem can never waste an invoice number ([`DEC-sequential-invoice-numbers`](../definition/change/DEC-sequential-invoice-numbers.md)). Delivery is a background step: the owner sees "sent" as soon as the transaction commits and is told afterwards if the email cannot be delivered.
+The number is assigned and the email queued in one transaction, so a delivery problem can never waste an invoice number ([`DEC-sequential-invoice-numbers`](../../definition/change/DEC-sequential-invoice-numbers.md)). Delivery is a background step: the owner sees "sent" as soon as the transaction commits and is told afterwards if the email cannot be delivered.
 
 ## 4. Screens and messages
 
@@ -88,13 +88,13 @@ The number is assigned and the email queued in one transaction, so a delivery pr
 
 | Screen | Kind | Surface | States |
 | --- | --- | --- | --- |
-| [`SCR-invoice-review`](../definition/experience/SCR-invoice-review.md) Invoice review | page | Ledgerly web app | loading, ready, empty, error, over-limit |
+| [`SCR-invoice-review`](../../definition/experience/SCR-invoice-review.md) Invoice review | page | Ledgerly web app | loading, ready, empty, error, over-limit |
 
 **Messages**
 
 | Message | Channel | Class | Sent when | To |
 | --- | --- | --- | --- | --- |
-| [`MSG-invoice-email`](../definition/experience/MSG-invoice-email.md) Invoice email | email | transactional | Invoice sent | Client |
+| [`MSG-invoice-email`](../../definition/experience/MSG-invoice-email.md) Invoice email | email | transactional | Invoice sent | Client |
 
 ## 5. Business rules
 
@@ -162,7 +162,7 @@ stateDiagram-v2
 
 | Entity | Operations | Personal data | Classification | Retention |
 | --- | --- | --- | --- | --- |
-| [`ENT-invoice`](../definition/information/ENT-invoice.md) Invoice | update | yes | confidential | Seven years from the end of the financial year of the invoice, as tax law requires |
+| [`ENT-invoice`](../../definition/information/ENT-invoice.md) Invoice | update | yes | confidential | Seven years from the end of the financial year of the invoice, as tax law requires |
 
 ```mermaid
 erDiagram
@@ -206,75 +206,75 @@ erDiagram
 
 | Direction | Event | By |
 | --- | --- | --- |
-| emits | [`EVT-invoice-sent`](../definition/information/EVT-invoice-sent.md) Invoice sent | [`FEAT-send-invoice`](../definition/structure/FEAT-send-invoice.md), [`FLW-send-invoice`](../definition/experience/FLW-send-invoice.md) |
-| consumes | [`EVT-invoice-sent`](../definition/information/EVT-invoice-sent.md) Invoice sent | [`MSG-invoice-email`](../definition/experience/MSG-invoice-email.md) |
+| emits | [`EVT-invoice-sent`](../../definition/information/EVT-invoice-sent.md) Invoice sent | [`FEAT-send-invoice`](../../definition/structure/FEAT-send-invoice.md), [`FLW-send-invoice`](../../definition/experience/FLW-send-invoice.md) |
+| consumes | [`EVT-invoice-sent`](../../definition/information/EVT-invoice-sent.md) Invoice sent | [`MSG-invoice-email`](../../definition/experience/MSG-invoice-email.md) |
 
 **Depends on**
 
 | Element | Type |
 | --- | --- |
-| [`INT-email-sending`](../definition/information/INT-email-sending.md) Email sending | INT |
+| [`INT-email-sending`](../../definition/information/INT-email-sending.md) Email sending | INT |
 
 ## 9. Requirements
 
 | Requirement | Kind | Priority | Verification | Statement |
 | --- | --- | --- | --- | --- |
-| [`REQ-confirm-recipient`](../definition/behaviour/REQ-confirm-recipient.md) | functional | must | test | When the owner chooses Send, the system shall require explicit confirmation on a screen that shows the recipient's name, email address and the invoice total. |
-| [`REQ-email-handoff-time`](../definition/behaviour/REQ-email-handoff-time.md) | quality: performance | should | test | When an invoice is sent, the system shall hand its email to the delivery provider within 30 seconds in at least 99% of sends. |
-| [`REQ-send-checks-permission`](../definition/behaviour/REQ-send-checks-permission.md) | functional | must | test | When the owner confirms sending, the system shall check that the owner still holds permission to send invoices in that workspace at that moment. |
+| [`REQ-confirm-recipient`](../../definition/behaviour/REQ-confirm-recipient.md) | functional | must | test | When the owner chooses Send, the system shall require explicit confirmation on a screen that shows the recipient's name, email address and the invoice total. |
+| [`REQ-email-handoff-time`](../../definition/behaviour/REQ-email-handoff-time.md) | quality: performance | should | test | When an invoice is sent, the system shall hand its email to the delivery provider within 30 seconds in at least 99% of sends. |
+| [`REQ-send-checks-permission`](../../definition/behaviour/REQ-send-checks-permission.md) | functional | must | test | When the owner confirms sending, the system shall check that the owner still holds permission to send invoices in that workspace at that moment. |
 
 ## 10. Concerns
 
 | Probe | Disposition | Detail |
 | --- | --- | --- |
-| Failure paths | addressed | [`FLW-send-invoice`](../definition/experience/FLW-send-invoice.md) |
-| First use and empty state | addressed | [`SCR-invoice-review`](../definition/experience/SCR-invoice-review.md) |
-| Concurrency and duplicates | addressed | [`RULE-invoice-number-sequence`](../definition/behaviour/RULE-invoice-number-sequence.md), [`FLW-send-invoice`](../definition/experience/FLW-send-invoice.md) |
-| Deletion and retention | addressed | [`STM-invoice-lifecycle`](../definition/behaviour/STM-invoice-lifecycle.md) |
-| Audit trail | deferred | The first release keeps an invoice's state and dates but no log of who did what. (until [`QST-audit-log`](../definition/change/QST-audit-log.md)) |
-| Limits and quotas | addressed | [`ENTL-monthly-invoices`](../definition/commercial/ENTL-monthly-invoices.md) |
+| Failure paths | addressed | [`FLW-send-invoice`](../../definition/experience/FLW-send-invoice.md) |
+| First use and empty state | addressed | [`SCR-invoice-review`](../../definition/experience/SCR-invoice-review.md) |
+| Concurrency and duplicates | addressed | [`RULE-invoice-number-sequence`](../../definition/behaviour/RULE-invoice-number-sequence.md), [`FLW-send-invoice`](../../definition/experience/FLW-send-invoice.md) |
+| Deletion and retention | addressed | [`STM-invoice-lifecycle`](../../definition/behaviour/STM-invoice-lifecycle.md) |
+| Audit trail | deferred | The first release keeps an invoice's state and dates but no log of who did what. (until [`QST-audit-log`](../../definition/change/QST-audit-log.md)) |
+| Limits and quotas | addressed | [`ENTL-monthly-invoices`](../../definition/commercial/ENTL-monthly-invoices.md) |
 | Lists, search and bulk actions | na | Sending acts on one invoice from its own review screen; finding and filtering invoices is a separate feature. |
 | Getting data in and out | na | Sending has no data of its own to bring in or take out; exporting invoices belongs with the invoice list. |
-| Accessibility | addressed | [`SCR-invoice-review`](../definition/experience/SCR-invoice-review.md), [`OBL-accessibility`](../definition/assurance/OBL-accessibility.md) |
+| Accessibility | addressed | [`SCR-invoice-review`](../../definition/experience/SCR-invoice-review.md), [`OBL-accessibility`](../../definition/assurance/OBL-accessibility.md) |
 | Localisation | deferred | The first release is English only; amounts and dates follow the workspace's country format. (until 2027-06-30) |
-| Performance and volume | addressed | [`REQ-email-handoff-time`](../definition/behaviour/REQ-email-handoff-time.md) |
-| Observability | addressed | [`MET-delivery-rate`](../definition/operations/MET-delivery-rate.md) |
-| Rollout and migration | addressed | [`RLS-first-release`](../definition/change/RLS-first-release.md) |
-| Product analytics | addressed | [`MET-activation-rate`](../definition/operations/MET-activation-rate.md) |
-| Abuse and misuse | addressed | [`RISK-invoice-abuse`](../definition/assurance/RISK-invoice-abuse.md) |
-| Personal data | deferred | How owners answer a client's request to see, correct or erase their data is not decided. (until [`QST-client-data-requests`](../definition/change/QST-client-data-requests.md)) |
-| Tenant isolation | addressed | [`REQ-workspace-data-isolation`](../definition/behaviour/REQ-workspace-data-isolation.md), [`TST-workspace-isolation`](../definition/assurance/TST-workspace-isolation.md) |
-| Tenant states | addressed | [`RULE-plan-change-timing`](../definition/behaviour/RULE-plan-change-timing.md) |
-| Sessions and revoked access | addressed | [`REQ-send-checks-permission`](../definition/behaviour/REQ-send-checks-permission.md) |
-| Plan gating | addressed | [`ENTL-monthly-invoices`](../definition/commercial/ENTL-monthly-invoices.md) |
-| Billing impact | addressed | [`RULE-invoice-total`](../definition/behaviour/RULE-invoice-total.md), [`TST-invoice-total`](../definition/assurance/TST-invoice-total.md) |
-| Usage metering | addressed | [`ENTL-monthly-invoices`](../definition/commercial/ENTL-monthly-invoices.md), [`EVT-invoice-sent`](../definition/information/EVT-invoice-sent.md) |
-| When a dependency fails | addressed | [`FLW-send-invoice`](../definition/experience/FLW-send-invoice.md) |
-| Event delivery | addressed | [`EVT-invoice-sent`](../definition/information/EVT-invoice-sent.md) |
-| Message preferences and delivery | addressed | [`MSG-invoice-email`](../definition/experience/MSG-invoice-email.md) |
+| Performance and volume | addressed | [`REQ-email-handoff-time`](../../definition/behaviour/REQ-email-handoff-time.md) |
+| Observability | addressed | [`MET-delivery-rate`](../../definition/operations/MET-delivery-rate.md) |
+| Rollout and migration | addressed | [`RLS-first-release`](../../definition/change/RLS-first-release.md) |
+| Product analytics | addressed | [`MET-activation-rate`](../../definition/operations/MET-activation-rate.md) |
+| Abuse and misuse | addressed | [`RISK-invoice-abuse`](../../definition/assurance/RISK-invoice-abuse.md) |
+| Personal data | deferred | How owners answer a client's request to see, correct or erase their data is not decided. (until [`QST-client-data-requests`](../../definition/change/QST-client-data-requests.md)) |
+| Tenant isolation | addressed | [`REQ-workspace-data-isolation`](../../definition/behaviour/REQ-workspace-data-isolation.md), [`TST-workspace-isolation`](../../definition/assurance/TST-workspace-isolation.md) |
+| Tenant states | addressed | [`RULE-plan-change-timing`](../../definition/behaviour/RULE-plan-change-timing.md) |
+| Sessions and revoked access | addressed | [`REQ-send-checks-permission`](../../definition/behaviour/REQ-send-checks-permission.md) |
+| Plan gating | addressed | [`ENTL-monthly-invoices`](../../definition/commercial/ENTL-monthly-invoices.md) |
+| Billing impact | addressed | [`RULE-invoice-total`](../../definition/behaviour/RULE-invoice-total.md), [`TST-invoice-total`](../../definition/assurance/TST-invoice-total.md) |
+| Usage metering | addressed | [`ENTL-monthly-invoices`](../../definition/commercial/ENTL-monthly-invoices.md), [`EVT-invoice-sent`](../../definition/information/EVT-invoice-sent.md) |
+| When a dependency fails | addressed | [`FLW-send-invoice`](../../definition/experience/FLW-send-invoice.md) |
+| Event delivery | addressed | [`EVT-invoice-sent`](../../definition/information/EVT-invoice-sent.md) |
+| Message preferences and delivery | addressed | [`MSG-invoice-email`](../../definition/experience/MSG-invoice-email.md) |
 
 ## 11. Verification
 
 | Test | Kind | Level | Automation | Result | Verifies |
 | --- | --- | --- | --- | --- | --- |
-| [`TST-confirm-and-send`](../definition/assurance/TST-confirm-and-send.md) Confirming sends the invoice exactly once | scenario | e2e | planned | unknown | [`FEAT-send-invoice`](../definition/structure/FEAT-send-invoice.md), [`REQ-confirm-recipient`](../definition/behaviour/REQ-confirm-recipient.md), [`REQ-send-checks-permission`](../definition/behaviour/REQ-send-checks-permission.md), [`FLW-send-invoice`](../definition/experience/FLW-send-invoice.md), [`SCR-invoice-review`](../definition/experience/SCR-invoice-review.md) |
-| [`TST-email-handoff-time`](../definition/assurance/TST-email-handoff-time.md) Invoice emails reach the provider within 30 seconds | performance | monitoring | planned | unknown | [`REQ-email-handoff-time`](../definition/behaviour/REQ-email-handoff-time.md) |
-| [`TST-plan-change-timing`](../definition/assurance/TST-plan-change-timing.md) A plan change affects sending only when it should | scenario | integration | planned | unknown | [`RULE-plan-change-timing`](../definition/behaviour/RULE-plan-change-timing.md) |
+| [`TST-confirm-and-send`](../../definition/assurance/TST-confirm-and-send.md) Confirming sends the invoice exactly once | scenario | e2e | planned | unknown | [`FEAT-send-invoice`](../../definition/structure/FEAT-send-invoice.md), [`REQ-confirm-recipient`](../../definition/behaviour/REQ-confirm-recipient.md), [`REQ-send-checks-permission`](../../definition/behaviour/REQ-send-checks-permission.md), [`FLW-send-invoice`](../../definition/experience/FLW-send-invoice.md), [`SCR-invoice-review`](../../definition/experience/SCR-invoice-review.md) |
+| [`TST-email-handoff-time`](../../definition/assurance/TST-email-handoff-time.md) Invoice emails reach the provider within 30 seconds | performance | monitoring | planned | unknown | [`REQ-email-handoff-time`](../../definition/behaviour/REQ-email-handoff-time.md) |
+| [`TST-plan-change-timing`](../../definition/assurance/TST-plan-change-timing.md) A plan change affects sending only when it should | scenario | integration | planned | unknown | [`RULE-plan-change-timing`](../../definition/behaviour/RULE-plan-change-timing.md) |
 
 ## 12. Decisions, assumptions, questions and risks
 
 | Type | Entry | Status |
 | --- | --- | --- |
-| RISK | [`RISK-wrong-recipient`](../definition/assurance/RISK-wrong-recipient.md) An invoice goes to the wrong client | mitigating |
-| QST | [`QST-audit-log`](../definition/change/QST-audit-log.md) Do workspaces with several members need an audit log? | open |
-| RISK | [`RISK-invoice-abuse`](../definition/assurance/RISK-invoice-abuse.md) Sending is used to spam or phish strangers | accepted |
-| QST | [`QST-client-data-requests`](../definition/change/QST-client-data-requests.md) What happens when a client asks to see or erase their data? | open |
+| RISK | [`RISK-wrong-recipient`](../../definition/assurance/RISK-wrong-recipient.md) An invoice goes to the wrong client | mitigating |
+| QST | [`QST-audit-log`](../../definition/change/QST-audit-log.md) Do workspaces with several members need an audit log? | open |
+| RISK | [`RISK-invoice-abuse`](../../definition/assurance/RISK-invoice-abuse.md) Sending is used to spam or phish strangers | accepted |
+| QST | [`QST-client-data-requests`](../../definition/change/QST-client-data-requests.md) What happens when a client asks to see or erase their data? | open |
 
 ## 13. Release and maintenance
 
 Behind the `send-invoice` flag during the closed beta, on for all workspaces at launch. Monitored by the sent-to-delivered ratio and by sends rejected for number conflicts, which must stay at zero. Switching the flag off hides Send but leaves existing invoices and links working. Retiring the feature would require a plan for invoices already in the sent state.
 
-**Planned in:** [`RLS-first-release`](../definition/change/RLS-first-release.md) First release
+**Planned in:** [`RLS-first-release`](../../definition/change/RLS-first-release.md) First release
 
 ## Completeness
 

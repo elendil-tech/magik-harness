@@ -123,14 +123,20 @@ export const create = {
       if (!spec.anchors.includes(a.type) && !spec.anchors.includes("*")) throw new UsageError(`a ${type} lives under ${spec.anchors.join(" or ")}, not under a ${a.type} (${anchor})`);
     } else {
       const candidates = model.all(spec.anchors).filter((e) => !model.isRetired(e.id));
+      // The usual place is under the first type it may live under (a domain under the product, a
+      // capability under a domain), so that is taken when it is unambiguous; nesting is the exception.
+      const usual = candidates.filter((e) => e.type === spec.anchors[0]);
       if (candidates.length === 1) anchor = candidates[0].id;
+      else if (usual.length === 1) anchor = usual[0].id;
       else throw new UsageError(`a ${type} lives under ${spec.anchors.join(" or ")}, and ${candidates.length ? "there are several" : "there are none yet"}. Pass --anchor${candidates.length ? ` with one of: ${candidates.slice(0, 8).map((c) => c.id).join(", ")}${candidates.length > 8 ? ", ..." : ""}` : ""}`);
     }
-    const fields = ctx.flags.summary ? { summary: ctx.flags.summary } : undefined;
+    const summary = ctx.flags.summary?.trim();
+    if (summary !== undefined && (summary.length > 200 || summary.includes("\n"))) throw new UsageError(`a summary is one line of at most 200 characters; this one is ${summary.length}`);
+    const fields = summary ? { summary } : undefined;
     const rel = pathFor(meta, config, id);
     writeNew(ctx.root, rel, renderRecord(meta, type, { id, title: title ?? humanise(slug), anchor, fields }));
     ctx.invalidate();
-    ctx.out([`Created ${rel}`, `Next: fill it in, then \`pds ask ${id}\` for what it still needs.`].join("\n"));
+    ctx.out([`Created ${rel}${anchor ? ` (under ${anchor})` : ""}`, `Next: fill it in, then \`pds ask ${id}\` for what it still needs.`].join("\n"));
     return 0;
   },
 };

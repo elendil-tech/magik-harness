@@ -99,7 +99,7 @@ export function stateMermaid(V, el) {
 
 export function renderState(V, target) {
   const root = target ? V.get(target) : V.model.all("PROD")[0];
-  const list = root?.type === "STM" ? [root] : V.inScope(root?.id).filter((e) => e.type === "STM" && !V.model.isRetired(e.id));
+  const list = root?.type === "STM" ? [root] : V.statesIn(root?.id);
   if (!list.length) return `# State diagram\n\n_${root ? root.title + " has" : "The product has"} no state machine._\n`;
   const out = [`# State diagram${root ? ": " + root.title : ""}\n`];
   for (const s of list) {
@@ -154,7 +154,7 @@ export function erMermaid(V, ents) {
 
 export function renderEr(V, target) {
   const root = target ? V.get(target) : V.model.all("PROD")[0];
-  const ents = V.inScope(root?.id).filter((e) => e.type === "ENT" && !V.model.isRetired(e.id));
+  const ents = V.entitiesIn(root?.id);
   const out = [`# Entity relationships${root ? ": " + root.title : ""}\n`];
   if (!ents.length) return out.join("\n") + "\n_No entities yet._\n";
   out.push(fence(erMermaid(V, ents)));
