@@ -23,7 +23,7 @@ export function resolveConfig(meta, raw) {
   if (typeof raw.name !== "string" || !raw.name.trim()) bad("name is required");
 
   const profile = raw.profile === undefined ? undefined : meta.profile(raw.profile);
-  if (raw.profile !== undefined && !profile) bad(`unknown profile ${raw.profile}; known: ${Object.keys(meta.profiles).join(", ") || "none"}`);
+  if (raw.profile !== undefined && !profile) bad(`unknown profile ${raw.profile}; known: ${Object.keys(meta.profiles).join(", ") || "none"} (leave the key out to use no profile)`);
   const defaults = profile?.defaults || {};
 
   const adoption = raw.adoption ?? defaults.adoption ?? "standard";

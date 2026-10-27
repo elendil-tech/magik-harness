@@ -166,15 +166,30 @@ export function dispositionOf(el, probeId) {
 
 /** Open blocking questions that concern this element or anything anchored under it. */
 export function blockingQuestions(model, el) {
-  const out = [];
+  return blockedIndex(model).get(el.id) || [];
+}
+
+// element id -> the open blocking questions that reach it. A question reaches what it
+// concerns and every ancestor of that. Built once per model, because asking every
+// question about every element is quadratic and a model never changes after it is built.
+function blockedIndex(model) {
+  if (model.blockedCache) return model.blockedCache;
+  const index = new Map();
   for (const q of model.all("QST")) {
     if (model.isRetired(q.id)) continue;
     if (model.meta.field(q, "status") !== "open" || model.meta.field(q, "blocking") !== true) continue;
-    const targets = model.out(q.id, "concerns").map((e) => e.to);
-    const hit = targets.some((t) => t === el.id || model.ancestors(t).some((a) => a.id === el.id));
-    if (hit) out.push(q.id);
+    const reached = new Set();
+    for (const edge of model.out(q.id, "concerns")) {
+      reached.add(edge.to);
+      for (const a of model.ancestors(edge.to)) reached.add(a.id);
+    }
+    for (const id of reached) {
+      if (!index.has(id)) index.set(id, []);
+      index.get(id).push(q.id);
+    }
   }
-  return out;
+  model.blockedCache = index;
+  return index;
 }
 
 // ---------------------------------------------------------------- evaluation

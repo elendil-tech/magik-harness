@@ -16,6 +16,7 @@ export class Model {
     this.config = config;
     this.records = [];
     this.elements = new Map();
+    this.byType = new Map();
     this.edges = [];
     this.out_ = new Map();
     this.in_ = new Map();
@@ -23,6 +24,7 @@ export class Model {
     this.duplicates = [];
     this.facetCache = new Map();
     this.tierCache = new Map();
+    this.blockedCache = null;
   }
 
   // ---- lookup
@@ -32,9 +34,12 @@ export class Model {
   has(id) {
     return this.elements.has(id);
   }
+  /** Elements in load order (sorted by path), all or only of the given type(s). A fresh array. */
   all(type) {
-    const list = [...this.elements.values()];
-    return type ? list.filter((e) => [].concat(type).includes(e.type)) : list;
+    if (!type) return [...this.elements.values()];
+    const types = [...new Set([].concat(type))];
+    if (types.length === 1) return [...(this.byType.get(types[0]) || [])];
+    return types.flatMap((t) => this.byType.get(t) || []).sort((a, b) => a.seq - b.seq);
   }
   children(id, type) {
     const list = (this.kids.get(id) || []).map((k) => this.elements.get(k));
@@ -165,8 +170,9 @@ export function buildModel(meta, config, files) {
       continue;
     }
     const front = rec.front;
-    model.elements.set(rec.id, {
+    const element = {
       id: rec.id,
+      seq: model.elements.size,
       type,
       family: meta.familyOf(type),
       path,
@@ -175,7 +181,10 @@ export function buildModel(meta, config, files) {
       title: typeof front.title === "string" ? front.title : rec.id,
       anchor: typeof front.anchor === "string" ? front.anchor : undefined,
       declared: typeof front.maturity === "string" ? front.maturity : undefined,
-    });
+    };
+    model.elements.set(rec.id, element);
+    if (!model.byType.has(type)) model.byType.set(type, []);
+    model.byType.get(type).push(element);
   }
   for (const e of model.elements.values()) {
     if (!e.anchor) continue;
