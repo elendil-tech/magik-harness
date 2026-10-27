@@ -1,0 +1,323 @@
+# Relation types: how elements connect, beyond where they sit on the spine.
+#
+# Authoring: relations live under `rel` on the element they leave, once.
+#   rel:
+#     serves: [OBJ-fast-payment]
+#     accesses: [{to: ENT-invoice, ops: [create, read]}, ENT-client]
+# The other end is derived (the `inverse` name) and is never written.
+# Relations are also derived from structured blocks and fields; `also_from`
+# lists those sources. A relation from a block is not written twice.
+#
+# allow    the permitted from/to type pairs ('*' = any type)
+# attrs    optional properties on one edge: {name: {type, values}}
+# impacts  how strongly the element at that end is affected when the other end
+#          changes: strong = must be reviewed, weak = should be reviewed.
+#          `to` is the effect on the to-end when the from-end changes;
+#          `from` is the effect on the from-end when the to-end changes.
+#
+# Every relation must be read by at least one rule or one view. A relation
+# nothing consumes is dropped. The metamodel test enforces this.
+version: 1
+
+impact:
+  strong_hops: 2   # a strong edge keeps propagating up to this many hops from the change
+  weak_hops: 1     # a weak edge is only followed at the first hop
+
+relations:
+  # ---------------------------------------------------------- why it exists
+  serves:
+    inverse: served_by
+    doc: "The source exists to achieve or address the target: a capability or feature serves an objective or an opportunity."
+    allow:
+      - {from: [CAP, FEAT], to: [OBJ, OPP]}
+      - {from: [OPP], to: [OBJ]}
+    impacts: {to: none, from: weak}
+
+  derives_from:
+    inverse: source_of
+    doc: "The source follows from a decision, a principle, a finding or another requirement. Records where a rule or requirement came from."
+    allow:
+      - {from: [REQ, RULE], to: [DEC, PRIN, EVD, REQ, OPP]}
+    impacts: {to: none, from: strong}
+
+  evidenced_by:
+    inverse: evidence_for
+    doc: "The source is backed by the target evidence record."
+    allow:
+      - {from: [OBJ, OPP, SEG, PERS, ALT, ASM, DEC, RISK], to: [EVD]}
+    impacts: {to: none, from: weak}
+
+  experienced_by:
+    inverse: experiences
+    doc: "The opportunity is felt by the target persona or segment."
+    allow:
+      - {from: [OPP], to: [PERS, SEG]}
+    impacts: {to: none, from: weak}
+
+  alternative_for:
+    inverse: has_alternative
+    doc: "The alternative is what people use today instead of the product as a whole, or for one opportunity."
+    allow:
+      - {from: [ALT], to: [PROD, OPP]}
+    impacts: {to: none, from: weak}
+
+  measured_by:
+    inverse: measures
+    doc: "How we know the source is working: an objective, capability or feature is judged by a metric."
+    allow:
+      - {from: [OBJ, CAP, FEAT], to: [MET]}
+    impacts: {to: none, from: weak}
+
+  sourced_from:
+    inverse: source_for
+    doc: "A metric is computed from these events or entities."
+    allow:
+      - {from: [MET], to: [EVT, ENT]}
+    impacts: {to: none, from: strong}
+
+  # ------------------------------------------------ actors, roles, permissions
+  audience:
+    inverse: audience_of
+    doc: "Who the source is for: the actor, role or persona that uses a feature, reads a message or walks a journey."
+    allow:
+      - {from: [CAP, FEAT, FLW, SRF, UC, JRN, MSG, API], to: [ACT, ROLE, PERS]}
+    attrs:
+      primary: {type: bool}
+    impacts: {to: none, from: weak}
+    also_from: ["UC.primary_actor", "UC.supporting_actors", "MSG.audience", "JRN.persona", "pds-flow step.actor"]
+
+  represents:
+    inverse: represented_by
+    doc: "A persona stands for a customer segment or an actor type."
+    allow:
+      - {from: [PERS], to: [SEG, ACT]}
+    impacts: {to: none, from: weak}
+
+  holds:
+    inverse: held_by
+    doc: "The actor typically holds the role."
+    allow:
+      - {from: [ACT], to: [ROLE]}
+    impacts: {to: none, from: weak}
+
+  grants:
+    inverse: granted_by
+    doc: "A role grants a permission, or a plan grants an entitlement."
+    allow:
+      - {from: [ROLE], to: [PERM]}
+      - {from: [PLAN], to: [ENTL], via: entitlements}
+    attrs:
+      condition: {type: string}
+      value: {type: any}
+    impacts: {to: none, from: strong}
+    also_from: ["PLAN.entitlements"]
+
+  requires:
+    inverse: required_by
+    doc: "Using the source needs the permission: the holder must be allowed to do this."
+    allow:
+      - {from: [CAP, FEAT, FLW, SCR, API], to: [PERM]}
+    impacts: {to: none, from: strong}
+
+  governed_by:
+    inverse: governs
+    doc: "The business rule applies to the source. Used when a rule lives higher up or elsewhere and must be applied here."
+    allow:
+      - {from: [CAP, FEAT, FLW, STM, ENT, API, PLAN, ENTL], to: [RULE]}
+    impacts: {to: weak, from: strong}
+    also_from: ["pds-flow step.uses (a RULE)", "pds-states transition.guard"]
+
+  gated_by:
+    inverse: gates
+    doc: "The source is only available when the plan grants the entitlement."
+    allow:
+      - {from: [CAP, FEAT, API, SCR], to: [ENTL]}
+    impacts: {to: none, from: strong}
+
+  # ----------------------------------------------------- structure and system
+  lifecycle_of:
+    inverse: has_lifecycle
+    doc: "The state machine describes the lifecycle of the entity."
+    allow:
+      - {from: [STM], to: [ENT]}
+    impacts: {to: strong, from: strong}
+
+  realizes:
+    inverse: realized_by
+    doc: "A flow realises a use case, or a system component implements a domain, capability or feature."
+    allow:
+      - {from: [FLW], to: [UC]}
+      - {from: [SYS], to: [DOM, CAP, FEAT]}
+    impacts: {to: weak, from: strong}
+
+  exposed_via:
+    inverse: exposes
+    doc: "The capability or feature is available through this programmatic interface."
+    allow:
+      - {from: [CAP, FEAT], to: [API]}
+    impacts: {to: strong, from: weak}
+
+  on_surface:
+    inverse: hosts
+    doc: "The screen, feature or message lives on this surface."
+    allow:
+      - {from: [SCR, FEAT, MSG], to: [SRF]}
+    impacts: {to: none, from: weak}
+
+  # ------------------------------------------------------------- information
+  accesses:
+    inverse: accessed_by
+    doc: "The source creates, reads, updates or deletes the entity."
+    allow:
+      - {from: [CAP, FEAT, FLW, API, INT], to: [ENT]}
+    attrs:
+      ops: {type: strings, values: [create, read, update, delete]}
+    impacts: {to: weak, from: strong}
+    also_from: ["pds-flow step.accesses"]
+
+  associates:
+    inverse: associated_with
+    doc: "One entity relates to another, with a cardinality."
+    allow:
+      - {from: [ENT], to: [ENT]}
+    attrs:
+      kind: {type: enum, values: [one_to_one, one_to_many, many_to_one, many_to_many]}
+      label: {type: string}
+      owns: {type: bool}
+    impacts: {to: weak, from: weak}
+    also_from: ["pds-attributes associations"]
+
+  emits:
+    inverse: emitted_by
+    doc: "The source produces the event."
+    allow:
+      - {from: [CAP, FEAT, FLW, STM, API, INT, SYS], to: [EVT]}
+    impacts: {to: weak, from: strong}
+    also_from: ["pds-flow step.emits", "pds-states transition.emits"]
+
+  consumes:
+    inverse: consumed_by
+    doc: "The source reacts to the event."
+    allow:
+      - {from: [FEAT, FLW, INT, MSG, SYS], to: [EVT]}
+    impacts: {to: none, from: strong}
+    also_from: ["MSG.trigger_event"]
+
+  integrates_with:
+    inverse: integrated_by
+    doc: "The integration connects the product to the external system."
+    allow:
+      - {from: [INT], to: [EXT]}
+    impacts: {to: none, from: strong}
+
+  # ---------------------------------------------------------- assurance, scope
+  includes:
+    inverse: included_in
+    doc: "The release ships this element. Release scope is listed here and nowhere else."
+    allow:
+      - {from: [RLS], to: [CAP, FEAT, REQ, RULE, FLW, SCR, MSG, ENT, API, PLAN, ENTL, TST, RUN]}
+    attrs:
+      note: {type: string}
+    impacts: {to: none, from: weak}
+
+  verifies:
+    inverse: verified_by
+    doc: "The test shows that the target holds."
+    allow:
+      - {from: [TST], to: [REQ, RULE, FLW, STM, UC, FEAT, API, OBL, SCR, ENTL, MSG]}
+    impacts: {to: none, from: strong}
+
+  satisfies:
+    inverse: satisfied_by
+    doc: "The element is how a legal, regulatory, contractual or platform obligation is met."
+    allow:
+      - {from: [REQ, RULE, FEAT, FLW, SYS, RUN], to: [OBL]}
+    impacts: {to: weak, from: strong}
+
+  mitigates:
+    inverse: mitigated_by
+    doc: "The element reduces the likelihood or the impact of a risk."
+    allow:
+      - {from: [REQ, RULE, FEAT, FLW, TST, RUN, SYS], to: [RISK]}
+    impacts: {to: weak, from: weak}
+
+  concerns:
+    inverse: concerned_by
+    doc: "What a register entry is about. A question, assumption, decision, risk, runbook or piece of evidence can concern several elements. With no entry the anchor is the subject."
+    allow:
+      - {from: [QST, ASM, DEC, RISK, EVD, RUN], to: ['*']}
+    impacts: {to: none, from: weak}
+
+  resolved_by:
+    inverse: resolves
+    doc: "The open question was settled by this decision or piece of evidence."
+    allow:
+      - {from: [QST], to: [DEC, EVD]}
+    impacts: {to: none, from: weak}
+
+  supersedes:
+    inverse: superseded_by
+    doc: "The source replaces the target. The target is deprecated or retired and kept for history."
+    allow:
+      - {from: ['*'], to: ['*'], same_type: true}
+    impacts: {to: weak, from: none}
+
+  # ---------------------------------------------------- experience and coupling
+  depends_on:
+    inverse: depended_on_by
+    doc: "The source cannot work without the target: one feature on another, a capability on a system, a flow on an integration."
+    allow:
+      - {from: [CAP, FEAT, FLW, API, INT, MSG, SYS], to: [CAP, FEAT, FLW, API, INT, EXT, SYS]}
+    attrs:
+      kind: {type: enum, values: [hard, soft]}
+      note: {type: string}
+    impacts: {to: none, from: strong}
+    also_from: ["pds-flow step.uses (an EXT, INT or API)", "pds-flow step.call"]
+
+  spans:
+    inverse: spanned_by
+    doc: "A journey passes through these flows and use cases."
+    allow:
+      - {from: [JRN], to: [FLW, UC]}
+    attrs:
+      stage: {type: string}
+    impacts: {to: none, from: weak}
+    also_from: ["pds-journey stage.flows"]
+
+  touches:
+    inverse: touched_by
+    doc: "The flow or journey meets the person or system at this touchpoint: a screen, a message, a surface, an API or an external system."
+    allow:
+      - {from: [FLW, JRN], to: [SCR, MSG, SRF, API, EXT]}
+    attrs:
+      stage: {type: string}
+    impacts: {to: none, from: weak}
+    also_from: ["pds-flow step.at", "pds-journey stage.touchpoints"]
+
+  navigates_to:
+    inverse: navigated_from
+    doc: "The person can move from one screen to another."
+    allow:
+      - {from: [SCR], to: [SCR]}
+    attrs:
+      on: {type: string}
+      when: {type: string}
+    impacts: {to: none, from: weak}
+
+  drives:
+    inverse: driven_by
+    doc: "The flow moves the state machine through the listed transitions."
+    allow:
+      - {from: [FLW], to: [STM]}
+    attrs:
+      transitions: {type: strings}
+    impacts: {to: weak, from: strong}
+    also_from: ["pds-flow step.moves"]
+
+  mentions:
+    inverse: mentioned_by
+    doc: "The prose of the source names the target with [[ID]]. Derived, never authored."
+    allow:
+      - {from: ['*'], to: ['*']}
+    impacts: {to: none, from: weak}
+    derived_only: true

@@ -1,0 +1,183 @@
+# Views: the visualisation half of the system.
+#
+# A view is a projection of the definition. It is generated, never edited, and
+# never the source of truth: change the record, regenerate the view. A diagram
+# nobody can regenerate is a diagram that drifts.
+#
+#   answers  the question the view exists to answer
+#   scope    what you point it at: product, a spine node, a flow, a journey,
+#            a release, or one element
+#   form     the output: mermaid (a diagram), table, outline, bundle (several sections)
+#   uses     the relations it reads (a relation nothing reads is dropped)
+#   status   implemented | planned. Only implemented views are generated; the
+#            metamodel test fails if the claim is false.
+version: 1
+
+views:
+  product-map:
+    title: Product map
+    answers: "What is in the product, at every zoom level, and how complete is each part?"
+    scope: product or any domain, capability or feature
+    form: outline + mermaid
+    uses: []
+    status: implemented
+
+  card:
+    title: Element card
+    answers: "Everything about one element on one page: what it says, where it sits, what connects to it, what is missing."
+    scope: any element
+    form: bundle
+    uses: [anchor]
+    status: implemented
+
+  spec:
+    title: Feature specification
+    answers: "What is the complete specification of this feature, assembled from its parts?"
+    scope: a feature (or a capability)
+    form: bundle
+    uses: [governed_by, requires, gated_by, audience, serves, accesses, emits]
+    status: implemented
+
+  flow:
+    title: Flow diagram
+    answers: "How does this flow run: who does what, where it branches, how it ends?"
+    scope: a flow
+    form: mermaid
+    uses: [touches, audience]
+    status: implemented
+
+  state:
+    title: State diagram
+    answers: "Which states can this be in, and what moves it between them?"
+    scope: a state machine
+    form: mermaid
+    uses: [lifecycle_of]
+    status: implemented
+
+  er:
+    title: Entity relationships
+    answers: "What information does the product keep, and how does it relate?"
+    scope: product or a domain
+    form: mermaid
+    uses: [associates]
+    status: implemented
+
+  context:
+    title: System context
+    answers: "Who and what does the product exchange things with, from the outside?"
+    scope: product
+    form: mermaid
+    uses: [integrates_with, depends_on, audience]
+    status: implemented
+
+  journey:
+    title: Journey map
+    answers: "What does a person go through, stage by stage, and where does it hurt?"
+    scope: a journey
+    form: mermaid + table
+    uses: [spans, touches]
+    status: implemented
+
+  screens:
+    title: Screen map
+    answers: "Which screens exist and how does a person move between them?"
+    scope: product or a feature
+    form: mermaid
+    uses: [navigates_to, touches, on_surface]
+    status: implemented
+
+  touchpoints:
+    title: Touchpoint inventory
+    answers: "Where does the product meet a person or a system, which flows use each place, and who is there?"
+    scope: product
+    form: table
+    uses: [touches, audience, on_surface]
+    status: implemented
+
+  permissions:
+    title: Permission matrix
+    answers: "Which role can do what, and which feature needs which permission?"
+    scope: product
+    form: table
+    uses: [grants, holds, requires]
+    status: implemented
+
+  crud:
+    title: CRUD matrix
+    answers: "Which feature or flow creates, reads, updates or deletes which entity?"
+    scope: product or a domain
+    form: table
+    uses: [accesses]
+    status: implemented
+
+  entitlements:
+    title: Entitlement matrix
+    answers: "What does each plan include, and what does each entitlement gate?"
+    scope: product
+    form: table
+    uses: [grants, gated_by]
+    status: implemented
+
+  trace:
+    title: Traceability
+    answers: "From each objective down to the capabilities, features, requirements and tests that carry it, and back up."
+    scope: product or any element
+    form: table
+    uses: [serves, derives_from, satisfies, verifies, measured_by, evidenced_by]
+    status: implemented
+
+  registers:
+    title: Registers
+    answers: "What is still open: questions, assumptions, risks and decisions, and what do they concern?"
+    scope: product or any element
+    form: table
+    uses: [concerns, resolved_by]
+    status: implemented
+
+  glossary:
+    title: Glossary
+    answers: "What does each word mean, and which words must not be used?"
+    scope: product or a domain
+    form: table
+    uses: []
+    status: implemented
+
+  coverage:
+    title: Coverage report
+    answers: "How complete is the definition, by family, by level and by tier, and what is the next best thing to write?"
+    scope: product
+    form: bundle
+    uses: []
+    status: implemented
+
+  deps:
+    title: Dependency graph
+    answers: "What depends on what, and what would a change to this reach?"
+    scope: product or a domain
+    form: mermaid
+    uses: [depends_on, supersedes]
+    status: implemented
+
+  release:
+    title: Release scope
+    answers: "What is in this release, and how ready is each part?"
+    scope: a release
+    form: table
+    uses: [includes]
+    status: implemented
+
+  obligations:
+    title: Obligation map
+    answers: "Which duties apply, what meets each, and what proves it?"
+    scope: product
+    form: table
+    uses: [satisfies, verifies]
+    status: implemented
+
+  events:
+    title: Event catalogue
+    answers: "Which events exist, who emits them, who reacts, and which metric counts them?"
+    scope: product
+    form: table
+    uses: [emits, consumes, sourced_from]
+    status: implemented

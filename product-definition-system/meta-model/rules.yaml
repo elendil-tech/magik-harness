@@ -1,0 +1,631 @@
+# Rules: what has to be true for a definition to count as complete, and what
+# has to be true for it to be consistent.
+#
+# Three kinds of thing live here.
+#
+#   rules   declarative coverage rules. Each says: for elements like this, from
+#           this rung on, this relation, child or field must exist. They are
+#           what the maturity computation reads. They never run on code.
+#   checks  coded checks: integrity, quality and governance conditions that a
+#           declarative rule cannot express. They are documented here and
+#           implemented in tools/lib/checks/; a test keeps the two in step.
+#   gates   conditions that cap how far an element can climb, whatever else
+#           holds.
+#
+# Besides these, three sets of rules are generated rather than written:
+# every field, section and block with a `required_at` in element-types.yaml
+# becomes a coverage rule (FLD-, SEC-, BLK-), and every applicable concern
+# probe in probes.yaml becomes one (PRB-).
+#
+# Rule format
+#   applies  selects the elements the rule is about
+#     type      one type or a list
+#     from      the rung from which the rule must hold: outlined, specified, verifiable
+#     tiers     restrict to these effective tiers (own tier, else the nearest ancestor's, else 2)
+#     where     field conditions on the element: {field: value | [values] | {not: value | [values]}}
+#     facet     facets that must be true; not_facet: facets that must be false
+#     anchor    the type of the element's anchor must be one of these
+#     module    the profile must enable this module (default: core)
+#   require  the condition, built from atoms:
+#     all / any / not
+#     field: NAME            (+ equals, in, min_items)
+#     section: HEADING, block: NAME
+#     out: REL               outgoing edges   (+ to, min, max, attr, where, include)
+#     in: REL                incoming edges   (+ from, min, max, attr, where, include)
+#     children: TYPE         elements anchored directly on this one (+ min, max, where)
+#     facet: NAME
+#   include  self (default) | children | descendants. For `out`, whose edges count;
+#            for `in`, whose edges count as arriving.
+#   sev      error (default): gates the rung. warn: advisory, reported when the
+#            element claims the rung. info: appears in the gap queue only.
+#   An atom that mentions only element types the profile has not enabled is
+#   inactive and ignored, so one rule set serves every adoption level.
+version: 1
+
+rules:
+  # ======================================================================== intent
+  - id: COV-PROD-actors
+    applies: {type: PROD, from: outlined}
+    require: {children: {type: ACT, min: 1}}
+    msg: "names no actor"
+    ask: "Who uses, buys, administers or otherwise touches this product? List every kind of person and every outside system."
+
+  - id: COV-PROD-objective
+    applies: {type: PROD, from: outlined}
+    require: {children: {type: OBJ, min: 1}}
+    msg: "states no objective"
+    ask: "What outcomes must the product achieve in the next planning horizon, in terms that could be measured?"
+
+  - id: COV-PROD-domain
+    applies: {type: PROD, from: outlined}
+    require: {children: {type: DOM, min: 1}}
+    msg: "is not broken into domains"
+    ask: "Which bounded areas does the product divide into? Aim for five to twelve, each with one clear responsibility."
+
+  - id: COV-PROD-glossary
+    applies: {type: PROD, from: specified}
+    require: {children: {type: TERM, min: 1}}
+    msg: "has no glossary"
+    ask: "Which words does the product use that two people could read differently? Define each once."
+
+  - id: COV-PROD-segment
+    applies: {type: PROD, from: specified}
+    require: {children: {type: SEG, where: {fit: primary}, min: 1}}
+    msg: "has no primary customer segment"
+    ask: "Who is the product for first? Describe the segment you would build for if you could only serve one."
+
+  - id: COV-PROD-alternative
+    applies: {type: PROD, from: specified}
+    require: {in: {rel: alternative_for, from: [ALT], min: 1}}
+    msg: "names no alternative people use today"
+    ask: "What do people do today instead? Include the spreadsheet and the status quo, not only competitors."
+
+  - id: COV-PROD-roles
+    applies: {type: PROD, from: specified, module: identity}
+    require: {all: [{children: {type: ROLE, min: 1}}, {children: {type: PERM, min: 1}}]}
+    msg: "defines no roles and permissions"
+    ask: "Which roles exist, and which permissions does each grant?"
+
+  - id: COV-OBJ-measured
+    applies: {type: OBJ, from: specified}
+    require: {out: {rel: measured_by, to: [MET], min: 1}}
+    msg: "has no metric that shows whether it is met"
+    ask: "Which number would tell you this objective was achieved, and what value counts as success?"
+
+  - id: COV-OBJ-served
+    applies: {type: OBJ, from: specified}
+    require:
+      any:
+        - {in: {rel: serves, from: [CAP, FEAT, OPP], min: 1}}
+        - {children: {type: OBJ, min: 1}}
+    sev: warn
+    msg: "is not served by any capability, feature or opportunity"
+    ask: "Which capability or feature moves this objective? If none does, is the objective real?"
+
+  - id: COV-OPP-who
+    applies: {type: OPP, from: outlined}
+    require: {out: {rel: experienced_by, to: [PERS, SEG], min: 1}}
+    msg: "does not say who has the need"
+    ask: "Which persona or segment feels this need, and how often?"
+
+  - id: COV-OPP-evidence
+    applies: {type: OPP, from: specified, where: {basis: research}}
+    require: {out: {rel: evidenced_by, to: [EVD], min: 1}}
+    msg: "claims research as its basis but cites no evidence"
+    ask: "Which interviews, data or tickets show this need exists? Record them as evidence."
+
+  - id: COV-OPP-assumption
+    applies: {type: OPP, from: specified, where: {basis: assumption}}
+    require: {in: {rel: concerns, from: [ASM], min: 1}}
+    msg: "is an assumption but no assumption record says how it will be tested"
+    ask: "What would you have to learn to know this opportunity is real, and by when?"
+
+  - id: COV-OPP-addressed
+    applies: {type: OPP, from: specified}
+    require:
+      any:
+        - {in: {rel: serves, from: [CAP, FEAT], min: 1}}
+        - {children: {type: OPP, min: 1}}
+    sev: warn
+    msg: "is not addressed by any capability or feature"
+    ask: "Is this opportunity being pursued? If it is, which capability serves it. If not, say so in a decision."
+
+  - id: COV-PERS-represents
+    applies: {type: PERS, from: specified}
+    require: {out: {rel: represents, to: [SEG, ACT], min: 1}}
+    msg: "does not say which segment or actor type it stands for"
+    ask: "Which customer segment and which actor type does this persona represent?"
+
+  - id: COV-PERS-evidence
+    applies: {type: PERS, from: specified, where: {basis: research}}
+    require: {out: {rel: evidenced_by, to: [EVD], min: 1}}
+    msg: "claims research as its basis but cites no evidence"
+    ask: "Which research is this persona built from?"
+
+  - id: COV-PERS-assumption
+    applies: {type: PERS, from: specified, where: {basis: assumption}}
+    require: {in: {rel: concerns, from: [ASM], min: 1}}
+    msg: "is an assumption but no assumption record says how it will be tested"
+    ask: "What would you have to learn to know this persona is real?"
+
+  - id: COV-PERS-journey
+    applies: {type: PERS, from: specified}
+    require: {in: {rel: audience, from: [JRN], min: 1}}
+    sev: warn
+    msg: "has no journey"
+    ask: "What is the main end-to-end experience this persona goes through with the product?"
+
+  # ====================================================================== actors
+  - id: COV-ACT-role
+    applies: {type: ACT, from: specified, where: {kind: human}, module: identity}
+    require: {out: {rel: holds, to: [ROLE], min: 1}}
+    msg: "holds no role"
+    ask: "Which role or roles does this actor hold, and which is the default?"
+
+  - id: COV-ACT-uses
+    applies: {type: ACT, from: specified}
+    require: {in: {rel: audience, min: 1}}
+    sev: warn
+    msg: "does nothing in the product: no feature, flow or message is for it"
+    ask: "What does this actor do in the product? If nothing, why is it listed?"
+
+  - id: COV-ROLE-permissions
+    applies: {type: ROLE, from: specified, module: identity}
+    require: {out: {rel: grants, to: [PERM], min: 1}}
+    msg: "grants no permission"
+    ask: "Which permissions does this role carry?"
+
+  - id: COV-ROLE-held
+    applies: {type: ROLE, from: specified, module: identity}
+    require: {in: {rel: holds, from: [ACT], min: 1}}
+    sev: warn
+    msg: "is not held by any actor"
+    ask: "Which actor holds this role?"
+
+  - id: COV-PERM-granted
+    applies: {type: PERM, from: specified, module: identity}
+    require: {in: {rel: grants, from: [ROLE], min: 1}}
+    msg: "is granted by no role"
+    ask: "Which role carries this permission?"
+
+  - id: COV-PERM-used
+    applies: {type: PERM, from: specified, module: identity}
+    require: {in: {rel: requires, min: 1}}
+    sev: warn
+    msg: "guards nothing: no capability, feature, flow or API requires it"
+    ask: "Which feature or action does this permission protect?"
+
+  # ==================================================================== structure
+  - id: COV-DOM-capability
+    applies: {type: DOM, from: outlined}
+    require:
+      any:
+        - {children: {type: CAP, min: 1}}
+        - {children: {type: DOM, min: 1}}
+    msg: "contains no capability"
+    ask: "What can the product do in this domain? List the capabilities."
+
+  - id: COV-DOM-data
+    applies: {type: DOM, from: specified, where: {strategic: {not: generic}}}
+    require:
+      any:
+        - {children: {type: ENT, min: 1}}
+        - {children: {type: DOM, min: 1}}
+    sev: warn
+    msg: "owns no entity: where does its information live?"
+    ask: "Which business concepts does this domain keep information about, and which entity is the system of record for each?"
+
+  - id: COV-CAP-feature
+    applies: {type: CAP, from: outlined}
+    require:
+      any:
+        - {children: {type: FEAT, min: 1}}
+        - {children: {type: CAP, min: 1}}
+    msg: "has no feature"
+    ask: "Which deliverable behaviours realise this capability?"
+
+  - id: COV-CAP-why
+    applies: {type: CAP, from: outlined, tiers: [1, 2]}
+    require: {out: {rel: serves, to: [OBJ, OPP], min: 1, include: descendants}}
+    msg: "does not trace to any objective or opportunity"
+    ask: "Which objective or opportunity is this capability for? If you cannot say, should it exist?"
+
+  - id: COV-CAP-metric
+    applies: {type: CAP, from: specified, tiers: [1]}
+    require: {out: {rel: measured_by, to: [MET], min: 1, include: descendants}}
+    msg: "has no measure of success"
+    ask: "How will you know this critical capability works for the people using it?"
+
+  - id: COV-FEAT-audience
+    applies: {type: FEAT, from: outlined, where: {kind: [user_facing, admin]}}
+    require: {out: {rel: audience, to: [ACT, ROLE, PERS], min: 1}}
+    msg: "does not say who it is for"
+    ask: "Which actor or role uses this feature?"
+
+  - id: COV-FEAT-flow
+    applies: {type: FEAT, from: specified, tiers: [1, 2]}
+    require: {children: {type: FLW, min: 1}}
+    msg: "has no flow"
+    ask: "Walk through the feature as the person or system using it: what starts it, which steps and decisions follow, how does it end well and how does it end badly?"
+
+  - id: COV-FEAT-behaviour
+    applies: {type: FEAT, from: specified, tiers: [3]}
+    require:
+      any:
+        - {children: {type: FLW, min: 1}}
+        - {children: {type: REQ, min: 1}}
+        - {children: {type: RULE, min: 1}}
+    msg: "has no flow, requirement or rule: nothing says how it behaves"
+    ask: "What exactly does it do? A flow, a requirement or a rule is enough for a supporting feature."
+
+  - id: COV-FEAT-requirement
+    applies: {type: FEAT, from: specified, tiers: [1, 2]}
+    require: {children: {type: REQ, min: 1}}
+    msg: "has no requirement"
+    ask: "Which testable statements must hold? Include at least one about quality: speed, availability, security, accessibility."
+
+  - id: COV-FEAT-rules
+    applies: {type: FEAT, from: specified, tiers: [1], facet: writes_data}
+    require: {children: {type: RULE, min: 1}}
+    msg: "writes data but states no business rule"
+    ask: "What is validated, calculated, limited or decided when this feature changes data? Write each rule with examples."
+
+  - id: COV-FEAT-screen
+    applies: {type: FEAT, from: specified, where: {kind: [user_facing, admin]}}
+    require:
+      any:
+        - {children: {type: SCR, min: 1}}
+        - {out: {rel: touches, to: [SCR], min: 1, include: children}}
+    msg: "has no screen"
+    ask: "Which screens, dialogs or panels does the person see? Name each and state what happens on it."
+
+  - id: COV-FEAT-permission
+    applies: {type: FEAT, from: specified, where: {kind: [user_facing, admin]}, not_facet: public, module: identity}
+    require: {out: {rel: requires, to: [PERM], min: 1, include: children}}
+    msg: "states no permission needed to use it"
+    ask: "Which permission must the person hold to use this feature? If none is needed, declare it public."
+
+  - id: COV-FEAT-risk
+    applies: {type: FEAT, from: specified, tiers: [1]}
+    require: {in: {rel: concerns, from: [RISK], min: 1, include: children}}
+    sev: warn
+    msg: "is critical but no risk is recorded against it"
+    ask: "What could go wrong with this critical feature, how likely is it and how bad?"
+
+  - id: COV-FEAT-test
+    applies: {type: FEAT, from: verifiable}
+    require: {in: {rel: verifies, from: [TST], min: 1, include: descendants}}
+    msg: "has no test that verifies anything within it"
+    ask: "Which scenarios would prove this feature works?"
+
+  - id: COV-FEAT-planned
+    applies: {type: FEAT, from: specified}
+    require: {in: {rel: includes, from: [RLS], min: 1}}
+    sev: info
+    msg: "is not in any release"
+    ask: "In which release will this ship?"
+
+  - id: COV-SRF-content
+    applies: {type: SRF, from: specified}
+    require: {in: {rel: on_surface, min: 1}}
+    sev: warn
+    msg: "hosts no screen, feature or message"
+    ask: "What happens on this surface?"
+
+  # =================================================================== experience
+  - id: COV-UC-flow
+    applies: {type: UC, from: specified}
+    require: {in: {rel: realizes, from: [FLW], min: 1}}
+    msg: "is realised by no flow"
+    ask: "Which flow carries the actor from the trigger to the goal?"
+
+  - id: COV-FLW-usecase
+    applies: {type: FLW, from: specified}
+    require: {out: {rel: realizes, to: [UC], min: 1}}
+    sev: warn
+    msg: "does not say which use case it realises"
+    ask: "Which goal does this flow serve?"
+
+  - id: COV-FLW-test
+    applies: {type: FLW, from: verifiable, tiers: [1, 2]}
+    require: {in: {rel: verifies, from: [TST], min: 1}}
+    msg: "has no test"
+    ask: "Which scenarios prove this flow works, including the failure paths?"
+
+  - id: COV-JRN-flows
+    applies: {type: JRN, from: specified}
+    require: {out: {rel: spans, to: [FLW, UC], min: 1}}
+    msg: "does not connect to any flow or use case"
+    ask: "Which flows make up each stage of this journey?"
+
+  - id: COV-SCR-surface
+    applies: {type: SCR, from: specified}
+    require: {out: {rel: on_surface, to: [SRF], min: 1}}
+    msg: "does not say which surface it lives on"
+    ask: "On which surface does this screen appear?"
+
+  - id: COV-SCR-flow
+    applies: {type: SCR, from: specified}
+    require: {in: {rel: touches, from: [FLW, JRN], min: 1}}
+    sev: warn
+    msg: "is not part of any flow"
+    ask: "Which flow takes the person to this screen?"
+
+  # =================================================================== behaviour
+  - id: COV-REQ-source
+    applies: {type: REQ, from: specified, where: {kind: constraint}}
+    require:
+      any:
+        - {out: {rel: derives_from, min: 1}}
+        - {out: {rel: satisfies, to: [OBL], min: 1}}
+    msg: "is a constraint but does not say where it comes from"
+    ask: "Who or what imposes this constraint: a decision, a standard, a contract, a law?"
+
+  - id: COV-REQ-verification-note
+    applies: {type: REQ, from: specified, where: {verification: [inspection, analysis, demonstration]}}
+    require: {field: verification_note}
+    msg: "is not verified by test and does not say how it will be shown to hold"
+    ask: "If it is not tested, how will you show it holds?"
+
+  - id: COV-REQ-test
+    applies: {type: REQ, from: verifiable, where: {verification: test}}
+    require: {in: {rel: verifies, from: [TST], min: 1}}
+    msg: "has no test"
+    ask: "Which test shows this requirement holds?"
+
+  - id: COV-RULE-applied
+    applies: {type: RULE, from: specified, anchor: [PROD, DOM, CAP]}
+    require: {in: {rel: governed_by, min: 1}}
+    msg: "is a shared rule but nothing is governed by it"
+    ask: "Which features, flows or entities apply this rule?"
+
+  - id: COV-RULE-test
+    applies: {type: RULE, from: verifiable}
+    require: {in: {rel: verifies, from: [TST], min: 1}}
+    msg: "has no test"
+    ask: "Which test checks the worked examples of this rule?"
+
+  - id: COV-STM-entity
+    applies: {type: STM, from: specified, where: {scope: entity}}
+    require: {out: {rel: lifecycle_of, to: [ENT], min: 1, max: 1}}
+    msg: "does not say which entity's lifecycle it describes"
+    ask: "Whose lifecycle is this?"
+
+  - id: COV-STM-test
+    applies: {type: STM, from: verifiable, tiers: [1, 2]}
+    require: {in: {rel: verifies, from: [TST], min: 1}}
+    msg: "has no test"
+    ask: "Which scenarios walk the transitions, including the illegal ones?"
+
+  # =================================================================== information
+  - id: COV-ENT-lifecycle
+    applies: {type: ENT, from: specified, where: {has_lifecycle: true}}
+    require: {in: {rel: lifecycle_of, from: [STM], min: 1}}
+    msg: "has a lifecycle but no state machine"
+    ask: "Which states can a record be in, and what moves it between them?"
+
+  - id: COV-ENT-created
+    applies: {type: ENT, from: specified}
+    require: {in: {rel: accesses, from: [CAP, FEAT, FLW, API, INT], attr: {ops: [create]}, min: 1}}
+    sev: warn
+    msg: "is never created by any feature, flow, API or integration"
+    ask: "How do records of this entity come into being?"
+
+  - id: COV-ENT-related
+    applies: {type: ENT, from: specified}
+    require:
+      any:
+        - {out: {rel: associates, to: [ENT], min: 1}}
+        - {in: {rel: associates, from: [ENT], min: 1}}
+    sev: info
+    msg: "is related to no other entity"
+    ask: "How does this entity relate to the others? If it stands alone, say why."
+
+  - id: COV-EVT-emitted
+    applies: {type: EVT, from: specified}
+    require: {in: {rel: emits, min: 1}}
+    msg: "is emitted by nothing"
+    ask: "Which feature, flow or state change produces this event?"
+
+  - id: COV-EVT-used
+    applies: {type: EVT, from: specified}
+    require:
+      any:
+        - {in: {rel: consumes, min: 1}}
+        - {in: {rel: sourced_from, from: [MET], min: 1}}
+    sev: warn
+    msg: "is used by nothing: no message, integration or metric reacts to it"
+    ask: "Who or what reacts to this event, or which metric is computed from it?"
+
+  - id: COV-API-exposed
+    applies: {type: API, from: specified}
+    require: {in: {rel: exposed_via, from: [CAP, FEAT], min: 1}}
+    msg: "exposes no capability or feature"
+    ask: "Which capabilities or features can callers reach through this API?"
+
+  - id: COV-INT-external
+    applies: {type: INT, from: outlined}
+    require: {out: {rel: integrates_with, to: [EXT], min: 1}}
+    msg: "does not say which external system it connects to"
+    ask: "Which external system is on the other end?"
+
+  - id: COV-EXT-integration
+    applies: {type: EXT, from: specified}
+    require: {in: {rel: integrates_with, from: [INT], min: 1}}
+    sev: warn
+    msg: "has no integration describing how data moves to and from it"
+    ask: "How does the product exchange data with this system?"
+
+  # ==================================================================== commercial
+  - id: COV-ENTL-gates
+    applies: {type: ENTL, from: specified}
+    require: {in: {rel: gated_by, min: 1}}
+    msg: "gates nothing"
+    ask: "Which capability, feature or API does this entitlement control?"
+
+  - id: COV-ENTL-granted
+    applies: {type: ENTL, from: specified}
+    require: {in: {rel: grants, from: [PLAN], min: 1}}
+    msg: "is granted by no plan"
+    ask: "Which plans include this entitlement, and with which value?"
+
+  # ===================================================================== assurance
+  - id: COV-OBL-satisfied
+    applies: {type: OBL, from: specified}
+    require: {in: {rel: satisfies, min: 1}}
+    msg: "is met by nothing: no requirement, rule, feature or runbook satisfies it"
+    ask: "What in the product or the organisation meets this obligation?"
+
+  - id: COV-OBL-verified
+    applies: {type: OBL, from: verifiable}
+    require: {in: {rel: verifies, from: [TST], min: 1}}
+    msg: "has no test or check that shows it is met"
+    ask: "How would an auditor see that this obligation is met?"
+
+  - id: COV-TST-verifies
+    applies: {type: TST, from: outlined}
+    require: {out: {rel: verifies, min: 1}}
+    msg: "verifies nothing"
+    ask: "What does this test show to be true?"
+
+  - id: COV-RISK-mitigated
+    applies: {type: RISK, from: specified, where: {response: mitigate}}
+    require: {in: {rel: mitigates, min: 1}}
+    msg: "is to be mitigated but nothing mitigates it"
+    ask: "Which requirement, rule, feature, test or runbook reduces this risk?"
+
+  # ================================================================== operations
+  - id: COV-MET-source
+    applies: {type: MET, from: specified}
+    require: {out: {rel: sourced_from, to: [EVT, ENT], min: 1}}
+    msg: "cannot be computed: it names no event or entity it comes from"
+    ask: "Which events or data does this metric count?"
+
+  - id: COV-MET-used
+    applies: {type: MET, from: specified}
+    require: {in: {rel: measured_by, min: 1}}
+    sev: warn
+    msg: "measures nothing: no objective, capability or feature is judged by it"
+    ask: "Which objective, capability or feature does this number tell you about?"
+
+  # ====================================================================== change
+  - id: COV-ASM-evidence
+    applies: {type: ASM, from: specified, where: {status: [validated, invalidated]}}
+    require: {out: {rel: evidenced_by, to: [EVD], min: 1}}
+    msg: "is marked as settled but cites no evidence"
+    ask: "What did you learn that settled this assumption?"
+
+  - id: COV-QST-answered
+    applies: {type: QST, from: specified, where: {status: answered}}
+    require:
+      any:
+        - {field: answer}
+        - {out: {rel: resolved_by, to: [DEC, EVD], min: 1}}
+    msg: "is marked answered but records no answer"
+    ask: "What was the answer, or which decision settled it?"
+
+  - id: COV-RLS-scope
+    applies: {type: RLS, from: specified}
+    require: {out: {rel: includes, min: 1}}
+    msg: "ships nothing: its scope is empty"
+    ask: "Which capabilities, features and requirements does this release contain?"
+
+  - id: COV-EVD-cited
+    applies: {type: EVD, from: specified}
+    require: {in: {rel: evidenced_by, min: 1}}
+    sev: info
+    msg: "supports no opportunity, persona, segment, assumption or decision"
+    ask: "What does this evidence change about the definition?"
+
+  # ================================================================== realisation
+  - id: COV-SYS-realizes
+    applies: {type: SYS, from: outlined}
+    require: {out: {rel: realizes, to: [DOM, CAP, FEAT], min: 1}}
+    msg: "does not say what it implements"
+    ask: "Which domain, capability or feature does this component implement?"
+
+# ===================================================================== coded checks
+# A check has an id, a severity, an optional rung from which it runs (for an
+# element that claims at least that rung), the relations it reads, and a
+# plain statement of what it enforces. `class` groups them in reports.
+checks:
+  # ---- SCH: structure of the records themselves
+  - {id: SCH-frontmatter, class: SCH, sev: error, doc: "A record opens with a frontmatter block that parses as PDS-YAML."}
+  - {id: SCH-id-form, class: SCH, sev: error, doc: "An id is a known type prefix, a hyphen and a lowercase kebab slug (FEAT-send-invoice)."}
+  - {id: SCH-id-file, class: SCH, sev: error, doc: "The file is named after the id and sits in the folder of its family."}
+  - {id: SCH-id-unique, class: SCH, sev: error, doc: "No two records share an id."}
+  - {id: SCH-envelope, class: SCH, sev: error, doc: "A record has an id and a title, and only keys defined for its type."}
+  - {id: SCH-field-type, class: SCH, sev: error, doc: "Every field value matches its declared type, including enum values."}
+  - {id: SCH-anchor, class: SCH, sev: error, doc: "The anchor exists and is of a type this element may live under."}
+  - {id: SCH-singleton, class: SCH, sev: error, doc: "There is exactly one product, and at most one tenancy model."}
+  - {id: SCH-rel-key, class: SCH, sev: error, doc: "A key under rel is a known relation. A derived inverse name is refused with a pointer to the other side."}
+  - {id: SCH-rel-pair, class: SCH, sev: error, doc: "A relation connects types its definition allows, and its attributes are valid."}
+  - {id: SCH-block, class: SCH, sev: error, doc: "A structured block parses and carries the keys its type requires."}
+  - {id: SCH-section, class: SCH, sev: error, doc: "A heading appears once in a record."}
+  - {id: SCH-summary, class: SCH, sev: error, doc: "A summary is one line of at most 200 characters."}
+  # ---- REF: references resolve
+  - {id: REF-target, class: REF, sev: error, doc: "Every relation target, field reference and block reference names an existing element of an allowed type."}
+  - {id: REF-mention, class: REF, sev: error, uses: [mentions], doc: "Every [[ID]] in prose names an existing element."}
+  - {id: REF-anchor-cycle, class: REF, sev: error, doc: "Following anchors upward always ends at the product."}
+  - {id: REF-retired, class: REF, sev: warn, doc: "An active element does not depend on a retired one, except to record history (supersedes, concerns, evidenced_by)."}
+  - {id: REF-depth, class: REF, sev: warn, doc: "Domains and capabilities nest at most three levels deep."}
+  # ---- INT: internal consistency
+  - {id: INT-flow-shape, class: INT, sev: error, from: outlined, doc: "In a flow, step ids are unique; entry and every next or branch target exist; each step has exactly one of next, decide, end or call."}
+  - {id: INT-flow-reach, class: INT, sev: error, from: specified, doc: "Every step of a flow is reachable from its entry and every path reaches an end. A loop with no way out is a warning."}
+  - {id: INT-flow-ends, class: INT, sev: warn, from: specified, doc: "A flow of an important or critical feature has at least one success end and one failure or abort end."}
+  - {id: INT-flow-refs, class: INT, sev: error, from: specified, uses: [touches, governed_by, accesses, emits, drives, depends_on, audience], doc: "A step's actor, screen, rule, entity, event, state-machine transition and called flow exist and are of the right type; moves names a real transition."}
+  - {id: INT-flow-size, class: INT, sev: warn, doc: "A flow has at most 25 steps. Longer ones are split into called flows."}
+  - {id: INT-stm-shape, class: INT, sev: error, from: specified, doc: "A state machine has exactly one initial state; every transition names defined states; terminal states have no way out; every state is reachable."}
+  - {id: INT-stm-driven, class: INT, sev: warn, from: verifiable, uses: [drives], doc: "Every transition either names a system trigger or is moved by at least one flow."}
+  - {id: INT-ent-attributes, class: INT, sev: error, from: specified, uses: [associates], doc: "Attribute names are unique; associations point at entities; an entity that says it holds no personal data has no personal attribute; one holding personal data is classified confidential or higher."}
+  - {id: INT-payload, class: INT, sev: error, from: specified, doc: "Payload field names are unique and an event that says it carries no personal data has no personal field."}
+  - {id: INT-journey, class: INT, sev: error, from: specified, uses: [spans, touches], doc: "Journey stage ids are unique; stage flows and touchpoints exist; feeling is a number from 1 to 5."}
+  - {id: INT-plan-entitlements, class: INT, sev: error, from: specified, uses: [grants], doc: "A plan lists only entitlements that exist, with values that fit each one's kind, and a price whose model, amount and interval agree."}
+  - {id: INT-rule-examples, class: INT, sev: error, from: specified, doc: "A rule has worked examples, at least one positive and at least one negative or edge case, each with a given and a then."}
+  - {id: INT-screen-states, class: INT, sev: error, from: specified, doc: "A screen that shows data defines at least its loading, empty and error states."}
+  - {id: INT-facets, class: INT, sev: error, doc: "A feature does not declare false a facet the graph shows to be true."}
+  - {id: INT-role-limits, class: INT, sev: error, from: specified, doc: "A role's minimum holders do not exceed its maximum, and assignable_by never forms a loop."}
+  - {id: INT-dependency-cycle, class: INT, sev: warn, uses: [depends_on], doc: "Hard dependencies between capabilities or features do not form a cycle."}
+  - {id: INT-supersedes, class: INT, sev: error, uses: [supersedes], doc: "Supersession never loops; the element replaced is deprecated or retired."}
+  - {id: INT-release-scope, class: INT, sev: warn, uses: [includes], doc: "A release that is planned or in progress does not include a retired element."}
+  - {id: INT-tier-order, class: INT, sev: warn, doc: "A child is not more critical than the element it sits under."}
+  - {id: INT-qst-answer, class: INT, sev: error, doc: "A question that is no longer open is not still marked blocking, and an open question carries no answer."}
+  # ---- QLT: quality of what is written
+  - {id: QLT-req-form, class: QLT, sev: warn, from: outlined, doc: "A requirement is one sentence with 'shall' and begins with The, When, While, If or Where."}
+  - {id: QLT-req-measurable, class: QLT, sev: error, from: specified, doc: "A quality requirement contains a number, a unit or a threshold that can be tested."}
+  - {id: QLT-req-single, class: QLT, sev: warn, from: outlined, doc: "A requirement states one thing: it does not join several obligations with 'and' after 'shall'."}
+  - {id: QLT-vague, class: QLT, sev: warn, from: outlined, doc: "Requirements, rules and definitions avoid unmeasurable words such as fast, easy, intuitive, robust, seamless, user-friendly, flexible, scalable, appropriate, and so on."}
+  - {id: QLT-placeholder, class: QLT, sev: error, from: specified, doc: "No TBD, TODO, XXX, lorem ipsum or unfilled <angle-bracket> placeholder remains in an element that claims to be specified."}
+  - {id: QLT-gherkin, class: QLT, sev: error, from: specified, doc: "A test's gherkin block has a Scenario with Given, When and Then in order, and no scenario is empty."}
+  - {id: QLT-summary, class: QLT, sev: warn, from: outlined, doc: "A summary says more than the title does."}
+  - {id: QLT-term-avoid, class: QLT, sev: warn, doc: "Prose does not use a word a glossary term lists as one to avoid."}
+  - {id: QLT-term-duplicate, class: QLT, sev: error, doc: "Two glossary terms in the same scope do not share a name or an alias."}
+  - {id: QLT-duplicate, class: QLT, sev: warn, doc: "Two elements of one type under the same anchor do not have near-identical titles."}
+  - {id: QLT-sys-reference, class: QLT, sev: warn, doc: "A system component stays a reference: its body is short and points to the design documents in links."}
+  - {id: QLT-title, class: QLT, sev: warn, doc: "A title is at most 80 characters and does not end in a full stop."}
+  # ---- GOV: governance, authority and freshness
+  - {id: GOV-claim, class: GOV, sev: error, doc: "An element does not declare a maturity above the one its definition supports. The finding names every failing rule."}
+  - {id: GOV-approval-hash, class: GOV, sev: error, doc: "An approved element's content still matches the hash that was approved. After an edit it must be approved again."}
+  - {id: GOV-approval-authority, class: GOV, sev: error, doc: "Approval names a human approver listed in pds.yaml, and a date. An agent never approves."}
+  - {id: GOV-tier1-approval, class: GOV, sev: warn, doc: "A critical element that claims specified or verifiable is approved."}
+  - {id: GOV-skeleton, class: GOV, sev: error, doc: "An element whose origin is skeleton claims no more than outlined and is not approved until a person has confirmed it."}
+  - {id: GOV-lifecycle-note, class: GOV, sev: error, doc: "A deprecated or retired element says why and what replaces it."}
+  - {id: GOV-freshness, class: GOV, sev: warn, doc: "An approved element has been reviewed within its tier's review period."}
+  - {id: GOV-overdue, class: GOV, sev: warn, doc: "An assumption past its validate_before date, or a question past its due date, is still open."}
+  - {id: GOV-blocking-question, class: GOV, sev: error, doc: "An element does not claim specified while an open blocking question concerns it."}
+  # ---- PRB: concern probes
+  - {id: PRB-disposition, class: PRB, sev: error, doc: "A probe disposition is addressed, na or deferred; na and deferred give a reason, and deferred names a question or a date."}
+  - {id: PRB-addressed, class: PRB, sev: error, doc: "An addressed probe names the elements that address it, and they exist."}
+  - {id: PRB-unknown, class: PRB, sev: warn, doc: "Every probe named on a feature exists in the profile and applies to the feature."}
+
+# ===================================================================== gates
+gates:
+  - id: GATE-blocking-question
+    caps_at: outlined
+    doc: "While an open blocking question concerns an element, or any element that anchors under it, the element cannot be computed above outlined."
+  - id: GATE-skeleton
+    caps_at: outlined
+    doc: "An element whose origin is skeleton cannot be computed above outlined, however complete it looks, until a person confirms it and the origin changes."
+  - id: GATE-retired
+    caps_at: none
+    doc: "A retired element is excluded from coverage and from the gap queue."

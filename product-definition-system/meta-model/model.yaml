@@ -1,0 +1,151 @@
+# The shape of the model. Everything else in this directory hangs off it.
+#
+# One idea organises the whole system: a product is ONE decomposition tree (the
+# spine) plus satellite elements that each live under exactly one spine node,
+# plus a typed graph of relations across everything. Zoom is depth on the
+# spine. Aspect is the family a satellite belongs to.
+version: 1
+
+# The spine. Zoom level = depth. A reader zooms by moving along it; every other
+# element is attached to one spine node (its anchor, or "home").
+spine:
+  - {zoom: 0, type: PROD, name: Product, question: "What is this product, and why does it exist?"}
+  - {zoom: 1, type: DOM, name: Domain, nests: true, question: "Which bounded areas make it up?"}
+  - {zoom: 2, type: CAP, name: Capability, nests: true, question: "What can the product do in each area?"}
+  - {zoom: 3, type: FEAT, name: Feature, question: "Which deliverable behaviours realise each capability?"}
+
+# Elements anchored on a feature are the inside of that feature (zoom 4): its
+# flows, screens, rules, requirements, tests, data, events and decisions.
+satellite_zoom: 4
+
+# Aspects. Every element type belongs to exactly one family. A family is also
+# the folder its records live in.
+families:
+  intent: {title: Intent, question: "Why does this product exist, and what must it achieve?"}
+  actors: {title: Actors, question: "Who is involved, and what may each of them do?"}
+  structure: {title: Structure, question: "What exists?"}
+  experience: {title: Experience, question: "How is it used, step by step?"}
+  behaviour: {title: Behaviour, question: "How must it behave?"}
+  information: {title: Information, question: "What does it know, send and depend on?"}
+  commercial: {title: Commercial, question: "How is access packaged and paid for?"}
+  realisation: {title: Realisation, question: "What implements it? (reference only)"}
+  assurance: {title: Assurance, question: "How well must it work, and how is that proven?"}
+  operations: {title: Measurement and operations, question: "How do we know it works, and how do we keep it running?"}
+  change: {title: Change and evidence, question: "What did we decide, assume, ask, learn and ship?"}
+
+# Maturity is a ladder of definition completeness. It is not delivery status
+# and it is not approval. Authors declare a rung; the rules compute the rung
+# the definition really supports; a claim above the computed rung is an error.
+maturity:
+  ladder: [stub, outlined, specified, verifiable]
+  rungs:
+    stub: "Named and placed on the spine. Its purpose is not yet stated."
+    outlined: "Purpose, scope and the main relations are stated. A reader can tell what it is for and where it sits."
+    specified: "Complete enough to build from: every field, section and relation required for its type and tier is present, applicable probes are dispositioned and nothing blocking is open."
+    verifiable: "Specified, and every requirement, rule and flow has a defined way to prove it: acceptance tests, or an explicit non-test method."
+
+# Tiers set how deep a definition has to go, in proportion to the cost of
+# being wrong. Tier 1 elements need the most; tier 3 the least.
+tiers:
+  1: {name: Critical, review_every_days: 60, test: "Money moves, access is granted, data can be lost or exposed, a legal duty applies, or the core promise of the product depends on it."}
+  2: {name: Important, review_every_days: 120, test: "A common workflow, or a visible part of the core experience."}
+  3: {name: Supporting, review_every_days: 240, test: "Low risk, easy to reverse, or cosmetic."}
+
+# Approval is authority, separate from completeness. Agents may draft and
+# propose; only a named human approver can approve, and the approval is bound
+# to a content hash so a later edit is visible.
+approval: [draft, proposed, approved]
+
+# Lifecycle is the element's place in the product's life, separate from both.
+lifecycle: [active, deprecated, retired]
+
+# Where an element came from. `skeleton` marks a starting point nobody has
+# confirmed yet.
+origin: [human, agent, skeleton, import]
+
+# Facets are yes/no characteristics of a feature that decide which probes
+# apply. A derived facet is read off the graph. The scope of a feature is the
+# feature plus everything anchored directly on it. A facet is true when ANY of
+# its clauses holds:
+#   satellite: [TYPES]        an element of that type is anchored on the feature
+#   out: RELATION             the scope has an outgoing edge of that relation
+#     to: [TYPES]             ... whose target has one of these types
+#     ops_any: [OPS]          ... whose `ops` attribute includes one of these
+#     target_field: {f: v}    ... whose target has field f equal to v
+# A facet that can be derived may also be declared true, for what the graph
+# cannot see. Declaring a derived facet false when the graph says true is an
+# error. A facet with derived: false can only be declared.
+facets:
+  has_ui:
+    doc: "Reached through at least one screen."
+    derived:
+      - {satellite: [SCR]}
+      - {out: touches, to: [SCR]}
+  has_api:
+    doc: "Exposed through an API or webhook."
+    derived:
+      - {satellite: [API]}
+      - {out: exposed_via, to: [API]}
+  writes_data:
+    doc: "Creates, updates or deletes at least one entity."
+    derived:
+      - {out: accesses, ops_any: [create, update, delete]}
+  handles_pii:
+    doc: "Touches an entity that holds personal data."
+    derived:
+      - {out: accesses, target_field: {pii: true}}
+  handles_money:
+    doc: "Touches an entity that holds monetary values, or moves money. Declare it when money moves outside the entities."
+    derived:
+      - {out: accesses, target_field: {monetary: true}}
+  tenant_data:
+    doc: "Touches an entity that belongs to a tenant."
+    derived:
+      - {out: accesses, target_field: {tenant_scoped: true}}
+  stateful:
+    doc: "Touches an entity that has a lifecycle, or defines a state machine."
+    derived:
+      - {satellite: [STM]}
+      - {out: accesses, target_field: {has_lifecycle: true}}
+  external_dependency:
+    doc: "Depends on an external system or integration."
+    derived:
+      - {out: depends_on, to: [EXT, INT]}
+      - {out: integrates_with, to: [EXT]}
+  sends_messages:
+    doc: "Sends at least one message to a person or system."
+    derived:
+      - {satellite: [MSG]}
+  async:
+    doc: "Does part of its work outside the request that triggers it."
+    derived: false
+  user_content:
+    doc: "Stores content that users author."
+    derived: false
+  public:
+    doc: "Reachable without signing in."
+    derived: false
+
+# Adoption is how much of the model a project uses. Each level includes the one
+# before it. Types outside the chosen level are not available, and rules and
+# probes that depend on them go quiet instead of failing. A small product can
+# start at core and move up without rewriting anything.
+adoption:
+  ladder: [core, standard, full]
+  levels:
+    core: "The smallest set that still gives a traceable product definition: intent, actors and permissions, structure, flows, requirements, rules, entities, tests, and the decision, assumption and question registers."
+    standard: "Adds research and segmentation, personas, surfaces and screens, use cases and journeys, messages, state machines, events, APIs and integrations, plans and entitlements, obligations, risks, metrics, evidence and releases."
+    full: "Adds competing alternatives, principles, system-component references and runbooks."
+
+# Modules switch on whole families of rules and probes that only matter for
+# some products. A profile lists the ones that apply.
+modules:
+  core: {title: Core, doc: "Always on."}
+  tenancy: {title: Tenancy, doc: "Products that serve several customers from one system: isolation and tenant states."}
+  identity: {title: Identity and access, doc: "Products with accounts, roles and permissions."}
+  commercial: {title: Commercial, doc: "Products that charge: plans, entitlements, metering and billing."}
+  integrations: {title: Integrations, doc: "Products that depend on or feed other systems."}
+  public-api: {title: Public API, doc: "Products that expose an interface to outside developers."}
+  compliance: {title: Compliance, doc: "Products that handle personal data or fall under regulation."}
+  back-office: {title: Back office, doc: "Products that staff operate and support."}
+  lifecycle-comms: {title: Lifecycle messaging, doc: "Products that send email, push or in-app messages to people."}

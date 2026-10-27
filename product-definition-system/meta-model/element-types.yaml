@@ -1,0 +1,683 @@
+# Element types: what can exist in a definition, what each one must say, and
+# when. This file is the source of the templates, the schema checks, the
+# elicitation questions and the reference documentation.
+#
+# Field specs
+#   type         string | text | int | number | bool | date | enum | ref | refs | strings | any | shape
+#   required_at  the maturity rung from which the field must be present (omit = optional)
+#   values       for enum
+#   types        for ref and refs: the element types allowed ('*' = any)
+#   default      value assumed when the field is absent
+#   shape        for type shape: the name of a structured shape checked in code
+# Sections are headings in the body of the record. `ask` is the question the
+# section has to answer; it is written into new records as a comment and is
+# used by the elicitation guide. A section or block can be limited to some
+# tiers with `tiers`, and a block can be waived with `unless`.
+version: 1
+
+# Fields every record may carry. Relations are authored under `rel`; see
+# relation-types.yaml for what each relation means and where it is stored.
+envelope:
+  id: {type: string, required_at: stub, doc: "Immutable identity: TYPE-slug, for example FEAT-send-invoice. The slug is a mnemonic frozen at creation; it never has to follow later renames of the title. Must equal the file name."}
+  title: {type: string, required_at: stub, doc: "The human name. May change freely; everything links by id."}
+  summary: {type: string, required_at: outlined, doc: "One sentence, 200 characters at most, no line breaks. Used on summary cards, in tables and as hover text."}
+  anchor: {type: ref, types: ['*'], required_at: stub, doc: "Home on the spine: the one element this one lives under. Everything except the product has exactly one."}
+  maturity: {type: enum, values: [stub, outlined, specified, verifiable], required_at: stub, doc: "The rung the author claims. The rules compute the rung the definition really supports; claiming more is an error."}
+  tier: {type: enum, values: [1, 2, 3], doc: "Criticality, which sets how deep the definition must go. Inherited from the anchor chain when absent."}
+  approval: {type: shape, shape: approval, doc: "Who signed this off, when, and the content hash they signed. Absent means draft."}
+  lifecycle: {type: enum, values: [active, deprecated, retired], default: active, doc: "Place in the product's life. Retired elements are kept for history and excluded from coverage."}
+  lifecycle_note: {type: string, doc: "Why an element is deprecated or retired, and what replaces it. Required when the lifecycle is not active."}
+  origin: {type: enum, values: [human, agent, skeleton, import], default: human, doc: "Where it came from. skeleton means a starting point nobody has confirmed yet."}
+  owner: {type: string, doc: "The person or team accountable for keeping this true."}
+  tags: {type: strings, doc: "Free labels. Use sparingly; structure belongs in relations."}
+  aliases: {type: strings, doc: "Other names this element has been known by."}
+  reviewed: {type: date, doc: "The last date a human confirmed this still matches reality (YYYY-MM-DD)."}
+  links: {type: shape, shape: links, doc: "References to things outside the definition: designs, tickets, code, contracts. Never the definition itself."}
+  rel: {type: shape, shape: rel, doc: "Typed relations to other elements, stored on this side only. The other side is derived."}
+
+types:
+  # ------------------------------------------------------------------ intent
+  PROD:
+    name: Product
+    family: intent
+    adoption: core
+    singleton: true
+    anchors: []
+    summary: "The product as a whole: why it exists, who it serves, what it promises and where its edges are."
+    fields:
+      category: {type: string, required_at: outlined, doc: "What kind of product this is, in a few words."}
+      stage: {type: enum, values: [idea, building, launched, growth, mature, sunset], required_at: outlined, doc: "Where the product is in its life."}
+      customer_model: {type: enum, values: [b2b, b2c, b2b2c, marketplace], required_at: outlined, doc: "Who pays and who uses."}
+      platforms: {type: strings, required_at: specified, doc: "Where it runs: web, ios, android, api, desktop, cli."}
+      markets: {type: strings, required_at: specified, doc: "Regions, jurisdictions and languages in scope."}
+    sections:
+      - {heading: Problem, required_at: outlined, ask: "What problem does the product solve, for whom, and how severe is it? What do people do today instead? What evidence shows the problem is real?"}
+      - {heading: Value proposition, required_at: outlined, ask: "What core value is delivered, and what makes it different from the alternatives? Why would people adopt it, and why might they reject it?"}
+      - {heading: Business model, required_at: outlined, ask: "Who is the customer, the buyer and the user? How does the product earn: revenue model, pricing and packaging, acquisition, retention, main cost drivers?"}
+      - {heading: Boundaries, required_at: specified, ask: "What is in scope, explicitly out of scope and deliberately deferred? Which external systems does it depend on? Which platforms, markets and jurisdictions are supported? Which constraints and assumptions apply?"}
+      - {heading: Success, required_at: specified, ask: "What is the north-star outcome? Which activation, retention, revenue and quality measures matter, and which guardrails must not be broken?"}
+      - {heading: Direction, required_at: specified, ask: "What are the current priorities, what is planned and what is deferred? What would make you change direction?"}
+
+  OBJ:
+    name: Objective
+    family: intent
+    adoption: core
+    anchors: [PROD, OBJ]
+    summary: "An outcome the product exists to achieve, stated so that it can be measured. Sub-objectives anchor on their parent."
+    fields:
+      kind: {type: enum, values: [outcome, business, guardrail], required_at: outlined, doc: "outcome: a change in user behaviour or result. business: revenue, cost or risk. guardrail: something that must not get worse."}
+      horizon: {type: string, doc: "When it should be true, for example 2027-Q2."}
+    sections:
+      - {heading: Intent, required_at: outlined, ask: "State the outcome in plain words. Why does it matter, and how will we know we got there?"}
+
+  OPP:
+    name: Opportunity
+    family: intent
+    adoption: standard
+    anchors: [PROD, OPP]
+    summary: "A user need, pain or job worth addressing. Sub-opportunities anchor on their parent, forming an opportunity tree."
+    fields:
+      statement: {type: text, required_at: outlined, doc: "Preferably in job form: When ..., I want to ..., so that ..."}
+      kind: {type: enum, values: [need, pain, job, gain], required_at: outlined, doc: "What sort of opportunity this is."}
+      basis: {type: enum, values: [research, assumption], required_at: outlined, doc: "research: backed by evidence records. assumption: a hypothesis, which must have an assumption record."}
+      importance: {type: enum, values: [low, medium, high], required_at: specified, doc: "How much it matters to the people who have it."}
+      satisfaction_today: {type: enum, values: [low, medium, high], required_at: specified, doc: "How well existing alternatives serve it today."}
+    sections:
+      - {heading: Situation, required_at: outlined, ask: "When does the need arise, what triggers it, and what do people do about it today?"}
+
+  SEG:
+    name: Customer segment
+    family: intent
+    adoption: standard
+    anchors: [PROD]
+    summary: "A group of customers or users that share needs and can be recognised."
+    fields:
+      fit: {type: enum, values: [primary, secondary, excluded], required_at: outlined, doc: "How well the product is meant to serve them. excluded records who it is deliberately not for."}
+      profile: {type: text, required_at: specified, doc: "How to recognise them: size, role, behaviour, context."}
+      size_note: {type: string, doc: "How many there are, and how sure you are of that."}
+    sections:
+      - {heading: Definition, required_at: outlined, ask: "Who are they, how would you recognise one, and why are they or are they not a fit?"}
+
+  ALT:
+    name: Alternative
+    family: intent
+    adoption: full
+    anchors: [PROD]
+    summary: "What people use instead of this product today: a competitor, a spreadsheet, the status quo."
+    fields:
+      kind: {type: enum, values: [competitor, diy, status_quo, adjacent], required_at: outlined, doc: "What sort of alternative it is."}
+      strengths: {type: strings, doc: "Where it beats us."}
+      weaknesses: {type: strings, doc: "Where it falls short."}
+      pricing_note: {type: string, doc: "What it costs the customer, roughly."}
+    sections:
+      - {heading: Comparison, required_at: specified, ask: "Where is it better than this product, where worse, and why would someone still choose it?"}
+
+  PRIN:
+    name: Principle
+    family: intent
+    adoption: full
+    anchors: [PROD, DOM]
+    summary: "A standing rule of judgement that settles recurring design and behaviour choices."
+    fields:
+      domain: {type: enum, values: [ux, behaviour, data, extensibility, reliability, commercial, security, other], required_at: outlined, doc: "What kind of decision it governs."}
+      statement: {type: text, required_at: outlined, doc: "The principle in one or two sentences."}
+      implication: {type: text, required_at: specified, doc: "What it means in practice when two options conflict."}
+    sections:
+      - {heading: Rationale, required_at: outlined, ask: "Why this principle, and when is an exception acceptable?"}
+
+  # ------------------------------------------------------------------ actors
+  ACT:
+    name: Actor
+    family: actors
+    adoption: core
+    anchors: [PROD]
+    summary: "Anyone or anything that interacts with the product: a person, an automated process or an outside party."
+    fields:
+      kind: {type: enum, values: [human, system, external], required_at: outlined, doc: "human: a person. system: automation inside the product. external: an outside party or service acting on it."}
+      internal: {type: bool, default: false, doc: "True for staff of the company that runs the product, false for customer side."}
+      authn: {type: string, doc: "How they prove who they are: password, SSO, API key, signed webhook, none."}
+      goals: {type: strings, doc: "What they are trying to get done."}
+    sections:
+      - {heading: Who they are, required_at: outlined, ask: "Who or what is this actor, and what is their relationship to the product?"}
+      - {heading: Access and lifecycle, required_at: specified, ask: "How are they created or invited, activated, given or changed in role, suspended and removed? What happens to their sessions and tokens?"}
+      - {heading: Exceptions and security, required_at: specified, ask: "What can they do unauthenticated, with expired or revoked access, or with conflicting roles? How is privilege escalation prevented? Is impersonation possible and how is it audited?"}
+
+  PERS:
+    name: Persona
+    family: actors
+    adoption: standard
+    anchors: [PROD]
+    summary: "A research-based picture of a group of people with similar needs and behaviour."
+    fields:
+      basis: {type: enum, values: [research, assumption], required_at: outlined, doc: "research: built from evidence records. assumption: a hypothesis, which must have an assumption record."}
+      role_title: {type: string, doc: "Typical job title or role in life."}
+      goals: {type: strings, doc: "What they are trying to achieve."}
+      frustrations: {type: strings, doc: "What gets in their way today."}
+    sections:
+      - {heading: Day in the life, required_at: outlined, ask: "What does a typical day look like for them, and where does this product fit into it?"}
+
+  ROLE:
+    name: Role
+    family: actors
+    adoption: core
+    anchors: [PROD]
+    summary: "A named bundle of permissions assigned within a scope."
+    fields:
+      scope: {type: enum, values: [platform, account, workspace, resource], required_at: outlined, doc: "The context in which the role is held."}
+      assignable_by: {type: ref, types: [ROLE], doc: "The role that may assign this one."}
+      min_holders: {type: int, doc: "The fewest people who must hold it, for example 1 for an owner."}
+      max_holders: {type: int, doc: "The most people who may hold it."}
+    sections:
+      - {heading: Purpose, required_at: outlined, ask: "Who typically holds this role, and why does it exist as distinct from the others?"}
+      - {heading: Assignment rules, required_at: specified, ask: "Who may assign or remove it, what is the default, can the last holder leave, and how does delegation work?"}
+
+  PERM:
+    name: Permission
+    family: actors
+    adoption: core
+    anchors: [PROD, DOM, CAP]
+    summary: "One thing a holder is allowed to do, to one kind of resource."
+    fields:
+      action: {type: string, required_at: outlined, doc: "The verb: view, create, send, void, export, invite."}
+      resource: {type: string, required_at: outlined, doc: "What it applies to, in business words."}
+      scope: {type: enum, values: [self, workspace, account, platform], required_at: outlined, doc: "How far it reaches."}
+      sensitive: {type: bool, default: false, doc: "True when use must be audit-logged and may need extra verification."}
+    sections:
+      - {heading: Meaning, required_at: outlined, ask: "Precisely what does holding this permission allow, and what does it not allow?"}
+
+  TEN:
+    name: Tenancy model
+    family: actors
+    adoption: standard
+    singleton: true
+    anchors: [PROD]
+    summary: "How customers are separated from one another: what a tenant is, how tenants nest, what is isolated and who pays."
+    fields:
+      unit: {type: string, required_at: outlined, doc: "What a tenant is: account, workspace, organisation."}
+      hierarchy: {type: strings, required_at: outlined, doc: "The levels, outermost first, for example organisation, workspace, project."}
+      isolation: {type: enum, values: [row_level, schema, database, hybrid], required_at: specified, doc: "How tenant data is separated."}
+      billing_entity: {type: string, required_at: specified, doc: "Which level is billed."}
+      multi_membership: {type: bool, required_at: specified, doc: "Whether one person can belong to several tenants."}
+      residency: {type: string, doc: "Where tenant data may live."}
+    sections:
+      - {heading: Model, required_at: outlined, ask: "What is a tenant, how do tenants nest, and how does a person relate to them?"}
+      - {heading: Provisioning, required_at: specified, ask: "How is a tenant created and set up, and by whom?"}
+      - {heading: Offboarding, required_at: specified, ask: "How is a tenant suspended, exported and deleted, and what is kept?"}
+      - {heading: Cross-tenant interactions, required_at: specified, ask: "Can tenants share anything? How do partners, resellers and support staff act across tenants?"}
+      - {heading: Isolation guarantees, required_at: specified, ask: "What exactly is guaranteed never to leak between tenants, and how is that enforced and proven?"}
+
+  # --------------------------------------------------------------- structure
+  DOM:
+    name: Domain
+    family: structure
+    adoption: core
+    anchors: [PROD, DOM]
+    summary: "A bounded area of the product with one clear responsibility. Domains nest."
+    fields:
+      strategic: {type: enum, values: [core, supporting, generic], required_at: outlined, doc: "core: where the product differentiates. supporting: needed but not differentiating. generic: a solved problem, ideally bought or standard."}
+      responsibility: {type: string, required_at: outlined, doc: "The one thing this domain is responsible for, in one sentence."}
+    sections:
+      - {heading: Boundaries, required_at: specified, ask: "What does this domain own, what does it deliberately not own, and how does it interact with its neighbours?"}
+
+  CAP:
+    name: Capability
+    family: structure
+    adoption: core
+    anchors: [DOM, CAP]
+    summary: "Something the product can do, stated as an ability rather than a screen or a task. Capabilities nest."
+    fields:
+      tier: {type: enum, values: [1, 2, 3], required_at: outlined, doc: "Criticality of this capability."}
+      outcome: {type: string, required_at: outlined, doc: "What the people it serves can achieve with it."}
+      owner: {type: string, required_at: specified, doc: "Who is accountable for it."}
+    sections:
+      - {heading: Purpose and outcome, required_at: outlined, ask: "What can people do with this capability that they could not before, and why does it matter?"}
+      - {heading: Scope, required_at: specified, ask: "What is inside and outside this capability, and which neighbouring capabilities does it rely on?"}
+
+  FEAT:
+    name: Feature
+    family: structure
+    adoption: core
+    anchors: [CAP]
+    summary: "A deliverable behaviour that realises a capability. Its flows, screens, rules, requirements and tests hang off it."
+    fields:
+      kind: {type: enum, values: [user_facing, background, admin, integration], required_at: outlined, doc: "Who or what experiences it. Decides whether it needs an entry point and which probes apply."}
+      tier: {type: enum, values: [1, 2, 3], required_at: outlined, doc: "Criticality of this feature."}
+      owner: {type: string, required_at: specified, doc: "Who is accountable for it."}
+      facets: {type: shape, shape: facets, required_at: specified, doc: "Yes/no characteristics that decide which probes apply. Derived ones may be left out; declared ones must be stated."}
+      probes: {type: shape, shape: probes, doc: "The disposition of every applicable concern probe: addressed, not applicable, or deferred."}
+    sections:
+      - {heading: Purpose and value, required_at: outlined, ask: "Which user problem does this solve, what outcome should it achieve, what is the business value, and what is explicitly out of scope?"}
+      - {heading: Entry conditions, required_at: specified, ask: "How is it reached? What must already be true: permissions, account or subscription state, data? What is the first thing a person sees?"}
+      - {heading: Behaviour notes, required_at: specified, ask: "What happens that the flows, rules and states do not already say: concurrency, duplicate requests, partial completion, edge cases?"}
+      - {heading: Release and maintenance, required_at: specified, tiers: [1, 2], ask: "Flags, rollout, migration, monitoring, how to switch it off, and what retiring it would involve."}
+
+  SRF:
+    name: Surface
+    family: structure
+    adoption: standard
+    anchors: [PROD, DOM]
+    summary: "A place where people or systems meet the product: web app, admin console, public API, email, marketing site."
+    fields:
+      kind: {type: enum, values: [web_app, mobile_app, admin_console, marketing_site, docs_site, public_api, email, webhook, cli, embedded_widget, status_page, other], required_at: outlined, doc: "What sort of surface it is."}
+      audience: {type: string, required_at: outlined, doc: "Who uses it."}
+      internal: {type: bool, default: false, doc: "True for staff-only surfaces."}
+      auth: {type: enum, values: [required, optional, none], required_at: specified, doc: "Whether signing in is needed."}
+    sections:
+      - {heading: Purpose, required_at: outlined, ask: "What is this surface for, and who uses it for what?"}
+      - {heading: Navigation model, required_at: specified, ask: "How is it organised at the top level, and what are its entry points?"}
+
+  # -------------------------------------------------------------- experience
+  UC:
+    name: Use case
+    family: experience
+    adoption: standard
+    anchors: [CAP, FEAT]
+    summary: "A goal an actor wants to reach with the product, with its triggers and end states. Flows realise it."
+    fields:
+      goal: {type: string, required_at: outlined, doc: "What the actor wants to achieve, in one sentence."}
+      primary_actor: {type: ref, types: [ACT, ROLE, PERS], required_at: outlined, doc: "Who wants it."}
+      supporting_actors: {type: refs, types: [ACT, ROLE, PERS], doc: "Others who take part."}
+      trigger: {type: string, required_at: specified, doc: "What starts it."}
+      preconditions: {type: strings, doc: "What must be true before it can start."}
+      success: {type: text, required_at: specified, doc: "The state of the world when it has worked."}
+      failure: {type: text, required_at: specified, doc: "The acceptable end states when it does not work."}
+    sections: []
+
+  JRN:
+    name: Journey
+    family: experience
+    adoption: standard
+    anchors: [PROD, DOM]
+    summary: "An end-to-end experience across stages and touchpoints, from the person's point of view."
+    fields:
+      persona: {type: ref, types: [PERS, ACT], doc: "Whose journey it is."}
+      outcome: {type: string, required_at: outlined, doc: "What the person has achieved at the end."}
+    blocks:
+      pds-journey: {required_at: specified, doc: "stages: a list of {id, name, goal, actions, touchpoints, flows, feeling (1-5), pain, opportunity}."}
+    sections:
+      - {heading: Narrative, required_at: outlined, ask: "Tell the journey as a story: where it starts, what the person wants at each stage and how it ends."}
+      - {heading: Pain points and opportunities, required_at: specified, ask: "Where does the experience hurt, and what would remove the friction?"}
+
+  FLW:
+    name: Flow
+    family: experience
+    adoption: core
+    anchors: [CAP, FEAT]
+    summary: "The exact sequence of steps and decisions that gets someone from a trigger to an end state, with every branch."
+    fields:
+      trigger: {type: string, required_at: outlined, doc: "What starts the flow."}
+    blocks:
+      pds-flow: {required_at: specified, doc: "trigger, entry, steps. Each step has an id and one of next, decide, end or call; and optionally actor, at, does, uses, accesses, emits, moves."}
+    sections:
+      - {heading: Notes, ask: "Assumptions, variants and anything the steps do not say."}
+
+  SCR:
+    name: Screen
+    family: experience
+    adoption: standard
+    anchors: [CAP, FEAT]
+    summary: "A page, dialog or panel where something happens, with the states it can be in."
+    fields:
+      kind: {type: enum, values: [page, modal, panel, tab, drawer, wizard_step, external_page], required_at: outlined, doc: "What sort of screen it is."}
+      route: {type: string, doc: "Address or path, if it has one."}
+      data_bound: {type: bool, required_at: specified, doc: "True when it shows data that can be loading, empty or wrong."}
+      states: {type: strings, doc: "The states that are defined, for example loading, empty, error, populated."}
+    sections:
+      - {heading: Purpose, required_at: outlined, ask: "What is this screen for, and what does the person do here?"}
+      - {heading: Content and states, required_at: specified, ask: "What is shown in each state, and what do the messages say?"}
+      - {heading: Interactions, required_at: specified, ask: "What can the person do, what happens, and what feedback do they get?"}
+      - {heading: Accessibility, required_at: specified, ask: "Keyboard use, screen-reader behaviour, focus order and how errors are announced."}
+
+  MSG:
+    name: Message
+    family: experience
+    adoption: standard
+    anchors: [CAP, FEAT]
+    summary: "Something the product sends to a person or system: an email, a notification, a push, a webhook payload."
+    fields:
+      channel: {type: enum, values: [email, in_app, push, sms, webhook], required_at: outlined, doc: "How it is delivered."}
+      class: {type: enum, values: [transactional, lifecycle, marketing, system_alert], required_at: outlined, doc: "What sort of message it is, which decides consent and opt-out rules."}
+      trigger_event: {type: ref, types: [EVT], required_at: specified, doc: "The event that causes it to be sent."}
+      audience: {type: ref, types: [ACT, ROLE], required_at: specified, doc: "Who receives it."}
+      user_controllable: {type: bool, required_at: specified, doc: "True when the recipient can switch it off."}
+    sections:
+      - {heading: Purpose and content, required_at: outlined, ask: "Why is it sent, what does it say, and what should the recipient do?"}
+      - {heading: Delivery rules, required_at: specified, ask: "Timing, frequency, preferences, unsubscribe handling, localisation and what happens when delivery fails."}
+
+  # --------------------------------------------------------------- behaviour
+  REQ:
+    name: Requirement
+    family: behaviour
+    adoption: core
+    anchors: [PROD, DOM, CAP, FEAT]
+    summary: "One testable statement of what the product shall do or how well it shall do it."
+    fields:
+      kind: {type: enum, values: [functional, quality, constraint], required_at: outlined, doc: "functional: a behaviour. quality: how well, with a number. constraint: a limit imposed from outside."}
+      attribute: {type: enum, values: [performance, availability, security, privacy, accessibility, usability, scalability, observability, compatibility, localisation, maintainability], doc: "For quality requirements: which quality."}
+      statement: {type: text, required_at: outlined, doc: "One sentence, in the form: When <trigger>, the <system> shall <response>. See the authoring standards."}
+      priority: {type: enum, values: [must, should, could], default: must, doc: "How essential it is."}
+      verification: {type: enum, values: [test, inspection, analysis, demonstration], default: test, doc: "How it will be shown to hold."}
+      verification_note: {type: string, doc: "Required when verification is not test: how it will be shown."}
+    sections: []
+
+  RULE:
+    name: Business rule
+    family: behaviour
+    adoption: core
+    anchors: [PROD, DOM, CAP, FEAT]
+    summary: "A precise statement of how something is validated, calculated, limited or decided, with worked examples."
+    fields:
+      kind: {type: enum, values: [validation, calculation, eligibility, limit, policy, timing, uniqueness, ownership, consistency], required_at: outlined, doc: "What sort of rule it is."}
+      statement: {type: text, required_at: outlined, doc: "The rule, exactly."}
+      examples: {type: shape, shape: examples, required_at: specified, doc: "Worked examples: a list of {case, given, then}. At least one positive and one negative or edge case."}
+      exceptions: {type: text, doc: "Where the rule does not apply."}
+    sections: []
+
+  STM:
+    name: State machine
+    family: behaviour
+    adoption: standard
+    anchors: [DOM, CAP, FEAT]
+    summary: "The states something can be in, how it moves between them, what causes each move and what each move triggers."
+    fields:
+      scope: {type: enum, values: [entity, process], required_at: outlined, doc: "entity: the lifecycle of a record. process: the progress of an activity."}
+    blocks:
+      pds-states: {required_at: specified, doc: "states: list of {id, label, kind (initial, normal, terminal), note}. transitions: list of {from, to, on, by, guard, emits}."}
+    sections:
+      - {heading: Notes, required_at: outlined, ask: "What lifecycle is this, and why do these states exist?"}
+      - {heading: Edge cases, required_at: specified, ask: "Concurrent transitions, retries, timeouts, reversals and what happens when two things try to move it at once."}
+
+  # ------------------------------------------------------------- information
+  ENT:
+    name: Entity
+    family: information
+    adoption: core
+    anchors: [DOM, CAP]
+    summary: "A business concept the product keeps information about. Its home is its owner: the system of record."
+    fields:
+      classification: {type: enum, values: [public, internal, confidential, restricted], required_at: specified, doc: "How sensitive the data is."}
+      pii: {type: bool, required_at: specified, doc: "True when any attribute is personal data."}
+      monetary: {type: bool, default: false, doc: "True when it holds money values or moves money."}
+      tenant_scoped: {type: bool, required_at: specified, doc: "True when each record belongs to one tenant."}
+      system_of_record: {type: enum, values: [internal, external, shared], required_at: specified, doc: "Who holds the authoritative copy."}
+      retention: {type: string, required_at: specified, doc: "How long it is kept and what then happens to it."}
+      has_lifecycle: {type: bool, required_at: specified, doc: "True when records move through states that matter."}
+    blocks:
+      pds-attributes: {required_at: specified, doc: "attributes: list of {name, type, required, unique, pii, note}. associations: list of {to, kind, label}."}
+    sections:
+      - {heading: Meaning, required_at: outlined, ask: "What is this concept in business terms, and how does it differ from similar ones?"}
+      - {heading: Ownership and lifecycle, required_at: specified, ask: "Who creates and changes it, what happens when it is deleted, and how long is it kept?"}
+
+  EVT:
+    name: Event
+    family: information
+    adoption: standard
+    anchors: [DOM, CAP, FEAT]
+    summary: "Something that happened and is worth recording or reacting to: a domain event, an analytics event, an integration event or an audit event."
+    fields:
+      kind: {type: enum, values: [domain, analytics, integration, audit], required_at: outlined, doc: "What the event is for."}
+      delivery: {type: enum, values: [at_most_once, at_least_once, exactly_once, best_effort], doc: "The delivery guarantee, where it matters."}
+      pii: {type: bool, required_at: specified, doc: "True when the payload carries personal data."}
+    blocks:
+      pds-payload: {required_at: specified, doc: "fields: list of {name, type, required, pii, note}."}
+    sections:
+      - {heading: Meaning, required_at: outlined, ask: "When exactly is it emitted, and what does it assert has happened?"}
+
+  API:
+    name: API
+    family: information
+    adoption: standard
+    anchors: [CAP, FEAT]
+    summary: "A programmatic interface: a REST or GraphQL API, a webhook, an SDK or a command line. The contract itself lives elsewhere."
+    fields:
+      style: {type: enum, values: [rest, graphql, webhook, sdk, cli], required_at: outlined, doc: "What sort of interface."}
+      audience: {type: enum, values: [public, partner, internal], required_at: outlined, doc: "Who may use it."}
+      versioning: {type: string, required_at: specified, doc: "How versions are named and how long old ones live."}
+      auth: {type: string, required_at: specified, doc: "How callers authenticate."}
+      contract: {type: string, required_at: specified, doc: "Where the machine-readable contract lives: an OpenAPI or AsyncAPI path or address."}
+    sections:
+      - {heading: Purpose, required_at: outlined, ask: "What can callers do with it, and who is it for?"}
+      - {heading: Compatibility and deprecation, required_at: specified, ask: "What counts as a breaking change, how are changes announced, and how are old versions retired?"}
+      - {heading: Limits, required_at: specified, ask: "Rate limits, quotas, pagination, idempotency and size limits."}
+
+  EXT:
+    name: External system
+    family: information
+    adoption: standard
+    anchors: [PROD, DOM]
+    summary: "A third party the product depends on or exchanges data with: a payment provider, an identity provider, an email service."
+    fields:
+      kind: {type: enum, values: [payments, identity, email, messaging, storage, analytics, crm, support, infrastructure, other], required_at: outlined, doc: "What it provides."}
+      criticality: {type: enum, values: [critical, important, replaceable], required_at: specified, doc: "How badly the product suffers without it."}
+      data_shared: {type: text, required_at: specified, doc: "What data leaves the product for it, and what comes back."}
+      exit_plan: {type: text, required_at: specified, doc: "How it would be replaced."}
+      status_page: {type: string, doc: "Where its availability is published."}
+    sections:
+      - {heading: Purpose, required_at: outlined, ask: "What do we use it for and why this one?"}
+      - {heading: Risks and constraints, required_at: specified, ask: "Outage impact, contractual limits, regional or legal constraints, lock-in."}
+
+  INT:
+    name: Integration
+    family: information
+    adoption: standard
+    anchors: [DOM, CAP]
+    summary: "How the product and one external system exchange data: direction, protocol, what flows, what fails and how it recovers."
+    fields:
+      direction: {type: enum, values: [inbound, outbound, bidirectional], required_at: outlined, doc: "Which way data flows."}
+      protocol: {type: string, required_at: specified, doc: "How they talk: REST, webhook, file transfer, SDK."}
+      auth: {type: string, required_at: specified, doc: "How each side proves who it is."}
+    sections:
+      - {heading: What flows, required_at: outlined, ask: "What is exchanged, when, and in which direction?"}
+      - {heading: Failure handling, required_at: specified, ask: "Timeouts, retries, duplicates, out-of-order delivery, outages and reconciliation."}
+      - {heading: Contract and limits, required_at: specified, ask: "Versions, rate limits, quotas and the agreed service levels."}
+
+  TERM:
+    name: Glossary term
+    family: information
+    adoption: core
+    anchors: [PROD, DOM]
+    summary: "A word the product uses, defined once. A term in a domain applies inside that domain only."
+    fields:
+      definition: {type: string, required_at: outlined, doc: "One sentence."}
+      avoid: {type: strings, doc: "Synonyms that must not be used for this concept."}
+    sections: []
+
+  # -------------------------------------------------------------- commercial
+  PLAN:
+    name: Plan
+    family: commercial
+    adoption: standard
+    anchors: [PROD]
+    summary: "A packaged offer: a price and a set of entitlements."
+    fields:
+      visibility: {type: enum, values: [public, custom, legacy, internal], required_at: outlined, doc: "Who can buy it."}
+      price: {type: shape, shape: price, required_at: specified, doc: "{model, amount, currency, interval}."}
+      trial_days: {type: int, doc: "Length of a free trial, if any."}
+      entitlements: {type: shape, shape: entitlements, required_at: specified, doc: "A list of {entl, value}: what the plan includes."}
+    sections:
+      - {heading: Positioning, required_at: outlined, ask: "Who is this plan for, and what makes someone move up to the next one?"}
+      - {heading: Rules, required_at: specified, ask: "Trial, proration, downgrades, cancellation, grandfathering and what happens to data."}
+
+  ENTL:
+    name: Entitlement
+    family: commercial
+    adoption: standard
+    anchors: [PROD, DOM, CAP]
+    summary: "Something a plan grants or limits: access to a feature, a quota or a rate."
+    fields:
+      kind: {type: enum, values: [access, limit, quota, rate], required_at: outlined, doc: "access: on or off. limit: a cap on how many. quota: a cap per period. rate: a cap per unit of time."}
+      unit: {type: string, doc: "What is counted: invoices per month, seats."}
+      default: {type: any, required_at: specified, doc: "The value a plan gets when it does not say otherwise."}
+      enforcement: {type: enum, values: [hard, soft, none], required_at: specified, doc: "hard: blocked. soft: warned. none: only measured."}
+      on_limit: {type: text, required_at: specified, doc: "What happens at the limit, after a downgrade and during a trial."}
+    sections:
+      - {heading: Meaning, required_at: outlined, ask: "What exactly does this entitlement control, and how is usage counted?"}
+
+  # ------------------------------------------------------------- realisation
+  SYS:
+    name: System component
+    family: realisation
+    adoption: full
+    anchors: [PROD, DOM, CAP]
+    summary: "An application, service or data store that implements part of the product. Reference only: the design lives in the engineering documents it links to."
+    fields:
+      kind: {type: enum, values: [app, service, datastore, queue, job, library, edge], required_at: outlined, doc: "What sort of component."}
+      responsibility: {type: string, required_at: outlined, doc: "What it is responsible for, in one sentence."}
+      trust_boundary: {type: enum, values: [public, internal, restricted], required_at: specified, doc: "Where it sits relative to the outside."}
+    sections: []
+
+  # --------------------------------------------------------------- assurance
+  OBL:
+    name: Obligation
+    family: assurance
+    adoption: standard
+    anchors: [PROD, DOM]
+    summary: "A legal, regulatory, contractual or platform duty the product must meet."
+    fields:
+      source: {type: enum, values: [law, regulation, standard, contract, policy, platform_rule], required_at: outlined, doc: "Where the duty comes from."}
+      reference: {type: string, required_at: outlined, doc: "The clause or standard, for example GDPR Article 17 or WCAG 2.2 AA."}
+      applies_when: {type: text, required_at: specified, doc: "When it applies: which customers, regions, data or activities."}
+      evidence: {type: text, required_at: specified, doc: "What evidence would show it is met."}
+    sections:
+      - {heading: Interpretation, required_at: outlined, ask: "What does it require in plain words, and what does that mean for this product?"}
+
+  TST:
+    name: Test
+    family: assurance
+    adoption: core
+    anchors: [CAP, FEAT]
+    summary: "A defined way to prove that a requirement, rule, flow or obligation holds."
+    fields:
+      kind: {type: enum, values: [scenario, performance, security, accessibility, migration, exploratory, checklist], required_at: outlined, doc: "What sort of test."}
+      level: {type: enum, values: [unit, integration, e2e, manual, monitoring], required_at: specified, doc: "At which level it runs."}
+      automation: {type: enum, values: [automated, planned, manual], required_at: specified, doc: "Whether it runs by itself."}
+      result: {type: enum, values: [unknown, passing, failing, waived], default: unknown, doc: "Latest known outcome. Imported from CI where possible."}
+      evidence: {type: string, doc: "Where the test or its latest result lives."}
+    blocks:
+      gherkin: {required_at: specified, unless: {kind: [exploratory, checklist]}, doc: "A fenced gherkin block with Given, When and Then."}
+    sections: []
+
+  RISK:
+    name: Risk
+    family: assurance
+    adoption: standard
+    anchors: [PROD, DOM, CAP, FEAT]
+    summary: "Something that could go wrong and hurt an objective, with how likely and how bad."
+    fields:
+      likelihood: {type: enum, values: [low, medium, high], required_at: outlined, doc: "How likely it is."}
+      impact: {type: enum, values: [low, medium, high, critical], required_at: outlined, doc: "How bad it would be."}
+      status: {type: enum, values: [open, mitigating, accepted, closed], required_at: outlined, doc: "Where it stands."}
+      response: {type: enum, values: [avoid, mitigate, transfer, accept], required_at: specified, doc: "The chosen way of dealing with it."}
+      owner: {type: string, required_at: specified, doc: "Who watches it."}
+    sections:
+      - {heading: Description, required_at: outlined, ask: "What could go wrong: the cause, the event and the consequence?"}
+      - {heading: Response plan, required_at: specified, ask: "What is being done, by whom, and what would show it is working?"}
+
+  # -------------------------------------------------------------- operations
+  MET:
+    name: Metric
+    family: operations
+    adoption: standard
+    anchors: [PROD, DOM, CAP, FEAT]
+    summary: "A number we watch to know whether something works, defined exactly enough that two people compute the same value."
+    fields:
+      kind: {type: enum, values: [north_star, input, output, guardrail, health, business], required_at: outlined, doc: "north_star: the one outcome. input: a lever. output: a result. guardrail: must not worsen. health: operational. business: revenue or cost."}
+      definition: {type: text, required_at: outlined, doc: "The formula in words, including what counts and what does not."}
+      unit: {type: string, required_at: specified, doc: "The unit: count, percent, seconds, EUR."}
+      grain: {type: string, required_at: specified, doc: "What one data point describes: per workspace per week."}
+      direction: {type: enum, values: [up, down, hold], required_at: specified, doc: "Which way is good."}
+      target: {type: string, doc: "The value and date we aim for."}
+      owner: {type: string, required_at: specified, doc: "Who is accountable for it."}
+    sections:
+      - {heading: Interpretation, required_at: specified, ask: "How should it be read, what are its known biases, and what action does a change trigger?"}
+
+  RUN:
+    name: Runbook
+    family: operations
+    adoption: full
+    anchors: [PROD, DOM, CAP, FEAT]
+    summary: "A procedure people follow to keep the product running or to handle a known situation."
+    fields:
+      kind: {type: enum, values: [incident, maintenance, support, data_request, release, billing_ops], required_at: outlined, doc: "What sort of procedure."}
+      trigger: {type: string, required_at: outlined, doc: "What sets it off."}
+      owner: {type: string, required_at: specified, doc: "Who keeps it current."}
+      severity: {type: string, doc: "How serious the situation it covers is."}
+    sections:
+      - {heading: Procedure, required_at: specified, ask: "The steps, in order, written so someone new could follow them."}
+      - {heading: Verification and rollback, required_at: specified, ask: "How do you know it worked, and how do you undo it?"}
+      - {heading: Escalation, required_at: specified, ask: "Who is called when it does not work, and when?"}
+
+  # ------------------------------------------------------------------ change
+  DEC:
+    name: Decision
+    family: change
+    adoption: core
+    anchors: [PROD, DOM, CAP, FEAT]
+    summary: "A choice that was made, with the options considered and the consequences accepted."
+    fields:
+      status: {type: enum, values: [proposed, accepted, superseded, rejected], required_at: outlined, doc: "Where the decision stands."}
+      date: {type: date, required_at: outlined, doc: "When it was made (YYYY-MM-DD)."}
+      deciders: {type: strings, required_at: outlined, doc: "Who decided."}
+    sections:
+      - {heading: Context, required_at: outlined, ask: "What forced a choice, and what constraints applied?"}
+      - {heading: Options considered, required_at: specified, ask: "At least two real options, each with what it costs and what it gains."}
+      - {heading: Decision, required_at: outlined, ask: "What was chosen, in one clear sentence."}
+      - {heading: Consequences, required_at: specified, ask: "What becomes easier, what becomes harder, and what must now be true?"}
+
+  ASM:
+    name: Assumption
+    family: change
+    adoption: core
+    anchors: [PROD, DOM, CAP, FEAT]
+    summary: "Something taken to be true without proof, with what breaks if it is wrong and how it will be tested."
+    fields:
+      status: {type: enum, values: [open, validated, invalidated, accepted_risk], required_at: outlined, doc: "Where it stands."}
+      confidence: {type: enum, values: [low, medium, high], required_at: outlined, doc: "How sure we are today."}
+      if_wrong: {type: string, required_at: outlined, doc: "What breaks if it is false."}
+      validate_by: {type: string, required_at: specified, doc: "How it will be checked."}
+      validate_before: {type: date, doc: "The date by which it must be settled (YYYY-MM-DD)."}
+    sections: []
+
+  QST:
+    name: Open question
+    family: change
+    adoption: core
+    anchors: [PROD, DOM, CAP, FEAT]
+    summary: "Something that must be answered before part of the definition can be trusted."
+    fields:
+      status: {type: enum, values: [open, answered, dropped], required_at: outlined, doc: "Where it stands."}
+      blocking: {type: bool, required_at: outlined, doc: "True when the elements it concerns cannot be called specified until it is answered."}
+      asked_of: {type: string, doc: "Who can answer it."}
+      due: {type: date, doc: "When an answer is needed (YYYY-MM-DD)."}
+      answer: {type: text, doc: "The answer, once there is one. Required when the status is answered."}
+    sections: []
+
+  EVD:
+    name: Evidence
+    family: change
+    adoption: standard
+    anchors: [PROD, DOM, CAP, FEAT]
+    summary: "What was learned from the world: an interview round, a data analysis, a support-ticket cluster, a competitor teardown."
+    fields:
+      kind: {type: enum, values: [interview, survey, analytics, support, competitor, market, experiment, expert, other], required_at: outlined, doc: "How it was gathered."}
+      date: {type: date, required_at: outlined, doc: "When (YYYY-MM-DD)."}
+      strength: {type: enum, values: [anecdotal, moderate, strong], required_at: outlined, doc: "How much weight it can bear."}
+      source: {type: string, required_at: outlined, doc: "Where the raw material lives. Never put personal data in the record."}
+    sections:
+      - {heading: Finding, required_at: outlined, ask: "What was learned? Facts only, no interpretation."}
+      - {heading: Limits, required_at: specified, ask: "Sample, bias, and what this evidence does not show."}
+
+  RLS:
+    name: Release
+    family: change
+    adoption: standard
+    anchors: [PROD]
+    summary: "A slice of the definition planned to ship together. The unit of scope for delivery and of baselines."
+    fields:
+      stage: {type: enum, values: [planned, in_progress, released, cancelled], required_at: outlined, doc: "Where it stands."}
+      target: {type: string, required_at: specified, doc: "Target date or quarter."}
+      baseline: {type: string, doc: "The name of the baseline snapshot taken for it."}
+    sections:
+      - {heading: Scope intent, required_at: outlined, ask: "What is this release for, and what is deliberately left out?"}
+      - {heading: Exit criteria, required_at: specified, ask: "What must be true for it to count as done and safe to ship?"}
+      - {heading: Rollout and risks, required_at: specified, ask: "How is it rolled out, and what could go wrong?"}

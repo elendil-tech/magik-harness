@@ -1,0 +1,23 @@
+# The SaaS profile: what a software-as-a-service product starts with.
+#
+# A profile is a set of defaults and a skeleton. It does not change the
+# meta-model; it chooses how much of it to use and seeds a starting point.
+# A project can override anything here in its own pds.yaml.
+version: 1
+id: saas
+title: SaaS product
+doc: "A subscription software product used by accounts that contain people: sign-up, organisations, roles, a core product, billing, messaging, integrations, administration and compliance."
+
+defaults:
+  adoption: standard
+  modules: [core, tenancy, identity, commercial, integrations, compliance, lifecycle-comms]
+
+# Approval policy the profile starts with. Authority never relaxes below this
+# by itself: a project can only tighten it or switch a check off with a reason.
+policy:
+  approval:
+    required_for_tiers: [1]
+    from: specified
+
+# The skeleton `pds init` writes. See saas.patterns.yaml.
+patterns: saas.patterns.yaml

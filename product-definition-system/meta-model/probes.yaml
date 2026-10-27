@@ -1,0 +1,210 @@
+# Concern probes: the questions a complete feature definition has to have
+# answered, whether or not anyone thought to ask. A relation can show that
+# something is missing only when you know to look for it. A probe turns "did
+# we think about concurrency?" into a record that either points at the answer
+# or says, with a reason, why it does not apply.
+#
+# Every probe that applies to a feature needs a disposition on that feature:
+#
+#   probes:
+#     concurrency: {addressed: [RULE-edit-lock]}
+#     accessibility: {na: "Background job with no interface."}
+#     deletion: {deferred: "Soft delete only in the first release.", until: QST-hard-delete}
+#
+# Silence is not a disposition. A feature cannot be computed as specified
+# while an applicable probe has none.
+#
+# Applicability. A probe applies to a feature when ALL of these hold:
+#   module     the profile enables the module (default core)
+#   tiers      the feature's effective tier is listed (default [1, 2])
+#   kind       the feature's kind is listed
+#   facet      every listed facet is true
+#   any_facet  at least one listed facet is true
+#   not_facet  none of the listed facets is true
+# `addressed_by` lists the element types that may be named as the answer. The
+# list is a guide: it limits what an `addressed` disposition may point at.
+version: 1
+
+probes:
+  # ------------------------------------------------------------------- core
+  - id: failure-paths
+    title: Failure paths
+    applies: {}
+    addressed_by: [FLW, RULE, REQ]
+    ask: "What happens when it goes wrong: invalid input, a failing dependency, an interrupted action, partial completion? What does the person see, and is anything left half done?"
+
+  - id: first-use
+    title: First use and empty state
+    applies: {facet: [has_ui], kind: [user_facing]}
+    addressed_by: [SCR, FLW, REQ]
+    ask: "What does a person see the first time, before any data exists? How do they get started, and how do they find this?"
+
+  - id: concurrency
+    title: Concurrency and duplicates
+    applies: {facet: [writes_data]}
+    addressed_by: [RULE, REQ, FLW, STM]
+    ask: "What happens if two people change the same thing at once, or the same person submits twice, or a request is retried? Is it safe to repeat?"
+
+  - id: deletion
+    title: Deletion and retention
+    applies: {facet: [writes_data]}
+    addressed_by: [RULE, REQ, STM, FLW]
+    ask: "What happens when this is deleted or archived: what happens to related data, can it be restored, and how long is it kept?"
+
+  - id: audit
+    title: Audit trail
+    applies: {facet: [writes_data], any_facet: [handles_money, handles_pii], tiers: [1, 2]}
+    addressed_by: [REQ, RULE, EVT]
+    ask: "Is it recorded who did what and when, can that be seen by the right people, and can it be altered?"
+
+  - id: limits
+    title: Limits and quotas
+    applies: {any_facet: [writes_data, user_content]}
+    addressed_by: [RULE, REQ, ENTL]
+    ask: "Which limits apply: size, count, rate, length? What does the person see at the limit, and what is the limit protecting?"
+
+  - id: lists
+    title: Lists, search and bulk actions
+    applies: {facet: [has_ui, writes_data], kind: [user_facing, admin]}
+    addressed_by: [SCR, REQ, FLW]
+    ask: "When the data grows, how do people find, sort, filter and page through it, and can they act on many items at once?"
+
+  - id: import-export
+    title: Getting data in and out
+    applies: {any_facet: [user_content, writes_data], kind: [user_facing, admin]}
+    addressed_by: [FEAT, REQ, API, FLW]
+    ask: "Can people bring their data in and take it out, in which formats, and with what limits?"
+
+  - id: accessibility
+    title: Accessibility
+    applies: {facet: [has_ui], tiers: [1, 2, 3]}
+    addressed_by: [REQ, SCR, OBL]
+    ask: "Can it be used with keyboard only and with a screen reader? What about contrast, focus, motion and error announcements? Which standard is the target?"
+
+  - id: localisation
+    title: Localisation
+    applies: {any_facet: [has_ui, sends_messages]}
+    addressed_by: [REQ, RULE, OBL]
+    ask: "Which languages, date, number and currency formats, time zones and text directions must work, and what is the fallback?"
+
+  - id: performance
+    title: Performance and volume
+    applies: {any_facet: [writes_data, has_api, has_ui]}
+    addressed_by: [REQ]
+    ask: "How fast must it be, at what volume, for how many people at once? Which number would make it unacceptable?"
+
+  - id: observability
+    title: Observability
+    applies: {any_facet: [async, external_dependency, handles_money], tiers: [1, 2]}
+    addressed_by: [REQ, MET, RUN]
+    ask: "How would you know it is broken before a customer tells you: which signals, which alerts, who responds?"
+
+  - id: rollout
+    title: Rollout and migration
+    applies: {tiers: [1]}
+    addressed_by: [RUN, REQ, RLS, FLW]
+    ask: "How does it reach existing people and data: a flag, a phased rollout, a data migration or backfill? How is it switched off?"
+
+  - id: analytics
+    title: Product analytics
+    applies: {facet: [has_ui], kind: [user_facing]}
+    addressed_by: [EVT, MET]
+    ask: "Which events show whether people find and use it, and which metric would tell you it works?"
+
+  - id: abuse
+    title: Abuse and misuse
+    applies: {any_facet: [public, user_content, has_api], tiers: [1, 2, 3]}
+    addressed_by: [REQ, RULE, RISK]
+    ask: "How could someone misuse it: spam, scraping, malicious input or uploads, enumeration, cost attacks? What limits and checks stop them?"
+
+  # ------------------------------------------------------------- compliance
+  - id: personal-data
+    title: Personal data
+    module: compliance
+    applies: {facet: [handles_pii], tiers: [1, 2, 3]}
+    addressed_by: [REQ, RULE, OBL, RUN]
+    ask: "Why is the data collected and on which basis? Is it the minimum needed? Can the person see, correct, export and erase it, and how long is it kept?"
+
+  # ---------------------------------------------------------------- tenancy
+  - id: tenant-isolation
+    title: Tenant isolation
+    module: tenancy
+    applies: {facet: [tenant_data], tiers: [1, 2, 3]}
+    addressed_by: [REQ, RULE, TST]
+    ask: "How is this kept from leaking across tenants, and how is that proven by a test that tries?"
+
+  - id: tenant-states
+    title: Tenant states
+    module: tenancy
+    applies: {facet: [tenant_data, writes_data]}
+    addressed_by: [RULE, REQ, STM]
+    ask: "What happens in a trial that has ended, a suspended, downgraded or cancelled tenant? Can they still read, export, or pay?"
+
+  # --------------------------------------------------------------- identity
+  - id: session-and-revocation
+    title: Sessions and revoked access
+    module: identity
+    applies: {kind: [user_facing, admin], not_facet: [public]}
+    addressed_by: [RULE, REQ, FLW]
+    ask: "What happens if the session expires, the role changes or access is revoked while this is in use or half done?"
+
+  # ------------------------------------------------------------- commercial
+  - id: plan-gating
+    title: Plan gating
+    module: commercial
+    applies: {kind: [user_facing, admin, integration]}
+    addressed_by: [ENTL]
+    ask: "Is access to this limited by plan? If so, which entitlement gates it and what does a person on a lower plan see? If it is on every plan, say so."
+
+  - id: billing-impact
+    title: Billing impact
+    module: commercial
+    applies: {facet: [handles_money], tiers: [1, 2, 3]}
+    addressed_by: [RULE, REQ, FLW, TST]
+    ask: "How do amounts get calculated, rounded and taxed? What about currency, proration, refunds, failed payments and disputes?"
+
+  - id: usage-metering
+    title: Usage metering
+    module: commercial
+    applies: {any_facet: [writes_data, user_content, has_api]}
+    addressed_by: [RULE, ENTL, EVT, MET]
+    ask: "Is usage counted, for limits or for billing? What exactly is counted, when, and what if the count is wrong?"
+
+  # ----------------------------------------------------------- integrations
+  - id: dependency-failure
+    title: When a dependency fails
+    module: integrations
+    applies: {facet: [external_dependency], tiers: [1, 2, 3]}
+    addressed_by: [FLW, RULE, REQ, RUN]
+    ask: "What happens when the other system is slow, down, wrong or sends the same thing twice? Timeouts, retries, fallbacks, reconciliation."
+
+  - id: event-delivery
+    title: Event delivery
+    module: integrations
+    applies: {facet: [async]}
+    addressed_by: [REQ, RULE, EVT]
+    ask: "Can events arrive late, twice or out of order? What guarantee is given, and what happens to the ones that fail?"
+
+  # ------------------------------------------------------------- public API
+  - id: api-contract
+    title: API contract
+    module: public-api
+    applies: {facet: [has_api], tiers: [1, 2, 3]}
+    addressed_by: [API, REQ, RULE]
+    ask: "How is it versioned, what counts as breaking, how are errors, pagination, rate limits and idempotency handled, and how are changes announced?"
+
+  # ------------------------------------------------------------ back-office
+  - id: support-access
+    title: Support and operations access
+    module: back-office
+    applies: {any_facet: [writes_data, handles_money]}
+    addressed_by: [FEAT, RUN, REQ]
+    ask: "Can support staff see what happened and fix it? How is that access limited, recorded and, if it means acting as the customer, disclosed?"
+
+  # --------------------------------------------------------- lifecycle comms
+  - id: messaging-preferences
+    title: Message preferences and delivery
+    module: lifecycle-comms
+    applies: {facet: [sends_messages], tiers: [1, 2, 3]}
+    addressed_by: [MSG, RULE, REQ]
+    ask: "Who can opt out, how, and of what? What are the frequency limits, the legal footer and unsubscribe rules, and what happens when delivery fails?"
