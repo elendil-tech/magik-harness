@@ -266,7 +266,10 @@ rules:
 
   - id: COV-FEAT-rules
     applies: {type: FEAT, from: specified, tiers: [1], facet: writes_data}
-    require: {children: {type: RULE, min: 1}}
+    require:
+      any:
+        - {children: {type: RULE, min: 1}}
+        - {out: {rel: governed_by, to: [RULE], min: 1, include: children}}
     msg: "writes data but states no business rule"
     ask: "What is validated, calculated, limited or decided when this feature changes data? Write each rule with examples."
 
@@ -606,9 +609,9 @@ checks:
   - {id: QLT-title, class: QLT, sev: warn, doc: "A title is at most 80 characters and does not end in a full stop."}
   # ---- GOV: governance, authority and freshness
   - {id: GOV-claim, class: GOV, sev: error, doc: "An element does not declare a maturity above the one its definition supports. The finding names every failing rule."}
-  - {id: GOV-approval-hash, class: GOV, sev: error, doc: "An approved element's content still matches the hash that was approved. After an edit it must be approved again."}
+  - {id: GOV-approval-hash, class: GOV, sev: error, doc: "An approved element's content still matches the hash that was approved. The approval of a feature or capability is bound to everything it covers (itself and what is anchored beneath it that no nested unit covers), so an edit to any of it shows here. After an edit it must be approved again."}
   - {id: GOV-approval-authority, class: GOV, sev: error, doc: "Approval names a human approver listed in pds.yaml, and a date. An agent never approves."}
-  - {id: GOV-tier1-approval, class: GOV, sev: warn, doc: "A critical element that claims specified or verifiable is approved."}
+  - {id: GOV-tier1-approval, class: GOV, sev: warn, doc: "Every approval that policy asks for exists. Policy asks for one when a critical (tier 1) element claims specified or better. The unit of approval is the unit of build: one approval of a feature covers everything anchored beneath it, and one of a capability covers what is shared at its level, so the elements inside a unit are not asked separately."}
   - {id: GOV-skeleton, class: GOV, sev: error, doc: "An element whose origin is skeleton claims no more than outlined and is not approved until a person has confirmed it."}
   - {id: GOV-lifecycle-note, class: GOV, sev: error, doc: "A deprecated or retired element says why and what replaces it."}
   - {id: GOV-freshness, class: GOV, sev: warn, doc: "An approved element has been reviewed within its tier's review period."}

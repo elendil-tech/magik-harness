@@ -181,8 +181,12 @@ export const checks = {
       });
       const where = e.via === "rel" ? "" : ` (from ${e.via.replace("block:", "the ").replace("field:", "the field ")}${e.attrs.step ? `, step ${e.attrs.step}` : ""})`;
       if (!ok) {
+        // A pair that is valid, but only when written in its dedicated field (a plan's
+        // entitlements), is already reported precisely by SCH-rel-key; say it once.
+        const dedicated = e.via === "rel" && r.allow.some((p) => p.via && (p.from.includes(from.type) || p.from.includes("*")) && (p.to.includes(toType) || p.to.includes("*")));
+        if (dedicated) continue;
         const targets = [...new Set(r.allow.filter((p) => p.from.includes(from.type) || p.from.includes("*")).flatMap((p) => p.to))];
-        ctx.report({ element: e.from, path: from.path, line: e.line, msg: `${e.rel} ${e.to}${where}: a ${from.type} cannot ${e.rel.replace(/_/g, " ")} a ${toType}`, hint: targets.length ? `${from.type} ${e.rel} can point at: ${targets.join(", ")}` : `${from.type} is not a source of ${e.rel}` });
+        ctx.report({ element: e.from, path: from.path, line: e.line, msg: `${e.rel} ${e.to}${where}: a ${from.type} cannot point ${e.rel} at a ${toType}`, hint: targets.length ? `${from.type} ${e.rel} can point at: ${targets.join(", ")}` : `${from.type} is not a source of ${e.rel}` });
         continue;
       }
       if (e.via === "rel") {

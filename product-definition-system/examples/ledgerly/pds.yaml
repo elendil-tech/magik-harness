@@ -1,0 +1,16 @@
+# A product definition. `pds help` lists what you can do with it.
+# approvers: the people who may approve critical elements. Approval is a person's
+# decision; an agent proposes and never approves.
+pds: 1
+name: Ledgerly
+profile: saas
+adoption: standard
+modules:
+  - core
+  - tenancy
+  - identity
+  - commercial
+  - integrations
+  - compliance
+  - lifecycle-comms
+approvers: [Dana Whitfield]

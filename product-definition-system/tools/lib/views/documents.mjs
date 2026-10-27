@@ -4,6 +4,7 @@ import { table, asList, isObj, q, mid, maturityClassDefs } from "./util.mjs";
 import { flowMermaid } from "./diagrams.mjs";
 import { stateMermaid, erMermaid } from "./diagrams.mjs";
 import { applicableProbes, dispositionOf } from "../coverage.mjs";
+import { approvalUnits, approvalHash, covered } from "../approval.mjs";
 
 const fence = (body) => "```mermaid\n" + body.trimEnd() + "\n```\n";
 const live = (V, type) => V.model.all(type).filter((e) => !V.model.isRetired(e.id)).sort((a, b) => a.title.localeCompare(b.title));
@@ -24,6 +25,17 @@ function counts(V, id) {
 }
 
 // ---------------------------------------------------------------- product map
+
+
+/** An element's approval in words: who, when, what it covers, and whether it still holds. */
+function approvalText(V, el) {
+  const ap = el.front.approval;
+  if (!ap || ap.state !== "approved") return ap?.state || "draft";
+  const { model, a } = V;
+  const stale = ap.hash !== approvalHash(model, a.config, el);
+  const beneath = covered(model, a.config, el).length - 1;
+  return `${stale ? "stale: edited since it was approved by " : "approved by "}${ap.by ?? "nobody named"}${ap.at ? ` on ${ap.at}` : ""}${beneath ? `, covering the ${beneath} elements beneath it` : ""}`;
+}
 
 export function renderProductMap(V, target) {
   const { model, meta } = V;
@@ -64,7 +76,7 @@ export function renderCard(V, target) {
   const el = V.get(target);
   const m = a.maturity.get(el.id);
   const out = [`# ${el.title}\n`, `${V.code(el.id)} · ${meta.spec(el.type).name}${el.front.summary ? "\n\n> " + el.front.summary : ""}\n`];
-  const rows = [["Where", V.path(el.id) || "(root)"], ["Maturity", m ? `${m.declared} claimed · ${m.computed} supported` : "retired"], ["Tier", `${model.tierOf(el.id)}${el.front.tier ? "" : " (inherited)"}`], ["Approval", el.front.approval?.state || "draft"], ["Lifecycle", el.front.lifecycle || "active"], ["Origin", V.field(el, "origin") || "human"], ["Owner", el.front.owner || ""], ["Reviewed", el.front.reviewed || ""], ["File", `\`${el.path}\``]];
+  const rows = [["Where", V.path(el.id) || "(root)"], ["Maturity", m ? `${m.declared} claimed · ${m.computed} supported` : "retired"], ["Tier", `${model.tierOf(el.id)}${el.front.tier ? "" : " (inherited)"}`], ["Approval", approvalText(V, el)], ["Lifecycle", el.front.lifecycle || "active"], ["Origin", V.field(el, "origin") || "human"], ["Owner", el.front.owner || ""], ["Reviewed", el.front.reviewed || ""], ["File", `\`${el.path}\``]];
   out.push(table(["", ""], rows.filter(([, v]) => v)));
 
   const skip = new Set(["id", "title", "summary", "anchor", "maturity", "tier", "approval", "lifecycle", "origin", "owner", "reviewed", "rel", "links", "tags", "aliases"]);
@@ -112,7 +124,7 @@ function specFeature(V, f) {
   const m = a.maturity.get(f.id);
   const out = [`# Feature specification: ${f.title}\n`];
   if (f.front.summary) out.push(`> ${f.front.summary}\n`);
-  out.push(table(["", ""], [["Id", V.code(f.id)], ["Belongs to", V.path(f.id)], ["Kind", V.field(f, "kind") || ""], ["Tier", model.tierOf(f.id)], ["Owner", f.front.owner || ""], ["Maturity", m ? `${m.computed} supported · ${m.declared} claimed` : ""], ["Approval", f.front.approval?.state || "draft"], ["Reviewed", f.front.reviewed || ""]].filter(([, v]) => v !== "")));
+  out.push(table(["", ""], [["Id", V.code(f.id)], ["Belongs to", V.path(f.id)], ["Kind", V.field(f, "kind") || ""], ["Tier", model.tierOf(f.id)], ["Owner", f.front.owner || ""], ["Maturity", m ? `${m.computed} supported · ${m.declared} claimed` : ""], ["Approval", approvalText(V, f)], ["Reviewed", f.front.reviewed || ""]].filter(([, v]) => v !== "")));
 
   const serves = [...new Set([...model.out(f.id, "serves"), ...model.out(f.anchor, "serves")].map((e) => e.to))];
   out.push("## 1. Purpose and value\n", section(f, "Purpose and value") || "_Not written yet._", "");
@@ -349,9 +361,7 @@ export function computeStats(a) {
   }
   // who needs a person's approval is policy: the tiers that require it, from the rung where it starts to bind
   const { required_for_tiers: tiers, from } = a.config.policy.approval;
-  const critical = [...maturity.keys()].filter((id) => tiers.includes(model.tierOf(id)));
-  const approved = (id) => model.get(id).front.approval?.state === "approved";
-  const claiming = critical.filter((id) => meta.rung(maturity.get(id).declared) >= meta.rung(from));
+  const units = approvalUnits(a);
   // present everything in the model's own order, not in the order files happen to load
   const inOrder = (obj, order) => Object.fromEntries(order.filter((k) => obj[k]).map((k) => [k, obj[k]]));
   const orderedFamilies = inOrder(byFamily, Object.keys(meta.families));
@@ -366,7 +376,7 @@ export function computeStats(a) {
     skeleton,
     over,
     probes: { applicable: probes, answered, outstanding: [...outstanding].sort((x, y) => y[1] - x[1]) },
-    critical: { tiers, from, total: critical.length, approved: critical.filter(approved).length, claiming: claiming.length, pending: claiming.filter((id) => !approved(id)).length },
+    approvals: { tiers, from, needed: units.length, current: units.filter((u) => u.approved && !u.stale).length, stale: units.filter((u) => u.stale).length, pending: units.filter((u) => !u.approved).length },
     errors: a.counts.error,
     warnings: a.counts.warn,
     gaps: a.gaps.length,
@@ -382,7 +392,7 @@ export function renderCoverage(V) {
   const prod = model.all("PROD")[0];
   const out = [`# Coverage report${prod ? ": " + prod.title : ""}\n`];
   out.push(`Profile ${a.config.profile || "none"} · adoption ${a.config.adoption} · modules ${[...a.config.modules].join(", ")} · ${a.today}\n`);
-  out.push(table(["", ""], [["Elements", `${s.elements}${s.retired ? ` (+${s.retired} retired)` : ""}`], ["Overall depth", `${Math.round(s.overall * 100)}% ${bar(s.overall)}`], ["Errors / warnings", `${s.errors} / ${s.warnings}`], ["Claims above what the definition supports", s.over], ["Unconfirmed skeleton elements", s.skeleton], ["Gaps to the next rung", s.gaps], [`Critical elements (tier ${s.critical.tiers.join(", ")})`, `${s.critical.total}: ${s.critical.approved} approved · ${s.critical.pending} awaiting approval (claiming ${s.critical.from} or better)`]]));
+  out.push(table(["", ""], [["Elements", `${s.elements}${s.retired ? ` (+${s.retired} retired)` : ""}`], ["Overall depth", `${Math.round(s.overall * 100)}% ${bar(s.overall)}`], ["Errors / warnings", `${s.errors} / ${s.warnings}`], ["Claims above what the definition supports", s.over], ["Unconfirmed skeleton elements", s.skeleton], ["Gaps to the next rung", s.gaps], [`Approvals asked for (tier ${s.approvals.tiers.join(", ")} claiming ${s.approvals.from} or better)`, `${s.approvals.needed}: ${s.approvals.current} current · ${s.approvals.stale} stale · ${s.approvals.pending} not yet given`]]));
   out.push("Depth is how far up the ladder what exists has climbed. It says nothing about what has not been written at all: see _Blind spots_ below.\n");
 
   out.push("## Depth by family\n", table(["Family", ...ladder, "Depth"], Object.entries(s.byFamily).map(([f, d]) => [meta.families[f].title, ...ladder.map((l) => d[l]), `${Math.round(s.score[f] * 100)}% ${bar(s.score[f], 8)}`])));

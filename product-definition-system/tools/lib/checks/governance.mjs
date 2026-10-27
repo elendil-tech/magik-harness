@@ -1,7 +1,7 @@
 // GOV: authority and freshness. Who may say a definition is right, whether
 // what they approved is still what is written, and whether it has been looked
 // at lately.
-import { contentHash } from "../records.mjs";
+import { approvalHash, approvalUnits, unitTypes } from "../approval.mjs";
 import { isDate } from "../shapes.mjs";
 
 const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
@@ -19,6 +19,11 @@ export const checks = {
       const declared = meta.rung(m.declared);
       if (declared <= meta.rung(m.byRules)) return;
       const failing = m.results.filter((r) => !r.pass && r.sev === "error" && meta.rung(r.from) <= declared);
+      if (!failing.length) {
+        // Nothing fails: the claim is above anything this element is checked for.
+        ctx.report({ element: el.id, path: el.path, msg: `claims ${m.declared}, but nothing about this ${meta.spec(el.type).name.toLowerCase()} is checked at that rung, so ${m.byRules} is the most it can show`, hint: "lower the claim, or add what would verify it (a test, a verification method)" });
+        return;
+      }
       const shown = failing.slice(0, 4).map((r) => r.rule);
       ctx.report({
         element: el.id,
@@ -31,11 +36,15 @@ export const checks = {
   },
 
   "GOV-approval-hash"(ctx) {
+    const { model, config } = ctx;
     ctx.each(null, (el) => {
       const a = el.front.approval;
       if (!isObj(a) || a.state !== "approved") return;
       if (!a.hash) ctx.report({ element: el.id, path: el.path, msg: "is marked approved without a content hash", hint: "approve it with `pds approve`, which records the hash" });
-      else if (a.hash !== contentHash(el.rec)) ctx.report({ element: el.id, path: el.path, msg: "was edited after it was approved", hint: "review the change and approve it again, or revert it" });
+      else if (a.hash !== approvalHash(model, config, el)) {
+        const tree = unitTypes(config).has(el.type);
+        ctx.report({ element: el.id, path: el.path, msg: `${tree ? "or something under it " : ""}was edited after it was approved`, hint: `review the change${tree ? ` (\`git log -p\` over the files under ${el.id})` : ""} and approve it again, or revert it` });
+      }
     });
   },
 
@@ -50,14 +59,24 @@ export const checks = {
     });
   },
 
+  // One finding per approval unit, reported on the element a person would approve. A feature
+  // is approved once for everything under it; the elements under it are not asked separately.
   "GOV-tier1-approval"(ctx) {
-    const { meta, config, model } = ctx;
-    const { required_for_tiers: tiers, from } = config.policy.approval;
-    ctx.each(null, (el) => {
-      if (!tiers.includes(model.tierOf(el.id))) return;
-      if (meta.rung(el.declared) < meta.rung(from)) return;
-      if (el.front.approval?.state !== "approved") ctx.report({ element: el.id, path: el.path, msg: `is tier ${model.tierOf(el.id)} and claims ${el.declared}, but nobody has approved it` });
-    });
+    const { config, model } = ctx;
+    const { from } = config.policy.approval;
+    for (const u of approvalUnits(ctx)) {
+      if (u.approved) continue; // a stale approval is GOV-approval-hash's finding, reported once
+      const root = model.get(u.root);
+      const own = u.claiming.length === 1 && u.claiming[0] === u.root;
+      ctx.report({
+        element: root.id,
+        path: root.path,
+        msg: own
+          ? `is tier ${u.tier} and claims ${root.declared}, but nobody has approved it`
+          : `is tier ${u.tier}, and it or something under it claims ${from} or better, but nobody has approved it`,
+        hint: u.tree ? `one approval covers all ${u.covers} elements in it: pds approve ${root.id} --by NAME` : `pds approve ${root.id} --by NAME`,
+      });
+    }
   },
 
   "GOV-skeleton"(ctx) {

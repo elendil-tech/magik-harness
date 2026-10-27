@@ -12,12 +12,19 @@ defaults:
   adoption: standard
   modules: [core, tenancy, identity, commercial, integrations, compliance, lifecycle-comms]
 
-# Approval policy the profile starts with. Authority never relaxes below this
-# by itself: a project can only tighten it or switch a check off with a reason.
+# Approval policy the profile starts with. A person signs off critical (tier 1)
+# elements once they claim specified. The unit of approval is the unit of
+# build: approving a feature covers it and everything anchored beneath it;
+# approving a capability covers it and what is shared at its level (each of its
+# features is approved on its own). Anything under no unit (a domain, a plan,
+# an obligation) is approved on its own. A project overrides this under
+# policy.approval in its own pds.yaml; that file is human-owned, and agents
+# never edit it.
 policy:
   approval:
     required_for_tiers: [1]
     from: specified
+    units: [CAP, FEAT]
 
 # The skeleton `pds init` writes. See saas.patterns.yaml.
 patterns: saas.patterns.yaml

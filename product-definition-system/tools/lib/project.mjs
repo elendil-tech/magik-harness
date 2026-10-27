@@ -51,7 +51,19 @@ export function resolveConfig(meta, raw) {
   const ruleIds = new Set([...meta.rules, ...meta.implicitRules].map((r) => r.id));
   const probeIds = new Set(meta.probes.map((p) => p.id));
 
-  const approvalPolicy = { required_for_tiers: [1], from: "specified", ...(profile?.policy?.approval || {}), ...(raw.policy?.approval || {}) };
+  // Approval policy: which tiers need a person's sign-off, from which rung, and which element types
+  // are approval units (an approval of one covers everything anchored beneath it).
+  const own = raw.policy?.approval ?? {};
+  if (raw.policy !== undefined) {
+    if (!raw.policy || typeof raw.policy !== "object" || Array.isArray(raw.policy)) bad("policy must be a mapping");
+    else for (const k of Object.keys(raw.policy)) if (k !== "approval") bad(`policy: unknown key ${k}`);
+  }
+  if (own && typeof own === "object") for (const k of Object.keys(own)) if (!["required_for_tiers", "from", "units"].includes(k)) bad(`policy.approval: unknown key ${k}`);
+  if (own.required_for_tiers !== undefined && !(Array.isArray(own.required_for_tiers) && own.required_for_tiers.every((t) => [1, 2, 3].includes(t)))) bad("policy.approval.required_for_tiers must be a list of tiers: 1, 2 or 3");
+  if (own.from !== undefined && !meta.ladder.includes(own.from)) bad(`policy.approval.from must be one of ${meta.ladder.join(", ")}`);
+  if (own.units !== undefined && !(Array.isArray(own.units) && own.units.every((t) => meta.types.has(t)))) bad(`policy.approval.units must be a list of element types (${[...meta.types.keys()].join(", ")})`);
+  const approvalPolicy = { required_for_tiers: [1], from: "specified", units: ["CAP", "FEAT"], ...(profile?.policy?.approval || {}) };
+  for (const k of ["required_for_tiers", "from", "units"]) if (own[k] !== undefined && !problems.some((p) => p.msg.startsWith(`policy.approval.${k}`))) approvalPolicy[k] = own[k];
 
   const config = {
     pds: 1,

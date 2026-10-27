@@ -445,6 +445,12 @@ export function validateMeta(meta, impl = {}) {
     const w = `profile ${p.id}`;
     if (!meta.model.adoption.ladder.includes(p.defaults?.adoption)) add(w, "bad default adoption");
     for (const m of p.defaults?.modules || []) if (!meta.modules[m]) add(w, `unknown module ${m}`);
+    const ap = p.policy?.approval;
+    if (ap) {
+      if (ap.required_for_tiers !== undefined && !(Array.isArray(ap.required_for_tiers) && ap.required_for_tiers.every((t) => [1, 2, 3].includes(t)))) add(w, "policy.approval.required_for_tiers must be a list of tiers 1, 2 or 3");
+      if (ap.from !== undefined && !meta.ladder.includes(ap.from)) add(w, `policy.approval.from is not a rung: ${ap.from}`);
+      for (const t of ap.units || []) if (!meta.types.has(t)) add(w, `policy.approval.units: unknown element type ${t}`);
+    }
     if (p.patterns) {
       let patterns = null;
       try {

@@ -75,7 +75,8 @@ export const status = {
     if (s.skeleton) attention.push(`${plural(s.skeleton, "unconfirmed skeleton element")}: prompts nobody has confirmed yet`);
     if (s.over) attention.push(`${plural(s.over, "element")} claim${s.over === 1 ? "s" : ""} more than the definition supports`);
     if (blocking.length) attention.push(`${plural(blocking.length, "blocking question")} open: ${blocking.slice(0, 3).map((q) => q.id).join(", ")}${blocking.length > 3 ? ", ..." : ""}`);
-    if (s.critical.pending) attention.push(`${plural(s.critical.pending, "critical element")} claim${s.critical.pending === 1 ? "s" : ""} ${s.critical.from} or better and await${s.critical.pending === 1 ? "s" : ""} a person's approval`);
+    if (s.approvals.pending) attention.push(`${plural(s.approvals.pending, "approval")} not yet given: critical work that claims ${s.approvals.from} or better has no person's sign-off (pds lint lists them)`);
+    if (s.approvals.stale) attention.push(`${plural(s.approvals.stale, "approval")} gone stale: edited since a person approved ${s.approvals.stale === 1 ? "it" : "them"}`);
     if (s.probes.applicable) attention.push(`${s.probes.answered} of ${s.probes.applicable} applicable concern probes answered`);
     if (attention.length) lines.push("", "Needs attention", ...attention.map((x) => `  - ${x}`));
     const { lines: next, total } = formatGaps(a.gaps, { elements: 3, items: 3 });

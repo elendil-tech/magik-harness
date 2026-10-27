@@ -221,6 +221,12 @@ export function computeMaturity(model, el, results) {
     if (errorsAt(r).length) break;
     byRules = r;
   }
+  // A rung that nothing is checked at proves nothing. Every element can be complete
+  // for its type (specified), but only one that has a rule to pass at the top rung
+  // (a feature with a test, a requirement with a verification) can be called verifiable.
+  let ceiling = meta.rung("specified");
+  for (const r of results) ceiling = Math.max(ceiling, meta.rung(r.from));
+  byRules = Math.min(byRules, ceiling);
 
   const caps = [];
   const blockers = blockingQuestions(model, el);

@@ -9,16 +9,17 @@ export function bar(fraction, width = 12) {
 }
 
 /** Wrap text to a width, indenting every line. */
-export function wrap(text, width = 92, indent = "") {
+export function wrap(text, width = 92, indent = "", first = indent) {
   const out = [];
   let line = "";
+  const lead = () => (out.length ? indent : first);
   for (const word of String(text).split(/\s+/).filter(Boolean)) {
-    if (line && indent.length + line.length + 1 + word.length > width) {
-      out.push(indent + line);
+    if (line && lead().length + line.length + 1 + word.length > width) {
+      out.push(lead() + line);
       line = word;
     } else line = line ? `${line} ${word}` : word;
   }
-  if (line) out.push(indent + line);
+  if (line) out.push(lead() + line);
   return out;
 }
 
@@ -45,7 +46,7 @@ export function formatFindings(findings, { verbose = false } = {}) {
     lines.push(path);
     for (const f of list) {
       lines.push(`  ${SEV_LABEL[f.sev] || f.sev}  ${f.id}${f.line ? `  line ${f.line}` : ""}  ${f.msg}`);
-      if (f.hint) lines.push(...wrap(f.hint, 96, "          → "));
+      if (f.hint) lines.push(...wrap(f.hint, 96, "            ", "          → "));
     }
     lines.push("");
   }

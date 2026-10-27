@@ -1,5 +1,5 @@
 // Commands that write to the definition: start a project, add a record, record an approval.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve, relative } from "node:path";
 import { Failure, UsageError, closest } from "../errors.mjs";
 import { plural } from "../format.mjs";
@@ -7,7 +7,8 @@ import { CONFIG_FILE, resolveConfig } from "../project.mjs";
 import { expandSeeds, slugify } from "../seed.mjs";
 import { renderRecord, pathFor } from "../templates.mjs";
 import { setFrontKey, removeFrontKey } from "../edit.mjs";
-import { contentHash, ID_RE } from "../records.mjs";
+import { ID_RE } from "../records.mjs";
+import { approvalHash, covered } from "../approval.mjs";
 import { stringifyYaml } from "../yaml.mjs";
 
 function writeNew(root, rel, text) {
@@ -134,12 +135,108 @@ export const create = {
   },
 };
 
+// --------------------------------------------------------------------- rename
+
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+export const rename = {
+  summary: "Rename an element: its id, its file and every reference to it",
+  usage: "rename OLD NEW [--title TEXT] [--dry-run]",
+  help: "Ids are the stable handle everything else points at, so a rename is one operation, never a find-and-replace: the record moves to its new filename, every reference in every record (anchor, rel, [[wikilinks]], prose) is rewritten, approvals that were valid before stay valid (their hash is re-sealed), and the whole definition is checked again. If the rename would introduce a new error nothing is changed. The type prefix cannot change. Run `pds views` afterwards to refresh generated views.",
+  flags: {
+    title: { type: "string", doc: "Also give the element a new title." },
+    "dry-run": { type: "bool", doc: "Show what would change without changing it." },
+  },
+  run(ctx) {
+    const [oldId, newId] = ctx.args;
+    if (!oldId || !newId) throw new UsageError("rename needs the current id and the new one, for example: pds rename DOM-core-product DOM-invoicing");
+    const a = ctx.analysis;
+    const { model, meta, config } = a;
+    const el = model.get(oldId);
+    if (!el) throw new Failure(`no element ${oldId}${closest(oldId, [...model.elements.keys()]) ? `; did you mean ${closest(oldId, [...model.elements.keys()])}?` : ""}`, 2);
+    const m = ID_RE.exec(newId);
+    if (!m) throw new UsageError(`${newId} is not a valid id: a type prefix, a hyphen, then lowercase words joined by hyphens, like DOM-invoicing`);
+    if (m[1] !== el.type) throw new UsageError(`a rename keeps the type: ${oldId} is a ${el.type}, so the new id must start with ${el.type}-`);
+    if (newId === oldId) throw new UsageError("the new id is the same as the old one");
+    if (model.has(newId) || ctx.project.files.has(pathFor(meta, config, newId))) throw new Failure(`${newId} already exists`);
+
+    if (ctx.flags.title && el.front.approval?.state === "approved") {
+      throw new Failure(`${oldId} is approved, and a new title changes what was approved. Revoke the approval first (pds approve ${oldId} --revoke), or rename without --title.`);
+    }
+
+    // The token is the whole id: DOM-core must not match inside DOM-core-product.
+    const src = `(?<![A-Za-z0-9-])${escapeRe(oldId)}(?![A-Za-z0-9-])`;
+    const mentions = (text) => new RegExp(src).test(text);
+    const rewrite = (text) => text.replace(new RegExp(src, "g"), newId);
+    const abs = (path) => join(ctx.root, path);
+    const write = (path, text) => {
+      mkdirSync(dirname(abs(path)), { recursive: true });
+      writeFileSync(abs(path), text);
+    };
+
+    const before = new Map(ctx.project.files);
+    if (existsSync(abs(CONFIG_FILE))) before.set(CONFIG_FILE, readFileSync(abs(CONFIG_FILE), "utf8"));
+    const oldPath = el.path;
+    const newPath = pathFor(meta, config, newId);
+
+    // What changes: every file that holds the id, and the record itself, which also moves.
+    const after = new Map();
+    let references = 0;
+    for (const [path, text] of before) {
+      if (path !== oldPath && !mentions(text)) continue;
+      if (path !== oldPath) references++;
+      let next = rewrite(text);
+      if (path === oldPath && ctx.flags.title) next = setFrontKey(next, "title", stringifyYaml({ title: ctx.flags.title }).trimEnd().split("\n"));
+      after.set(path, next);
+    }
+
+    // An approval that held before the rename still holds after it: the edit is mechanical, not a
+    // change of meaning. The ones that hold now are re-sealed once the files are rewritten.
+    const holding = [...model.elements.values()].filter((e) => e.front.approval?.state === "approved" && e.front.approval.hash === approvalHash(model, config, e));
+    const touched = holding.filter((e) => covered(model, config, e).some((c) => after.has(c.path)));
+
+    const summary = [`${oldPath} -> ${newPath}`, `${plural(references, "other file")} ${references === 1 ? "refers" : "refer"} to it`];
+    if (touched.length) summary.push(`${plural(touched.length, "approval")} re-sealed, still valid`);
+    if (ctx.flags["dry-run"]) {
+      ctx.out([`Would rename ${oldId} to ${newId}:`, ...summary.map((s) => `  - ${s}`)].join("\n"));
+      return 0;
+    }
+
+    const errorsBefore = a.counts.error;
+    for (const [path, text] of after) write(path === oldPath ? newPath : path, text);
+    unlinkSync(abs(oldPath));
+    ctx.invalidate();
+    const written = new Set(after.keys());
+    for (const e of touched) {
+      const { model: m2, config: c2 } = ctx.analysis;
+      const el2 = m2.get(e.id === oldId ? newId : e.id);
+      const hash = approvalHash(m2, c2, el2);
+      if (hash === el2.front.approval.hash) continue;
+      const file = abs(el2.path);
+      writeFileSync(file, setFrontKey(readFileSync(file, "utf8"), "approval", stringifyYaml({ approval: { ...el2.front.approval, hash } }, { flowMax: 240 }).trimEnd().split("\n")));
+      written.add(e.id === oldId ? oldPath : e.path);
+      ctx.invalidate();
+    }
+    const now = ctx.analysis;
+    if (now.counts.error > errorsBefore || !now.model.has(newId) || now.model.has(oldId)) {
+      // put everything back exactly as it was
+      unlinkSync(abs(newPath));
+      for (const path of written) write(path, before.get(path));
+      ctx.invalidate();
+      throw new Failure(`renaming ${oldId} to ${newId} would introduce ${plural(now.counts.error - errorsBefore, "new error")}, so nothing was changed. Try --dry-run, then \`pds lint\`.`, 3);
+    }
+    const views = existsSync(abs(config.viewsDir));
+    ctx.out([`Renamed ${oldId} to ${newId}:`, ...summary.map((s) => `  - ${s}`), ...(views ? ["Run `pds views` to refresh the generated views."] : [])].join("\n"));
+    return 0;
+  },
+};
+
 // -------------------------------------------------------------------- approve
 
 export const approve = {
   summary: "Record that a person read and accepted an element",
   usage: "approve ID --by NAME [--note TEXT] [--force] | approve ID --revoke",
-  help: "Approval is bound to the element's content: the hash of what was approved is stored with it, and any later edit shows as GOV-approval-hash until it is approved again. Refuses an element that claims more than it supports, that has errors, or that is a skeleton, unless --force. Only people listed under approvers in pds.yaml may approve. Refused outright when PDS_AGENT is set: agents propose, people approve.",
+  help: "Approval is bound to content: the hash of what was approved is stored with it, and any later edit shows as GOV-approval-hash until it is approved again. The unit of approval is the unit of build: approving a feature covers the feature and everything anchored beneath it (its flows, screens, rules, requirements, tests), so one review signs off one specification. Elements under no feature are approved on their own. Refuses when anything covered claims more than it supports, has errors, or is a skeleton, unless --force. Only people listed under approvers in pds.yaml may approve. Refused outright when PDS_AGENT is set: agents propose, people approve.",
   flags: {
     by: { type: "string", doc: "Who is approving. Must be listed under approvers in pds.yaml." },
     note: { type: "string", doc: "A short reason or condition to record with the approval." },
@@ -173,16 +270,22 @@ export const approve = {
     const m = a.maturity.get(id);
     if (!m) throw new Failure(`${id} is retired and cannot be approved`);
 
+    // An approval of a feature covers everything under it, so everything under it has to hold up.
+    const scope = covered(model, config, el).filter((e) => a.maturity.has(e.id));
     const refusals = [];
-    if (meta.rung(m.declared) > meta.rung(m.byRules)) refusals.push(`it claims ${m.declared} but the definition supports ${m.byRules}`);
-    const errors = a.findings.filter((f) => f.element === id && f.sev === "error" && !f.id.startsWith("GOV-approval") && f.id !== "GOV-tier1-approval");
-    if (errors.length) refusals.push(`${plural(errors.length, "error")} on it: ${errors.slice(0, 3).map((f) => f.id).join(", ")}${errors.length > 3 ? ", ..." : ""}`);
-    if (meta.field(el, "origin") === "skeleton") refusals.push("it is a skeleton: confirm it first and set origin: human");
+    for (const e of scope) {
+      const em = a.maturity.get(e.id);
+      const who = e.id === id ? "it" : e.id;
+      if (meta.rung(em.declared) > meta.rung(em.byRules)) refusals.push(`${who} claims ${em.declared} but the definition supports ${em.byRules}`);
+      const errors = a.findings.filter((f) => f.element === e.id && f.sev === "error" && !f.id.startsWith("GOV-approval") && f.id !== "GOV-tier1-approval");
+      if (errors.length) refusals.push(`${who} has ${plural(errors.length, "error")}: ${errors.slice(0, 3).map((f) => f.id).join(", ")}${errors.length > 3 ? ", ..." : ""}`);
+      if (meta.field(e, "origin") === "skeleton") refusals.push(`${who} is a skeleton: confirm it first and set origin: human`);
+    }
     if (m.declared === "stub") refusals.push("it only claims stub: there is nothing yet to approve");
     if (refusals.length && !flags.force) throw new Failure(`not approving ${id}:\n${refusals.map((r) => `  - ${r}`).join("\n")}\nFix these, or pass --force if you accept them.`);
 
     const date = flags.date ?? ctx.today;
-    const approval = { state: "approved", by: flags.by, at: date, hash: contentHash(el.rec) };
+    const approval = { state: "approved", by: flags.by, at: date, hash: approvalHash(model, config, el) };
     if (flags.note) approval.note = flags.note;
     let text = setFrontKey(before, "approval", stringifyYaml({ approval }, { flowMax: 240 }).trimEnd().split("\n"));
     text = setFrontKey(text, "reviewed", [`reviewed: ${date}`]);
@@ -195,7 +298,7 @@ export const approve = {
       ctx.invalidate();
       throw new Failure(`approval did not hold, so nothing was changed: ${bad.map((f) => f.msg).join("; ")}`, 3);
     }
-    const lines = [`Approved ${id} as ${flags.by} on ${date}.`, `Bound to its content (${approval.hash}); editing it afterwards shows as GOV-approval-hash until it is approved again.`];
+    const lines = [`Approved ${id} as ${flags.by} on ${date}.`, scope.length > 1 ? `Covers ${id} and the ${scope.length - 1} elements beneath it, bound to their content (${approval.hash}).` : `Bound to its content (${approval.hash}).`, "Editing any of it afterwards shows as GOV-approval-hash until it is approved again."];
     if (refusals.length) lines.push("Approved despite:", ...refusals.map((r) => `  - ${r}`));
     ctx.out(lines.join("\n"));
     return 0;
