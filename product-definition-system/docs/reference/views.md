@@ -22,7 +22,7 @@ A view is generated from the definition and never edited. `pds view NAME [ID]` p
 | `trace` | Traceability | From each objective down to the capabilities, features, requirements and tests that carry it, and back up. | product or any element | table | `serves`, `derives_from`, `satisfies`, `verifies`, `measured_by`, `evidenced_by` |
 | `registers` | Registers | What is still open: questions, assumptions, risks and decisions, and what do they concern? | product or any element | table | `concerns`, `resolved_by` |
 | `glossary` | Glossary | What does each word mean, and which words must not be used? | product or a domain | table | the elements |
-| `coverage` | Coverage report | How complete is the definition, by family, by level and by tier, and what is the next best thing to write? | product | bundle | the elements |
+| `coverage` | Coverage report | How complete is the definition, by family, by tier and by element type, and what is the next best thing to write? | product | bundle | the elements |
 | `deps` | Dependency graph | What depends on what, and what would a change to this reach? | product or a domain | mermaid | `depends_on`, `supersedes` |
 | `release` | Release scope | What is in this release, and how ready is each part? | a release | table | `includes` |
 | `obligations` | Obligation map | Which duties apply, what meets each, and what proves it? | product | table | `satisfies`, `verifies` |

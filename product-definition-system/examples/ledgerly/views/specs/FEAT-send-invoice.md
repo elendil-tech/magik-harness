@@ -52,7 +52,7 @@ flowchart TD
   subgraph lane_ACT_account_owner ["Account owner"]
     s_review{"Checks the recipient, the<br/>totals and the due date, then<br/>confirms"}
   end
-  subgraph lane__ ["No actor named"]
+  subgraph lane__ ["System (no actor named)"]
     s_check_limit{"The system checks that the<br/>workspace is under its monthly<br/>invoice limit"}
     s_send["The system takes the next<br/>invoice number, marks the<br/>invoice sent and queues the<br/>email, in one transaction"]
     s_deliver{"A background job hands the<br/>email with the private pay<br/>link to the delivery provider"}

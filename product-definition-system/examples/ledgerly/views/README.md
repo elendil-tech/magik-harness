@@ -20,7 +20,7 @@ Generated from the definition. Read them; do not edit them.
 | [Traceability](trace.md) | From each objective down to the capabilities, features, requirements and tests that carry it, and back up. |
 | [Registers](registers.md) | What is still open: questions, assumptions, risks and decisions, and what do they concern? |
 | [Glossary](glossary.md) | What does each word mean, and which words must not be used? |
-| [Coverage report](coverage.md) | How complete is the definition, by family, by level and by tier, and what is the next best thing to write? |
+| [Coverage report](coverage.md) | How complete is the definition, by family, by tier and by element type, and what is the next best thing to write? |
 | [Dependency graph](deps.md) | What depends on what, and what would a change to this reach? |
 | [Release scope](release.md) | What is in this release, and how ready is each part? |
 | [Obligation map](obligations.md) | Which duties apply, what meets each, and what proves it? |

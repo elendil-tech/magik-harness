@@ -144,7 +144,7 @@ views:
 
   coverage:
     title: Coverage report
-    answers: "How complete is the definition, by family, by level and by tier, and what is the next best thing to write?"
+    answers: "How complete is the definition, by family, by tier and by element type, and what is the next best thing to write?"
     scope: product
     form: bundle
     uses: []

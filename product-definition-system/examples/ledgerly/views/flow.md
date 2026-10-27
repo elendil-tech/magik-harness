@@ -11,7 +11,7 @@ flowchart TD
   subgraph lane_ACT_account_owner ["Account owner"]
     s_review{"Checks the recipient, the<br/>totals and the due date, then<br/>confirms"}
   end
-  subgraph lane__ ["No actor named"]
+  subgraph lane__ ["System (no actor named)"]
     s_check_limit{"The system checks that the<br/>workspace is under its monthly<br/>invoice limit"}
     s_send["The system takes the next<br/>invoice number, marks the<br/>invoice sent and queues the<br/>email, in one transaction"]
     s_deliver{"A background job hands the<br/>email with the private pay<br/>link to the delivery provider"}
@@ -61,7 +61,7 @@ flowchart TD
     s_choose_amount{"Keeps the full balance or<br/>enters a smaller amount"}
     s_receipt(["Sees the receipt and is<br/>emailed a copy"])
   end
-  subgraph lane__ ["No actor named"]
+  subgraph lane__ ["System (no actor named)"]
     s_invalid_amount["The page explains the allowed<br/>range and asks again"]
     s_pay{"The client is taken to the<br/>payment provider's page and<br/>enters card details there"}
     s_record["The system records the<br/>payment, reduces the balance<br/>and marks the invoice paid<br/>when nothing is left"]

@@ -362,12 +362,16 @@ describe("pds status, next and ask", () => {
     assert.match(r.out, /Findings: 0 errors, 2 warnings/);
     assert.match(r.out, /79 unconfirmed skeleton elements/);
     assert.match(r.out, /2 approvals not yet given/);
+    assert.match(r.out, /^\s+Tier 1 · Critical\s+\d+\s+\d+%/m, "critical work is reported on its own");
   });
 
   it("gives status as JSON", async () => {
     const data = JSON.parse((await pds(["status", "--json"], { cwd: copyExample() })).out);
     assert.equal(data.elements, 181);
     assert.equal(data.byType.FEAT.verifiable, 2);
+    const inTiers = Object.values(data.byTier).reduce((n, t) => n + t.stub + t.outlined + t.specified + t.verifiable, 0);
+    assert.equal(inTiers, 181, "every element is in exactly one tier");
+    assert.deepEqual(Object.keys(data.tierScore), Object.keys(data.byTier));
     assert.equal(Object.values(data.byType).reduce((n, t) => n + t.stub + t.outlined + t.specified + t.verifiable, 0), 181, "every element is counted once, at its computed rung");
   });
 

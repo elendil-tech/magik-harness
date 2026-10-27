@@ -45,7 +45,8 @@ function describeApplies(a = {}) {
   return [a.tiers ? `tiers ${a.tiers.join(", ")}` : null, a.where ? `where ${JSON.stringify(a.where)}` : null, a.facet ? `facet ${list(a.facet).join(" and ")}` : null, a.not_facet ? `not facet ${list(a.not_facet).join(", ")}` : null, a.anchor ? `anchored on ${list(a.anchor).join(" or ")}` : null, a.module ? `module ${a.module}` : null, a.unless ? `unless ${JSON.stringify(a.unless)}` : null].filter(Boolean).join("; ");
 }
 
-function describeProbeApplies(a = {}) {
+/** When a probe applies, in words: "tiers 1, 2; facets handles_pii". Used by the reference and by `pds explain`. */
+export function describeProbeApplies(a = {}) {
   return [`tiers ${(a.tiers || [1, 2]).join(", ")}`, a.kind ? `kind ${a.kind.join(" or ")}` : null, a.facet ? `facets ${a.facet.join(" and ")}` : null, a.any_facet ? `any of ${a.any_facet.join(", ")}` : null, a.not_facet ? `not ${a.not_facet.join(", ")}` : null].filter(Boolean).join("; ");
 }
 

@@ -3,6 +3,7 @@ import { Failure, UsageError, closest } from "../errors.mjs";
 import { formatFindings, formatGaps, plural, bar, wrap, columns, maturityPhrase } from "../format.mjs";
 import { computeStats } from "../views/index.mjs";
 import { atomRefs } from "../metamodel.mjs";
+import { describeProbeApplies } from "../refdocs.mjs";
 import { ID_RE } from "../records.mjs";
 import { stringifyYaml } from "../yaml.mjs";
 
@@ -71,6 +72,7 @@ export const status = {
     lines.push(`${plural(s.elements, "element")}${s.retired ? ` (${s.retired} retired)` : ""} · depth ${Math.round(s.overall * 100)}% ${bar(s.overall)}`);
     lines.push(`  ${meta.ladder.map((l) => `${l} ${d[l]}`).join(" · ")}`, "");
     lines.push(...columns(Object.entries(s.byFamily).map(([f, dist]) => [`  ${meta.families[f].title}`, Object.values(dist).reduce((x, y) => x + y, 0), `${Math.round(s.score[f] * 100)}% ${bar(s.score[f], 8)}`])), "");
+    lines.push(...columns(Object.entries(s.byTier).map(([t, dist]) => [`  Tier ${t} · ${meta.tiers[t].name}`, Object.values(dist).reduce((x, y) => x + y, 0), `${Math.round(s.tierScore[t] * 100)}% ${bar(s.tierScore[t], 8)}`])), "");
     lines.push(`Findings: ${plural(s.errors, "error")}, ${plural(s.warnings, "warning")}`);
     const attention = [];
     if (s.skeleton) attention.push(`${plural(s.skeleton, "unconfirmed skeleton element")}: prompts nobody has confirmed yet`);
@@ -233,7 +235,7 @@ export const explain = {
     const view = meta.views.get(raw);
     let lines;
     if (rule) lines = ruleText(rule, meta, rule.implicit ? "rule generated from the element type" : "coverage rule");
-    else if (probe) lines = [`${probe.id}  (concern probe: ${probe.title})`, "", `Applies to: ${JSON.stringify(probe.applies)}${probe.module ? ` · module ${probe.module}` : ""}`, "The question:", ...wrap(probe.ask, 96, "  "), "", "Answer it on the feature, under probes:", `  probes:\n    ${probe.id}: {addressed: [ID, ...]}   # or {na: "why it does not apply"} or {deferred: "why", until: 2027-01-31}`, `Counts as addressed when the feature (or what is anchored on it) has: ${[].concat(probe.addressed_by || []).join(", ") || "any element"}`];
+    else if (probe) lines = [`${probe.id}  (concern probe: ${probe.title})`, "", `Applies to: features, ${describeProbeApplies(probe.applies)}${probe.module ? ` · module ${probe.module}` : ""}`, "The question:", ...wrap(probe.ask, 96, "  "), "", "Answer it on the feature, under probes:", `  probes:\n    ${probe.id}: {addressed: [ID, ...]}   # or {na: "why it does not apply"} or {deferred: "why", until: 2027-01-31}`, `Counts as addressed when the feature (or what is anchored on it) has: ${[].concat(probe.addressed_by || []).join(", ") || "any element"}`];
     else if (check) lines = [`${check.id}  (check, class ${check.class}, ${check.sev})`, "", ...wrap(check.doc, 96), check.from ? `Runs for elements claiming ${check.from} or more.` : ""];
     else if (gate) lines = [`${gate.id}  (gate)`, "", ...wrap(gate.doc, 96), `Caps the element at: ${gate.caps_at}`];
     else if (type) lines = typeText(type, meta);

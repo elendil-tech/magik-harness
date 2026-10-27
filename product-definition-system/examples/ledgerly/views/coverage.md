@@ -2,7 +2,7 @@
 
 # Coverage report: Ledgerly
 
-Profile saas · adoption standard · modules core, tenancy, identity, commercial, integrations, compliance, lifecycle-comms · 2026-10-27
+Profile saas · adoption standard · modules core, tenancy, identity, commercial, integrations, compliance, lifecycle-comms
 
 |  |  |
 | --- | --- |
@@ -30,6 +30,15 @@ Depth is how far up the ladder what exists has climbed. It says nothing about wh
 | Assurance | 4 | 0 | 15 | 2 | 57% █████░░░ |
 | Measurement and operations | 2 | 0 | 3 | 0 | 40% ███░░░░░ |
 | Change and evidence | 1 | 0 | 19 | 0 | 63% █████░░░ |
+
+## Depth by tier
+
+Critical work is where a gap costs most, so it is the row to read first.
+
+| Tier | stub | outlined | specified | verifiable | Depth |
+| --- | --- | --- | --- | --- | --- |
+| 1 · Critical | 27 | 1 | 43 | 19 | 53% ████░░░░ |
+| 2 · Important | 52 | 3 | 34 | 2 | 28% ██░░░░░░ |
 
 ## Depth by element type
 

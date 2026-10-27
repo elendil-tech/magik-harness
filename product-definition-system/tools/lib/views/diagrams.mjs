@@ -27,7 +27,7 @@ export function flowMermaid(V, el) {
   };
   const laned = lanes.size > 1 || !lanes.has("_");
   for (const [actor, list] of lanes) {
-    if (laned) lines.push(`  subgraph ${mid("lane_", actor)} ["${q(actor === "_" ? "No actor named" : V.title(actor))}"]`);
+    if (laned) lines.push(`  subgraph ${mid("lane_", actor)} ["${q(actor === "_" ? "System (no actor named)" : V.title(actor))}"]`);
     for (const s of list) lines.push(`    ${node(s)}`);
     if (laned) lines.push("  end");
   }

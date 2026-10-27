@@ -342,12 +342,14 @@ export function computeStats(a) {
   const blank = () => Object.fromEntries(ladder.map((l) => [l, 0]));
   const byType = {};
   const byFamily = {};
+  const byTier = {};
   let skeleton = 0;
   let over = 0;
   for (const [id, m] of maturity) {
     const el = model.get(id);
     (byType[el.type] ||= blank())[m.computed]++;
     (byFamily[el.family] ||= blank())[m.computed]++;
+    (byTier[model.tierOf(id)] ||= blank())[m.computed]++;
     if (meta.field(el, "origin") === "skeleton") skeleton++;
     if (meta.rung(m.declared) > meta.rung(m.byRules)) over++;
   }
@@ -373,12 +375,15 @@ export function computeStats(a) {
   const inOrder = (obj, order) => Object.fromEntries(order.filter((k) => obj[k]).map((k) => [k, obj[k]]));
   const orderedFamilies = inOrder(byFamily, Object.keys(meta.families));
   const orderedTypes = inOrder(byType, [...meta.types.keys()]);
+  const orderedTiers = inOrder(byTier, Object.keys(meta.tiers));
   return {
     elements: maturity.size,
     retired: model.elements.size - maturity.size,
     byType: orderedTypes,
     byFamily: orderedFamilies,
+    byTier: orderedTiers,
     score: Object.fromEntries(Object.entries(orderedFamilies).map(([k, v]) => [k, score(v)])),
+    tierScore: Object.fromEntries(Object.entries(orderedTiers).map(([k, v]) => [k, score(v)])),
     overall: score(Object.values(byType).reduce((s, d) => Object.fromEntries(ladder.map((l) => [l, (s[l] || 0) + d[l]])), {})),
     skeleton,
     over,
@@ -398,11 +403,13 @@ export function renderCoverage(V) {
   const ladder = meta.ladder;
   const prod = model.all("PROD")[0];
   const out = [`# Coverage report${prod ? ": " + prod.title : ""}\n`];
-  out.push(`Profile ${a.config.profile || "none"} · adoption ${a.config.adoption} · modules ${[...a.config.modules].join(", ")} · ${a.today}\n`);
+  // No date here: a view that names today would be out of date tomorrow, and `pds views --check` would fail on the calendar alone.
+  out.push(`Profile ${a.config.profile || "none"} · adoption ${a.config.adoption} · modules ${[...a.config.modules].join(", ")}\n`);
   out.push(table(["", ""], [["Elements", `${s.elements}${s.retired ? ` (+${s.retired} retired)` : ""}`], ["Overall depth", `${Math.round(s.overall * 100)}% ${bar(s.overall)}`], ["Errors / warnings", `${s.errors} / ${s.warnings}`], ["Claims above what the definition supports", s.over], ["Unconfirmed skeleton elements", s.skeleton], ["Gaps to the next rung", s.gaps], [`Approvals asked for (tier ${s.approvals.tiers.join(", ")} claiming ${s.approvals.from} or better)`, `${s.approvals.needed}: ${s.approvals.current} current · ${s.approvals.stale} stale · ${s.approvals.pending} not yet given`]]));
   out.push("Depth is how far up the ladder what exists has climbed. It says nothing about what has not been written at all: see _Blind spots_ below.\n");
 
   out.push("## Depth by family\n", table(["Family", ...ladder, "Depth"], Object.entries(s.byFamily).map(([f, d]) => [meta.families[f].title, ...ladder.map((l) => d[l]), `${Math.round(s.score[f] * 100)}% ${bar(s.score[f], 8)}`])));
+  out.push("## Depth by tier\n", "Critical work is where a gap costs most, so it is the row to read first.\n", table(["Tier", ...ladder, "Depth"], Object.entries(s.byTier).map(([t, d]) => [`${t} · ${meta.tiers[t].name}`, ...ladder.map((l) => d[l]), `${Math.round(s.tierScore[t] * 100)}% ${bar(s.tierScore[t], 8)}`])));
   out.push("## Depth by element type\n", table(["Type", ...ladder], Object.entries(s.byType).map(([t, d]) => [`${t} · ${meta.spec(t).name}`, ...ladder.map((l) => d[l])])));
 
   out.push("## The spine\n");

@@ -66,7 +66,7 @@ flowchart TD
     s_choose_amount{"Keeps the full balance or<br/>enters a smaller amount"}
     s_receipt(["Sees the receipt and is<br/>emailed a copy"])
   end
-  subgraph lane__ ["No actor named"]
+  subgraph lane__ ["System (no actor named)"]
     s_invalid_amount["The page explains the allowed<br/>range and asks again"]
     s_pay{"The client is taken to the<br/>payment provider's page and<br/>enters card details there"}
     s_record["The system records the<br/>payment, reduces the balance<br/>and marks the invoice paid<br/>when nothing is left"]
