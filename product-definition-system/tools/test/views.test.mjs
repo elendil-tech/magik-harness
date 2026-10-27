@@ -105,10 +105,36 @@ describe("what pds views writes", () => {
     assert.equal(names.length, 70, "the worked example: 21 views, 46 capabilities, 4 features, the index... minus the two kinds that are written per element");
   });
 
-  test("a view does not name the date, so `pds views --check` does not fail because the calendar turned", () => {
-    const tomorrow = plan(analyseRoot(LEDGERLY, { today: "2026-10-28" }));
-    assert.deepEqual([...tomorrow.keys()], [...files.keys()]);
-    for (const [name, text] of files) assert.equal(tomorrow.get(name), text, `${name} is the same on another day`);
+  // A day can change what `pds lint` finds: a review lapses, a question passes its due date. A generated file
+  // that followed would go out of date with nothing edited, and `pds views --check` would fail on the calendar alone.
+  const LATER = "2031-01-01";
+
+  test("a view does not depend on the date, even on a day when reviews have lapsed and questions are overdue", () => {
+    const later = analyseRoot(LEDGERLY, { today: LATER });
+    const dated = (a) => a.findings.filter((f) => meta.checks.find((c) => c.id === f.id)?.calendar);
+    assert.ok(dated(later).length > dated(example).length, "on that day the date does change what lint finds, or this proves nothing");
+    const generated = plan(later);
+    assert.deepEqual([...generated.keys()], [...files.keys()]);
+    for (const [name, text] of files) assert.equal(generated.get(name), text, `${name} is the same on another day`);
+  });
+
+  test("the checks that read the date are the ones the model says read it", () => {
+    const keyed = (a) => new Set(a.findings.map((f) => `${f.id}\t${f.element}\t${f.msg}`));
+    const [now, later] = [keyed(example), keyed(analyseRoot(LEDGERLY, { today: LATER }))];
+    const changed = [...later].filter((k) => !now.has(k)).concat([...now].filter((k) => !later.has(k)));
+    assert.ok(changed.length > 0, "something does change with the date");
+    const marked = new Set(meta.checks.filter((c) => c.calendar).map((c) => c.id));
+    assert.deepEqual([...marked].sort(), ["GOV-freshness", "GOV-overdue"]);
+    for (const k of changed) assert.ok(marked.has(k.split("\t")[0]), `${k.replace(/\t/g, " · ")} changed with the date, and its check is not marked calendar`);
+  });
+
+  test("the coverage report counts what lint finds on any day except the findings that read the date", () => {
+    const coverage = files.get("coverage.md");
+    const m = /\| Errors \/ warnings \| (\d+) \/ (\d+) \|/.exec(coverage);
+    assert.ok(m, "the summary says how many errors and warnings");
+    const undated = example.findings.filter((f) => !meta.checks.find((c) => c.id === f.id)?.calendar);
+    assert.deepEqual([Number(m[1]), Number(m[2])], [undated.filter((f) => f.sev === "error").length, undated.filter((f) => f.sev === "warn").length]);
+    assert.match(coverage, /leave out the findings that read today's date/);
   });
 
   test("the coverage report breaks depth down by tier, and every element is counted once", () => {

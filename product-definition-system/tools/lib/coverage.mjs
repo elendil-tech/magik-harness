@@ -164,7 +164,10 @@ export function dispositionOf(el, probeId) {
 
 // ---------------------------------------------------------------- gates
 
-/** Open blocking questions that concern this element or anything anchored under it. */
+/**
+ * The open blocking questions that reach this element: those that concern it, or anything
+ * anchored beneath it. They do not reach what is anchored beneath what a question concerns.
+ */
 export function blockingQuestions(model, el) {
   return blockedIndex(model).get(el.id) || [];
 }

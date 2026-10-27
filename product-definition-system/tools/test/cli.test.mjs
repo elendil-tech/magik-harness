@@ -158,6 +158,21 @@ describe("pds init", () => {
     assert.deepEqual(listFiles(dir), [join("definition", "intent", "PROD-bare.md"), "pds.yaml"]);
   });
 
+  it("says where it started in a way that can be pasted: short inside the current folder, whole outside it", async () => {
+    const here = scratch("pds-init-");
+    const inside = await pds(["init", "inner", "--name", "Inner"], { cwd: here });
+    assert.equal(inside.code, 0, inside.err);
+    assert.match(inside.out, /^Started Inner in inner:/);
+    assert.match(inside.out, /^ {2}cd inner$/m);
+
+    const elsewhere = join(scratch("pds-init-"), "outer");
+    const outside = await pds(["init", elsewhere, "--name", "Outer"], { cwd: here });
+    assert.equal(outside.code, 0, outside.err);
+    assert.ok(outside.out.startsWith(`Started Outer in ${elsewhere}:`), outside.out);
+    assert.ok(outside.out.includes(`\n  cd ${elsewhere}\n`), outside.out);
+    assert.ok(!outside.out.includes(".."), "no ../../..");
+  });
+
   it("does not overwrite a project that is already there", async () => {
     const dir = await started("--name", "Once");
     const before = snapshot(dir);

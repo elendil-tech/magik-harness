@@ -112,6 +112,11 @@ describe("breaking the meta-model on purpose", () => {
     assert.ok(problemsWith(check, /id ENT-flow-ends: starts with ENT, which is an element type/).length > 0);
   });
 
+  it("notices a calendar flag that is anything but true", () => {
+    const m = withEdit("rules.yaml", "sev: warn, calendar: true, doc: \"An approved element", "sev: warn, calendar: false, doc: \"An approved element");
+    assert.equal(problemsWith(m, /check GOV-freshness: calendar is either true or left out/).length, 1);
+  });
+
   it("notices impact settings in which a weak edge would reach further than a strong one", () => {
     const m = withEdit("relation-types.yaml", "weak_hops: 1", "weak_hops: 5");
     assert.ok(problemsWith(m, /weak_hops cannot exceed strong_hops/).length > 0);

@@ -71,7 +71,9 @@ export const init = {
         written++;
       }
     }
-    const shown = relative(ctx.cwd, dir) || ".";
+    // A folder outside the one the person is in would be shown as `../../../x`, which is hard to paste: give the whole path then.
+    const up = relative(ctx.cwd, dir);
+    const shown = up === "" ? "." : /^\.\.(?:[\\/]|$)/.test(up) ? dir : up;
     const lines = [`Started ${name} in ${shown}: ${CONFIG_FILE} and ${plural(written, "record")} under ${config.definitionDir}/.`];
     if (patterns) lines.push(`${plural(written - 1, "skeleton record")} (origin: skeleton) are prompts to confirm, correct or delete. ${plural(skipped.length, "seed")} left out because the modules or adoption level do not call for them.`);
     lines.push("", "Next:", ...(shown === "." ? [] : [`  cd ${shown}`]), "  pds status        where things stand", "  pds next          what to write first", `  pds ask ${productId}  the questions that take the product record up the ladder`, "");

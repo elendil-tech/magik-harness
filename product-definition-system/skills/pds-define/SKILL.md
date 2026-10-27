@@ -17,7 +17,7 @@ Run the tool as `node <path-to>/product-definition-system/tools/pds.mjs` (writte
 3. **Never edit `pds.yaml`** (approvers, policy and waivers are human-owned), and never waive a rule or probe. If one seems wrong, say so in the report.
 4. **Never edit `views/`**: it is generated. Regenerate with `pds views`.
 5. **Origin.** Mark what you write `origin: agent`. Set `origin: human` only on the explicit word of the person who has read that record. A skeleton (`origin: skeleton`) stays capped at `outlined` until then.
-6. **Do not claim more than the tool supports.** Leave `maturity` at what `pds ask ID` says is reached.
+6. **Do not claim more than the tool supports.** Set `maturity` to the rung on the second line of `pds ask ID` (`supports ...`), never above it. A lower claim is allowed.
 7. **Ids are stable.** Rename only with `pds rename OLD NEW`, never by editing files.
 8. **One element at a time**, and keep what a person has to read small.
 

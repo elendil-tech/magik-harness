@@ -195,7 +195,7 @@ Should review (2)
 | Views are deterministic and current | `pds views --check` | 70 files for the example, none stale |
 | Links between generated files resolve | a test walks every relative link in the example's generated files | all of them (589 when this was written) |
 | The YAML subset is portable | `scripts/yaml-parity`: parse every YAML source in two parsers | 205 of 205 identical with PyYAML 6.0.3 |
-| The example exercises the model | the example uses 37 of the 38 types at standard adoption (all but `API`) | lint: 0 errors, 2 warnings that name real work |
+| The example exercises the model | the example uses 37 of the 38 types at standard adoption (all but `API`) | lint: 0 errors, 2 warnings that name real work (on 27 October 2026; later days add dated warnings, [as the example says](../examples/ledgerly/README.md)) |
 | It runs where people run it | the suite | passes on Node 20, 22, 24 and 25 |
 | It scales | synthetic definitions: the analysis in memory, the commands on disk | the analysis takes 2,000 records in about 80 ms and 8,000 in about 280 ms (3.5 times for 4 times the records); the commands take about 0.3 s at 1,000 records and 3 to 4 s at 20,000 ([08 §5](08-buildout.md#5-measured-scale)) |
 

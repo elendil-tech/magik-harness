@@ -94,7 +94,7 @@ To change a decision, add an entry that says it replaces the old one and leave t
 
 ### D9. Maturity is computed from the content, and the claim is checked
 
-**Decided.** The author declares a rung. The tool computes the rung the content supports. A claim above it is an error that names every rule that fails.
+**Decided.** The author declares a rung. The tool computes the rung the content supports. A claim above it is an error: `GOV-claim` when the rules do not support it, and names every rule that fails, and `GOV-skeleton` or `GOV-blocking-question` when a gate caps it.
 
 **Because.** A checklist the author ticks measures the author's confidence. A computed value is the only one that cannot be talked into agreeing.
 
@@ -196,9 +196,9 @@ To change a decision, add an entry that says it replaces the old one and leave t
 
 ### D19. Views are generated, never edited and carry no date
 
-**Decided.** The 21 views are pure functions of the analysis: the same records give the same bytes. They carry a banner, are committed so that GitHub renders them and a pull request shows what changed, and `pds views --check` fails when one is stale. A view names no date.
+**Decided.** The 21 views are pure functions of the analysis: the same records give the same bytes. They carry a banner, are committed so that GitHub renders them and a pull request shows what changed, and `pds views --check` fails when one is stale. A view names no date and does not depend on one: the two checks that read today's date are marked `calendar: true` in the model, and the coverage report leaves their findings out of its counts and says so.
 
-**Because.** A diagram drawn by hand is correct on the day it is drawn. The date was removed because a view that printed it made `views --check` fail every morning, which is a check that cries wolf.
+**Because.** A diagram drawn by hand is correct on the day it is drawn. The date was removed because a view that printed it made `views --check` fail every morning, which is a check that cries wolf. A second form of the same fault was found late, by a reader who had not built the tool: the report's error and warning counts included the findings of the two checks that read the date, so the example's files would have gone stale on the first day a review lapsed or a question passed its due date. The test that was meant to prevent it compared two adjacent days, and nothing changes between two adjacent days. It now runs the example on a day years ahead, when everything has lapsed.
 
 **Not taken.** Rendering on demand only (nothing to read on GitHub, no diff). Hand-maintained diagrams (drift).
 

@@ -40,15 +40,16 @@ node ../../tools/pds.mjs impact RULE-invoice-total     # what a change to this r
 node ../../tools/pds.mjs lint                 # no errors; warnings for what is left to do
 ```
 
-Link it as `pds` with `npm link` from this folder if you prefer.
+Link it as `pds` with `npm link`, run from `product-definition-system/`, if you prefer. The commands below assume you have; otherwise write `node /path/to/product-definition-system/tools/pds.mjs` for `pds`.
 
 Start your own:
 
 ```sh
-node tools/pds.mjs init my-product --name "My Product"
+pds init my-product --name "My Product"
 cd my-product
-pds status      # 99 records already exist: a skeleton to confirm, correct or delete
+pds status      # 99 records already exist: the product, and a skeleton to confirm, correct or delete
 pds next        # the queue: everything is outlined before anything is specified
+pds views       # the product map, matrices and the rest, written as files under views/
 ```
 
 `pds init` writes `pds.yaml`, the product record and a **skeleton**: a stub for each domain, capability, actor, role, surface, obligation and foundational question that a SaaS profile expects. The skeleton is the full-coverage template. It is made of prompts, not decisions, so every skeleton record is capped at *outlined* until a person confirms it, and `pds status` counts the ones nobody has.

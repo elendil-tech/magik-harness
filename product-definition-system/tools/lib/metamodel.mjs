@@ -387,6 +387,7 @@ export function validateMeta(meta, impl = {}) {
     if (!SEVERITIES.includes(c.sev)) add(w, `bad severity ${c.sev}`);
     if (c.from && !ladder.includes(c.from)) add(w, `bad from ${c.from}`);
     if (!c.doc) add(w, "needs a doc");
+    if (c.calendar !== undefined && c.calendar !== true) add(w, "calendar is either true or left out");
     for (const rel of c.uses || []) {
       if (!meta.relations.has(rel)) add(w, `unknown relation ${rel}`);
       else consumed.add(rel);

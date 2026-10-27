@@ -345,8 +345,12 @@ export function renderRelease(V, target) {
 
 // ------------------------------------------------------------------- coverage
 
-/** Numbers behind the coverage report and `pds status`. */
-export function computeStats(a) {
+/**
+ * Numbers behind the coverage report and `pds status`. A finding that reads today's date (a lapsed
+ * review, a question past its due date) is counted unless `calendar` is false. A file leaves those out:
+ * one that changed with the calendar alone would fail `pds views --check` on a day nothing was edited.
+ */
+export function computeStats(a, { calendar = true } = {}) {
   const { model, meta, maturity } = a;
   const ladder = meta.ladder;
   const blank = () => Object.fromEntries(ladder.map((l) => [l, 0]));
@@ -386,6 +390,9 @@ export function computeStats(a) {
   const orderedFamilies = inOrder(byFamily, Object.keys(meta.families));
   const orderedTypes = inOrder(byType, [...meta.types.keys()]);
   const orderedTiers = inOrder(byTier, Object.keys(meta.tiers));
+  const dated = new Set(meta.checks.filter((c) => c.calendar).map((c) => c.id));
+  const counted = calendar ? a.findings : a.findings.filter((f) => !dated.has(f.id));
+  const count = (sev) => counted.filter((f) => f.sev === sev).length;
   return {
     elements: maturity.size,
     retired: model.elements.size - maturity.size,
@@ -399,8 +406,8 @@ export function computeStats(a) {
     over,
     probes: { applicable: probes, answered, outstanding: [...outstanding].sort((x, y) => y[1] - x[1]) },
     approvals: { tiers, from, needed: units.length, current: units.filter((u) => u.approved && !u.stale).length, stale: units.filter((u) => u.stale).length, pending: units.filter((u) => !u.approved).length },
-    errors: a.counts.error,
-    warnings: a.counts.warn,
+    errors: count("error"),
+    warnings: count("warn"),
     gaps: a.gaps.length,
   };
 }
@@ -409,7 +416,7 @@ const bar = (x, w = 12) => "█".repeat(Math.round(x * w)) + "░".repeat(w - Ma
 
 export function renderCoverage(V) {
   const { model, meta, a } = V;
-  const s = computeStats(a);
+  const s = computeStats(a, { calendar: false });
   const ladder = meta.ladder;
   const prod = model.all("PROD")[0];
   const out = [`# Coverage report${prod ? ": " + prod.title : ""}\n`];
@@ -417,6 +424,7 @@ export function renderCoverage(V) {
   out.push(`Profile ${a.config.profile || "none"} · adoption ${a.config.adoption} · modules ${[...a.config.modules].join(", ")}\n`);
   out.push(table(["", ""], [["Elements", `${s.elements}${s.retired ? ` (+${s.retired} retired)` : ""}`], ["Overall depth", `${Math.round(s.overall * 100)}% ${bar(s.overall)}`], ["Errors / warnings", `${s.errors} / ${s.warnings}`], ["Claims above what the definition supports", s.over], ["Unconfirmed skeleton elements", s.skeleton], ["Gaps to the next rung", s.gaps], [`Approvals asked for (tier ${s.approvals.tiers.join(", ")} claiming ${s.approvals.from} or better)`, `${s.approvals.needed}: ${s.approvals.current} current · ${s.approvals.stale} stale · ${s.approvals.pending} not yet given`]]));
   out.push("Depth is how far up the ladder what exists has climbed. It says nothing about what has not been written at all: see _Blind spots_ below.\n");
+  out.push("Errors and warnings here leave out the findings that read today's date (a review that has lapsed, a question past its due date), so that this file is the same on any day. `pds lint` reports them.\n");
 
   out.push("## Depth by family\n", table(["Family", ...ladder, "Depth"], Object.entries(s.byFamily).map(([f, d]) => [meta.families[f].title, ...ladder.map((l) => d[l]), `${Math.round(s.score[f] * 100)}% ${bar(s.score[f], 8)}`])));
   out.push("## Depth by tier\n", "Critical work is where a gap costs most, so it is the row to read first.\n", table(["Tier", ...ladder, "Depth"], Object.entries(s.byTier).map(([t, d]) => [`${t} · ${meta.tiers[t].name}`, ...ladder.map((l) => d[l]), `${Math.round(s.tierScore[t] * 100)}% ${bar(s.tierScore[t], 8)}`])));

@@ -910,7 +910,7 @@ Adoption: `core`. Lives under: `PROD`, `DOM`, `CAP`, `FEAT`.
 | Field | Type | Takes | Needed for | Meaning |
 | --- | --- | --- | --- | --- |
 | `status` | enum | open \| answered \| dropped | `outlined` | Where it stands. |
-| `blocking` | bool | true \| false | `outlined` | True when the elements it concerns cannot be called specified until it is answered. |
+| `blocking` | bool | true \| false | `outlined` | True when the elements it concerns, and the elements above them on the spine, cannot be called specified until it is answered. |
 | `asked_of` | string | text | optional | Who can answer it. |
 | `due` | date | YYYY-MM-DD | optional | When an answer is needed (YYYY-MM-DD). |
 | `answer` | text | text | optional | The answer, once there is one. Required when the status is answered. |

@@ -16,6 +16,8 @@ Profile saas · adoption standard · modules core, tenancy, identity, commercial
 
 Depth is how far up the ladder what exists has climbed. It says nothing about what has not been written at all: see _Blind spots_ below.
 
+Errors and warnings here leave out the findings that read today's date (a review that has lapsed, a question past its due date), so that this file is the same on any day. `pds lint` reports them.
+
 ## Depth by family
 
 | Family | stub | outlined | specified | verifiable | Depth |

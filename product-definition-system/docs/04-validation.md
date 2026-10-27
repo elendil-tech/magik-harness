@@ -22,7 +22,7 @@ The question *"is it complete?"* gets four different kinds of answer, from four 
 
 Maturity describes **the definition**, not the delivery. A feature can be `verifiable` and unbuilt, or built and `stub`.
 
-**Declared and computed.** The author writes the rung they claim (`maturity:`). The tool computes the rung the content supports. The computed rung is the highest rung for which every error-severity rule at that rung and below holds, and then it is capped by the gates and by a ceiling. A claim above the computed rung is an error (`GOV-claim`) that names every rule failing. A claim below it is allowed: you may be conservative.
+**Declared and computed.** The author writes the rung they claim (`maturity:`). The tool computes the rung the content supports. The computed rung is the highest rung for which every error-severity rule at that rung and below holds, and then it is capped by the gates and by a ceiling. A claim above the computed rung is an error, and three checks between them see every case. `GOV-claim` fires when the rules do not support the claim, and names every rule failing. `GOV-skeleton` and `GOV-blocking-question` fire when the rules would support it and a gate caps it. A claim below the computed rung is allowed: you may be conservative.
 
 **The ceiling.** A rung that nothing is checked at proves nothing. So only a type that has a rule at the top rung can be computed `verifiable`: features, flows, requirements, rules, state machines and obligations, each of which has a rule that asks for a test or an explicit way to prove it. A decision, a glossary term or a persona has nothing to verify, and tops out at `specified`.
 
@@ -118,7 +118,7 @@ A gate caps what an element can be computed at, whatever else is true of it.
 | Gate | Caps at | When |
 |---|---|---|
 | `GATE-skeleton` | `outlined` | The element's `origin` is `skeleton`: a starting point nobody has confirmed. To lift it a person reads it, corrects it and sets `origin: human`. |
-| `GATE-blocking-question` | `outlined` | An open question with `blocking: true` concerns the element, or anything anchored beneath it. Answer it (or decide it does not block) to lift it. |
+| `GATE-blocking-question` | `outlined` | An open question with `blocking: true` concerns the element, or anything anchored beneath it. So a question reaches what it concerns and every element above that on the spine (a parent is not specified while something inside it is in question), and not what is anchored beneath what it concerns. Answer it (or decide it does not block) to lift it. |
 | `GATE-retired` | none | A retired element is excluded from coverage and from the queue. |
 
 A gate is why `pds init` can write 99 records and still report 0 % depth: the skeleton is capped, and cannot be argued above it by writing prose into it.
@@ -148,7 +148,9 @@ definition/structure/CAP-collect-payments.md
 181 elements: 79 stub · 4 outlined · 77 specified · 21 verifiable
 ```
 
-`pds lint` exits `1` on any error, and with `--strict` on any warning. `--json` gives the same findings for a machine, `--element ID` narrows to one element, `--verbose` adds notes.
+`pds lint` exits `1` on any error, and with `--strict` on any warning. `--json` gives the same findings for a machine, `--element ID` narrows to one element, `--verbose` adds notes. `pds status`, `pds next` and `pds ask` report and exit `0` however much is wrong: only `lint` fails on findings.
+
+Two checks read today's date, `GOV-freshness` and `GOV-overdue`, and the model marks them `calendar: true`. `--today DATE` (or `PDS_TODAY`) pins the date for a repeatable run, which is what the tests do. The generated views leave the findings of those two out, so that they are the same on any day ([05 §6](05-views.md#6-rules-the-generator-follows)).
 
 Every check is covered by a test that breaks the example in exactly one way and asserts that check fires, and a helper refuses to assert on a code that does not exist, so a test cannot pass by naming a check that was renamed away.
 

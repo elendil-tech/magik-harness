@@ -47,4 +47,6 @@ A definition that claims to be finished is the thing to distrust. Three kinds of
 - **Open questions and deferrals.** Four non-blocking questions ([`QST-overpayment`](definition/change/QST-overpayment.md), [`QST-audit-log`](definition/change/QST-audit-log.md), [`QST-client-data-requests`](definition/change/QST-client-data-requests.md), [`QST-refunds-and-disputes`](definition/change/QST-refunds-and-disputes.md)) stand behind probe dispositions marked `deferred`, so each gap has a name and a due date.
 - **Approvals still to give.** `CAP-collect-payments` and `FEAT-pay-invoice-online` claim *specified* and are critical, but no one has approved them, so `pds lint` warns. The other critical work is approved, and editing anything under an approved element shows as stale until it is approved again.
 
+**Dates run out.** Its due dates and review dates are fixed text, written on 27 October 2026. From 2 December 2026 `pds lint` adds a `GOV-overdue` warning for each question past its due date, and from 27 December the approved critical elements are older than their 60-day review period, so `GOV-freshness` asks for them to be reviewed again. That is those checks working. The generated views do not change with the date.
+
 Things the example does not try to cover: the rest of the skeleton, an API, a back office, localisation, and anything past the first release.

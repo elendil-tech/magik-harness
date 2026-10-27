@@ -614,9 +614,9 @@ checks:
   - {id: GOV-tier1-approval, class: GOV, sev: warn, doc: "Every approval that policy asks for exists. Policy asks for one when a critical (tier 1) element claims specified or better. The unit of approval is the unit of build: one approval of a feature covers everything anchored beneath it, and one of a capability covers what is shared at its level, so the elements inside a unit are not asked separately."}
   - {id: GOV-skeleton, class: GOV, sev: error, doc: "An element whose origin is skeleton claims no more than outlined and is not approved until a person has confirmed it."}
   - {id: GOV-lifecycle-note, class: GOV, sev: error, doc: "A deprecated or retired element says why and what replaces it."}
-  - {id: GOV-freshness, class: GOV, sev: warn, doc: "An approved element has been reviewed within its tier's review period."}
-  - {id: GOV-overdue, class: GOV, sev: warn, doc: "An assumption past its validate_before date, or a question past its due date, is still open."}
-  - {id: GOV-blocking-question, class: GOV, sev: error, doc: "An element does not claim specified while an open blocking question concerns it."}
+  - {id: GOV-freshness, class: GOV, sev: warn, calendar: true, doc: "An approved element has been reviewed within its tier's review period. Reads today's date."}
+  - {id: GOV-overdue, class: GOV, sev: warn, calendar: true, doc: "An assumption past its validate_before date, or a question past its due date, is still open. Reads today's date."}
+  - {id: GOV-blocking-question, class: GOV, sev: error, doc: "An element does not claim specified while an open blocking question reaches it: one that concerns it, or anything anchored beneath it (GATE-blocking-question)."}
   # ---- PRB: concern probes
   - {id: PRB-disposition, class: PRB, sev: error, doc: "A probe disposition is addressed, na or deferred; na and deferred give a reason, and deferred names a question or a date."}
   - {id: PRB-addressed, class: PRB, sev: error, doc: "An addressed probe names the elements that address it, and they exist."}
@@ -626,7 +626,7 @@ checks:
 gates:
   - id: GATE-blocking-question
     caps_at: outlined
-    doc: "While an open blocking question concerns an element, or any element that anchors under it, the element cannot be computed above outlined."
+    doc: "While an open blocking question concerns an element, or anything anchored beneath it, the element cannot be computed above outlined. A question reaches what it concerns and every element above that on the spine, so a parent is not specified while something inside it is in question; it does not reach what is anchored beneath the element it concerns."
   - id: GATE-skeleton
     caps_at: outlined
     doc: "An element whose origin is skeleton cannot be computed above outlined, however complete it looks, until a person confirms it and the origin changes."

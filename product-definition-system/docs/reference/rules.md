@@ -381,9 +381,9 @@ Coded checks for what a declarative rule cannot say. `from` is the rung an eleme
 | `GOV-tier1-approval` | warn | any |  | Every approval that policy asks for exists. Policy asks for one when a critical (tier 1) element claims specified or better. The unit of approval is the unit of build: one approval of a feature covers everything anchored beneath it, and one of a capability covers what is shared at its level, so the elements inside a unit are not asked separately. |
 | `GOV-skeleton` | error | any |  | An element whose origin is skeleton claims no more than outlined and is not approved until a person has confirmed it. |
 | `GOV-lifecycle-note` | error | any |  | A deprecated or retired element says why and what replaces it. |
-| `GOV-freshness` | warn | any |  | An approved element has been reviewed within its tier's review period. |
-| `GOV-overdue` | warn | any |  | An assumption past its validate_before date, or a question past its due date, is still open. |
-| `GOV-blocking-question` | error | any |  | An element does not claim specified while an open blocking question concerns it. |
+| `GOV-freshness` | warn | any |  | An approved element has been reviewed within its tier's review period. Reads today's date. |
+| `GOV-overdue` | warn | any |  | An assumption past its validate_before date, or a question past its due date, is still open. Reads today's date. |
+| `GOV-blocking-question` | error | any |  | An element does not claim specified while an open blocking question reaches it: one that concerns it, or anything anchored beneath it (GATE-blocking-question). |
 
 ### PRB
 
@@ -397,6 +397,6 @@ Coded checks for what a declarative rule cannot say. `from` is the rung an eleme
 
 | Gate | Caps at | Meaning |
 | --- | --- | --- |
-| `GATE-blocking-question` | `outlined` | While an open blocking question concerns an element, or any element that anchors under it, the element cannot be computed above outlined. |
+| `GATE-blocking-question` | `outlined` | While an open blocking question concerns an element, or anything anchored beneath it, the element cannot be computed above outlined. A question reaches what it concerns and every element above that on the spine, so a parent is not specified while something inside it is in question; it does not reach what is anchored beneath the element it concerns. |
 | `GATE-skeleton` | `outlined` | An element whose origin is skeleton cannot be computed above outlined, however complete it looks, until a person confirms it and the origin changes. |
 | `GATE-retired` | `none` | A retired element is excluded from coverage and from the gap queue. |

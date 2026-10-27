@@ -726,7 +726,7 @@ types:
     summary: "Something that must be answered before part of the definition can be trusted."
     fields:
       status: {type: enum, values: [open, answered, dropped], required_at: outlined, doc: "Where it stands."}
-      blocking: {type: bool, required_at: outlined, doc: "True when the elements it concerns cannot be called specified until it is answered."}
+      blocking: {type: bool, required_at: outlined, doc: "True when the elements it concerns, and the elements above them on the spine, cannot be called specified until it is answered."}
       asked_of: {type: string, doc: "Who can answer it."}
       due: {type: date, doc: "When an answer is needed (YYYY-MM-DD)."}
       answer: {type: text, doc: "The answer, once there is one. Required when the status is answered."}

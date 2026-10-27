@@ -101,7 +101,7 @@ The definition is *done enough to build from* when, for the tiers you have decid
 
 - `pds lint` has **no errors**, and every warning is either fixed or a decision you can explain;
 - no element **claims** more than it supports;
-- **no blocking question** is open against anything you are about to build;
+- **no blocking question** is open about what you are about to build (the feature, or anything inside it);
 - each tier 1 unit is **approved and current**;
 - tier 1 and 2 features have their **concern probes answered or waived with a reason**.
 
