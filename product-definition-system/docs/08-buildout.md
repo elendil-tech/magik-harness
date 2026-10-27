@@ -76,11 +76,13 @@ As of 27 October 2026, on macOS (Apple M2 Pro, 16 GB).
 
 | What | Result |
 |---|---|
-| `npm test` | passes on Node 20.12.2, 22.9.0, 22.13.0, 24.21.0 and 25.9.0 |
+| `npm test` | 479 tests pass on Node 20.12.2, 22.9.0, 22.13.0, 24.21.0 and 25.9.0 |
 | `npm run check` | passes: the model is consistent, the reference and the example's 70 generated files are current, the example has 0 errors and 2 warnings that name real work |
 | YAML parity | 205 of 205 sources identical with PyYAML 6.0.3 |
 | Diagram rendering | all 29 diagrams parse and draw in Mermaid 11.17.2 in headless Chrome; the negative control (two deliberately broken diagrams) is caught |
 | Scale | the shape holds; times in [§5](#5-measured-scale) |
+| Independent review | A reviewer who had not written the documents read all of them against the code and the model: 18 findings. One was a real defect (the generated coverage view changed with the date, so `views --check` could fail on a day nothing had changed), now held by a test that fails without the fix. The rest were wording that two readings could take differently, and are rewritten. |
+| Adversarial testing | Two passes by a tester told to break the command line, about 150 experiments in all: hostile files, links, a `pds.yaml` that points elsewhere, odd arguments, a rename stopped halfway, a broken meta-model. Fifteen findings were reproduced. Thirteen are fixed and two are kept as designed (`--out` is taken from where the command is run); three more were found while fixing them. Every fix has a test in `hostile.test.mjs` that fails on the code from before it ([09 D31 to D33](09-decisions.md#d31-a-project-is-what-is-inside-its-folder)). |
 
 **Not verified.** Windows and Linux (the work was done and run on macOS only). Browsers other than Chrome (the diagram check renders in one). Anyone other than the maintainer using it on a real product: the example is invented, and no team has yet lived with the tool for a quarter. Whether the 27 probes and the tier cadences are the right defaults is a judgement the tests cannot make, and it will take a real product to settle it.
 
