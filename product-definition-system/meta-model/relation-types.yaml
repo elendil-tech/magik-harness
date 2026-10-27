@@ -22,6 +22,10 @@ version: 1
 impact:
   strong_hops: 2   # a strong edge keeps propagating up to this many hops from the change
   weak_hops: 1     # a weak edge is only followed at the first hop
+  # The spine itself carries impact. Change a feature and what is anchored on
+  # it (flows, screens, requirements) must be reviewed; change one of those and
+  # the feature that holds it should be.
+  anchor: {down: strong, up: weak}
 
 relations:
   # ---------------------------------------------------------- why it exists
@@ -260,7 +264,7 @@ relations:
     doc: "The source replaces the target. The target is deprecated or retired and kept for history."
     allow:
       - {from: ['*'], to: ['*'], same_type: true}
-    impacts: {to: weak, from: none}
+    impacts: {to: none, from: none}   # history: a change to the newer element does not reach the retired one
 
   # ---------------------------------------------------- experience and coupling
   depends_on:

@@ -28,7 +28,7 @@
 #     module    the profile must enable this module (default: core)
 #   require  the condition, built from atoms:
 #     all / any / not
-#     field: NAME            (+ equals, in, min_items)
+#     field: NAME            (+ equals, one_of, min_items)
 #     section: HEADING, block: NAME
 #     out: REL               outgoing edges   (+ to, min, max, attr, where, include)
 #     in: REL                incoming edges   (+ from, min, max, attr, where, include)
@@ -550,6 +550,7 @@ rules:
 # plain statement of what it enforces. `class` groups them in reports.
 checks:
   # ---- SCH: structure of the records themselves
+  - {id: SCH-project, class: SCH, sev: error, doc: "pds.yaml has only known keys, a known profile, adoption and modules, and every rule or probe it switches off exists and has a reason."}
   - {id: SCH-frontmatter, class: SCH, sev: error, doc: "A record opens with a frontmatter block that parses as PDS-YAML."}
   - {id: SCH-id-form, class: SCH, sev: error, doc: "An id is a known type prefix, a hyphen and a lowercase kebab slug (FEAT-send-invoice)."}
   - {id: SCH-id-file, class: SCH, sev: error, doc: "The file is named after the id and sits in the folder of its family."}
@@ -616,7 +617,7 @@ checks:
   # ---- PRB: concern probes
   - {id: PRB-disposition, class: PRB, sev: error, doc: "A probe disposition is addressed, na or deferred; na and deferred give a reason, and deferred names a question or a date."}
   - {id: PRB-addressed, class: PRB, sev: error, doc: "An addressed probe names the elements that address it, and they exist."}
-  - {id: PRB-unknown, class: PRB, sev: warn, doc: "Every probe named on a feature exists in the profile and applies to the feature."}
+  - {id: PRB-unknown, class: PRB, sev: warn, doc: "Every probe named on a feature exists."}
 
 # ===================================================================== gates
 gates:

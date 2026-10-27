@@ -9,6 +9,8 @@
 #   types        for ref and refs: the element types allowed ('*' = any)
 #   default      value assumed when the field is absent
 #   shape        for type shape: the name of a structured shape checked in code
+#   edge         for ref and refs: the relation the reference produces in the graph
+#                (edge_attrs: attributes on it), or `none` when it is plain data
 # Sections are headings in the body of the record. `ask` is the question the
 # section has to answer; it is written into new records as a comment and is
 # used by the elicitation guide. A section or block can be limited to some
@@ -21,7 +23,7 @@ envelope:
   id: {type: string, required_at: stub, doc: "Immutable identity: TYPE-slug, for example FEAT-send-invoice. The slug is a mnemonic frozen at creation; it never has to follow later renames of the title. Must equal the file name."}
   title: {type: string, required_at: stub, doc: "The human name. May change freely; everything links by id."}
   summary: {type: string, required_at: outlined, doc: "One sentence, 200 characters at most, no line breaks. Used on summary cards, in tables and as hover text."}
-  anchor: {type: ref, types: ['*'], required_at: stub, doc: "Home on the spine: the one element this one lives under. Everything except the product has exactly one."}
+  anchor: {type: ref, types: ['*'], edge: anchor, required_at: stub, doc: "Home on the spine: the one element this one lives under. Everything except the product has exactly one."}
   maturity: {type: enum, values: [stub, outlined, specified, verifiable], required_at: stub, doc: "The rung the author claims. The rules compute the rung the definition really supports; claiming more is an error."}
   tier: {type: enum, values: [1, 2, 3], doc: "Criticality, which sets how deep the definition must go. Inherited from the anchor chain when absent."}
   approval: {type: shape, shape: approval, doc: "Who signed this off, when, and the content hash they signed. Absent means draft."}
@@ -164,7 +166,7 @@ types:
     summary: "A named bundle of permissions assigned within a scope."
     fields:
       scope: {type: enum, values: [platform, account, workspace, resource], required_at: outlined, doc: "The context in which the role is held."}
-      assignable_by: {type: ref, types: [ROLE], doc: "The role that may assign this one."}
+      assignable_by: {type: ref, types: [ROLE], edge: none, doc: "The role that may assign this one."}
       min_holders: {type: int, doc: "The fewest people who must hold it, for example 1 for an owner."}
       max_holders: {type: int, doc: "The most people who may hold it."}
     sections:
@@ -275,8 +277,8 @@ types:
     summary: "A goal an actor wants to reach with the product, with its triggers and end states. Flows realise it."
     fields:
       goal: {type: string, required_at: outlined, doc: "What the actor wants to achieve, in one sentence."}
-      primary_actor: {type: ref, types: [ACT, ROLE, PERS], required_at: outlined, doc: "Who wants it."}
-      supporting_actors: {type: refs, types: [ACT, ROLE, PERS], doc: "Others who take part."}
+      primary_actor: {type: ref, types: [ACT, ROLE, PERS], edge: audience, edge_attrs: {primary: true}, required_at: outlined, doc: "Who wants it."}
+      supporting_actors: {type: refs, types: [ACT, ROLE, PERS], edge: audience, doc: "Others who take part."}
       trigger: {type: string, required_at: specified, doc: "What starts it."}
       preconditions: {type: strings, doc: "What must be true before it can start."}
       success: {type: text, required_at: specified, doc: "The state of the world when it has worked."}
@@ -290,7 +292,7 @@ types:
     anchors: [PROD, DOM]
     summary: "An end-to-end experience across stages and touchpoints, from the person's point of view."
     fields:
-      persona: {type: ref, types: [PERS, ACT], doc: "Whose journey it is."}
+      persona: {type: ref, types: [PERS, ACT], edge: audience, doc: "Whose journey it is."}
       outcome: {type: string, required_at: outlined, doc: "What the person has achieved at the end."}
     blocks:
       pds-journey: {required_at: specified, doc: "stages: a list of {id, name, goal, actions, touchpoints, flows, feeling (1-5), pain, opportunity}."}
@@ -337,8 +339,8 @@ types:
     fields:
       channel: {type: enum, values: [email, in_app, push, sms, webhook], required_at: outlined, doc: "How it is delivered."}
       class: {type: enum, values: [transactional, lifecycle, marketing, system_alert], required_at: outlined, doc: "What sort of message it is, which decides consent and opt-out rules."}
-      trigger_event: {type: ref, types: [EVT], required_at: specified, doc: "The event that causes it to be sent."}
-      audience: {type: ref, types: [ACT, ROLE], required_at: specified, doc: "Who receives it."}
+      trigger_event: {type: ref, types: [EVT], edge: consumes, required_at: specified, doc: "The event that causes it to be sent."}
+      audience: {type: ref, types: [ACT, ROLE], edge: audience, required_at: specified, doc: "Who receives it."}
       user_controllable: {type: bool, required_at: specified, doc: "True when the recipient can switch it off."}
     sections:
       - {heading: Purpose and content, required_at: outlined, ask: "Why is it sent, what does it say, and what should the recipient do?"}
