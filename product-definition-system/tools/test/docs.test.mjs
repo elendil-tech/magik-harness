@@ -324,6 +324,29 @@ describe("what the documents promise a new project", () => {
     for (const file of ["docs/01-assessment.md"]) assert.match(read(file), new RegExp(`\\b${files} files for the example`), "the number of generated files");
   });
 
+  test("the build-out is about as big as it says", () => {
+    const walk = (dir, ext) =>
+      readdirSync(join(PROJECT_ROOT, dir), { withFileTypes: true }).flatMap((e) => {
+        const path = join(dir, e.name);
+        return e.isDirectory() ? walk(path, ext) : e.name.endsWith(ext) ? [path] : [];
+      });
+    const linesIn = (paths) => paths.reduce((sum, p) => sum + read(p).split("\n").length - 1, 0);
+    const text = read("docs/08-buildout.md");
+    const quoted = (re) => {
+      const m = re.exec(text);
+      assert.ok(m, `docs/08-buildout.md says ${re}`);
+      return Number(m[1].replace(/,/g, ""));
+    };
+
+    // Rounded figures: the tolerance is what lets the sentence survive ordinary edits, and not a major growth.
+    const near = (said, actual, what) => assert.ok(Math.abs(said - actual) <= actual * 0.1, `${what}: the document says about ${said} and there are ${actual}`);
+    near(quoted(/About ([\d,]+) lines of JavaScript/), linesIn([...walk("tools/lib", ".mjs"), "tools/pds.mjs"]), "lines of JavaScript");
+    near(quoted(/About ([\d,]+) lines of YAML/), linesIn(walk("meta-model", ".yaml")), "lines of YAML");
+
+    const testFiles = readdirSync(join(PROJECT_ROOT, "tools", "test")).filter((f) => f.endsWith(".test.mjs")).length;
+    assert.equal(quoted(/(\d+) test files/), testFiles, "test files");
+  });
+
   test("the example uses the types the assessment says it uses", () => {
     const standard = meta.enabledTypes("standard");
     const used = new Set(analyseRoot(join(PROJECT_ROOT, "examples", "ledgerly")).model.all().map((e) => e.type));

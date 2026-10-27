@@ -39,62 +39,98 @@ function synthetic(n) {
 }
 
 const run = ({ config, files }) => analyse({ meta, project: { config, files, problems: [] }, today: TODAY });
-/** CPU time, not wall time, so a busy machine does not look like a slow algorithm. */
+
+/**
+ * CPU time and not wall time, so that a busy machine does not look like a slow algorithm. It counts the
+ * engine's helper threads (the compiler and the collector) as well, which is why every measurement below
+ * runs the work a few times first.
+ */
 const cpuMs = (fn) => {
   const t = process.cpuUsage();
   fn();
   const u = process.cpuUsage(t);
   return (u.user + u.system) / 1000;
 };
-const best = (project) => Math.min(cpuMs(() => run(project)), cpuMs(() => run(project)));
+
+/** The two sizes: a definition and one eight times as big. Linear work costs eight times as much, a scan of everything for each thing sixty-four. */
+const SMALL = 1000;
+const LARGE = 8000;
+/**
+ * Where the line sits for each piece of work, between what the code costs and what the scans it once
+ * had cost. Linear work measures 5 to 11 here (a little over 8 when the memory it touches no longer fits
+ * in the cache), and printing the queue up to 17. The scans measured 42 for the views and 69 for the
+ * queue, and the maturity computation of an earlier version, which cost 15 times as much for 4 times the
+ * records, would have measured about 60.
+ */
+const BOUND = { analysis: 20, views: 20, queue: 32 };
+
+const memo = (make) => {
+  const made = new Map();
+  return (n) => (made.has(n) ? made.get(n) : made.set(n, make(n)).get(n));
+};
+const projectOf = memo(synthetic);
+const analysisOf = memo((n) => run(projectOf(n)));
+
+/**
+ * What `work` costs on a small and on a large input, and the ratio of the two. The runs alternate and the
+ * best of each is kept: a slow moment adds time to a run and never takes any away, and a machine whose pace
+ * changes during the measurement then changes both sides.
+ */
+function growth(work, small, large, rounds = 5) {
+  for (let i = 0; i < 2; i++) {
+    work(small);
+    work(large);
+  }
+  let a = Infinity;
+  let b = Infinity;
+  for (let i = 0; i < rounds; i++) {
+    a = Math.min(a, cpuMs(() => work(small)));
+    b = Math.min(b, cpuMs(() => work(large)));
+  }
+  return { small: a, large: b, ratio: b / Math.max(a, 0.5) };
+}
+
+/**
+ * Passes when the work grows by less than `bound` for the size the large input is. A timing is noisy
+ * where a complexity is not: a regression to scanning everything for each thing fails every attempt by a
+ * wide margin, and a noisy attempt does not, so a miss is tried again, twice, before it counts.
+ */
+function assertScales(t, what, bound, work, small, large) {
+  const seen = [];
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const g = growth(work, small, large);
+    seen.push(g);
+    t.diagnostic(`${what}: ${g.small.toFixed(0)} ms for ${SMALL} records, ${g.large.toFixed(0)} ms for ${LARGE} (${g.ratio.toFixed(1)}x for ${LARGE / SMALL}x the records)`);
+    if (g.ratio < bound) return g;
+  }
+  assert.fail(`${what} cost ${seen.map((g) => `${g.ratio.toFixed(1)}x`).join(", ")} for ${LARGE / SMALL}x the records, three times over; linear work costs about ${LARGE / SMALL}x and a scan of everything for each thing ${(LARGE / SMALL) ** 2}x`);
+}
 
 describe("the analysis scales", () => {
   test("a synthetic definition is clean, so the timings measure the work and not error reporting", () => {
-    const a = run(synthetic(600));
+    const a = analysisOf(600);
     assert.equal(a.counts.error, 0, a.findings.slice(0, 3).map((f) => `${f.id} ${f.msg}`).join("\n"));
     assert.equal(a.model.elements.size, 600);
   });
 
-  test("four times the records cost far less than sixteen times the time", (t) => {
-    const small = synthetic(2000);
-    const large = synthetic(8000);
-    best(small); // warm the engine so the small run is not charged for compiling the code
-    const tSmall = best(small);
-    const tLarge = best(large);
-    t.diagnostic(`2000 records ${tSmall.toFixed(0)} ms, 8000 records ${tLarge.toFixed(0)} ms (${(tLarge / tSmall).toFixed(1)}x)`);
-    // linear is 4, n log n a little over, quadratic 16: the bound sits between the two
-    assert.ok(tLarge / tSmall < 9, `8000 records took ${tLarge.toFixed(0)} ms against ${tSmall.toFixed(0)} ms for 2000: ${(tLarge / tSmall).toFixed(1)}x for 4x the records`);
-    assert.ok(tLarge < 20000, `8000 records took ${tLarge.toFixed(0)} ms`);
+  test("eight times the records cost far less than sixty-four times the time", (t) => {
+    const g = assertScales(t, "the analysis", BOUND.analysis, run, projectOf(SMALL), projectOf(LARGE));
+    assert.ok(g.large < 20000, `${LARGE} records took ${g.large.toFixed(0)} ms`);
   });
 
   // What the analysis returns is read by the views and by the commands that print the queue.
   // Each of those once searched the whole definition for every feature or every gap, which is
   // quadratic and shows only on a definition too big to try by hand.
-  test("the views: four times the records cost far less than sixteen times the time", (t) => {
-    const small = run(synthetic(2000));
-    const large = run(synthetic(8000));
-    const cost = (a) => Math.min(...[1, 2, 3, 4].map(() => cpuMs(() => plan(a))));
-    plan(small); // warm
-    plan(large);
-    const tSmall = cost(small);
-    const tLarge = cost(large);
-    t.diagnostic(`2000 records ${tSmall.toFixed(0)} ms, 8000 records ${tLarge.toFixed(0)} ms (${(tLarge / tSmall).toFixed(1)}x)`);
-    // linear is 4 and the search it replaced was 9.7: the bound sits between them
-    assert.ok(tLarge / tSmall < 7, `8000 records took ${tLarge.toFixed(0)} ms against ${tSmall.toFixed(0)} ms for 2000: ${(tLarge / tSmall).toFixed(1)}x for 4x the records`);
+  test("the views: eight times the records cost far less than sixty-four times the time", (t) => {
+    assertScales(t, "the views", BOUND.views, (a) => plan(a), analysisOf(SMALL), analysisOf(LARGE));
   });
 
-  test("the queue: four times the gaps cost far less than sixteen times the time", (t) => {
-    const small = run(synthetic(2000));
-    const large = run(synthetic(8000));
-    assert.ok(large.gaps.length > 4 * 1000, `the large definition has gaps to print (${large.gaps.length})`);
+  test("the queue: eight times the gaps cost far less than sixty-four times the time", (t) => {
+    const small = analysisOf(SMALL);
+    const large = analysisOf(LARGE);
+    assert.ok(large.gaps.length > 8 * 1000, `the large definition has gaps to print (${large.gaps.length})`);
     // Ten passes a measurement: one pass is a few milliseconds, which is mostly noise.
-    const cost = (a) => Math.min(...[1, 2, 3].map(() => cpuMs(() => { for (let i = 0; i < 10; i++) formatGaps(a.gaps); })));
-    cost(small); // warm
-    const tSmall = cost(small);
-    const tLarge = cost(large);
-    t.diagnostic(`${small.gaps.length} gaps ${tSmall.toFixed(0)} ms, ${large.gaps.length} gaps ${tLarge.toFixed(0)} ms for ten passes (${(tLarge / Math.max(tSmall, 1)).toFixed(1)}x)`);
-    // linear is 4 and the search it replaced was over 12
-    assert.ok(tLarge / Math.max(tSmall, 1) < 8, `${large.gaps.length} gaps took ${tLarge.toFixed(0)} ms against ${tSmall.toFixed(0)} ms for ${small.gaps.length}`);
+    assertScales(t, `the queue (${small.gaps.length} and ${large.gaps.length} gaps)`, BOUND.queue, (a) => { for (let i = 0; i < 10; i++) formatGaps(a.gaps); }, small, large);
   });
 });
 

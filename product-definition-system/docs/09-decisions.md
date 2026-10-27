@@ -307,3 +307,13 @@ To change a decision, add an entry that says it replaces the old one and leave t
 **Not taken.** A multi-product repository, a portfolio view and further profiles, all on the roadmap.
 
 **Costs.** A company with three products has three projects.
+
+### D30. Scale is asserted as a ratio between two sizes, never as a time
+
+**Decided.** The scale tests compare what the analysis, the views and the queue cost on a definition of 1,000 records and on one of 8,000, and fail when the cost grows far faster than the records. Each ratio is the best of five alternating runs, and a miss is tried twice more before it fails. The only figure in seconds is one generous ceiling.
+
+**Because.** A time belongs to a machine and a ratio belongs to an algorithm. Two quadratic scans got past review and past a small example, and were found only by measuring. A test that holds the shape keeps them from coming back without needing the same computer.
+
+**Not taken.** A time limit, which fails on a slower machine and passes a regression on a faster one. One measurement at each of two close sizes, which was the first version: it failed now and then on a quiet machine, because the time a process spends on the processor includes the engine's compiler and collector, and the ratio sat too close to its limit. Counting operations, which needs instrumentation in the code being tested.
+
+**Costs.** The tests take several seconds. The line between linear and quadratic is a judgement, and has to be set again if the code's constant factors change a great deal ([08 §5](08-buildout.md#5-measured-scale) gives what was measured).

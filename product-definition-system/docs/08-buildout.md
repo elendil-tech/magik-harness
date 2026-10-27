@@ -7,7 +7,7 @@ What exists, how it is checked, how it is extended, where it stops and what come
 | Part | Where | What it is |
 |---|---|---|
 | The model | `meta-model/` | Six YAML files (the model, element types, relations, rules, probes, views) and the `saas` profile with the patterns its skeleton is made from. About 2,500 lines of YAML. [02 §3](02-architecture.md#3-the-meta-model-is-data) |
-| The engine | `tools/lib/` | About 6,000 lines of JavaScript. No dependencies, no build step, Node 20 or later. [§2](#2-the-engine-module-by-module) |
+| The engine | `tools/lib/` | About 6,300 lines of JavaScript. No dependencies, no build step, Node 20 or later. [§2](#2-the-engine-module-by-module) |
 | The command line | `tools/pds.mjs`, `tools/lib/commands/` | 15 commands. [02 §4](02-architecture.md#4-the-tool) |
 | The tests | `tools/test/` | 14 test files and one helper module, more than 400 tests, all of them driving the real code on real files. [§3](#3-how-it-is-verified) |
 | A worked example | `examples/ledgerly/` | An invented invoicing product, lint-clean, with what is unfinished left visible. |
@@ -53,7 +53,7 @@ A claim is only as good as the check that could have failed. Each layer below ca
 | The prose | `tools/test/docs.test.mjs` | Every relative link and heading anchor resolves; every `pds` command and flag shown exists; every rule, check and gate named exists; every count quoted (types, relations, rules, checks, probes, views, commands, modules) is the number the model computes; the families table lists the types in each family; the numbers quoted about the example are what `pds status` prints; the skeleton is as big as the README says. |
 | The YAML subset | `python3 scripts/yaml-parity/compare.py` | Every YAML source the package ships (records, blocks, model files, template examples) means the same to PyYAML as to the project's parser. Needs `pip install pyyaml`. |
 | The diagrams | `node scripts/mermaid-check/build.mjs` | Every Mermaid diagram in the README, the documents and the example's views is parsed and drawn by the real Mermaid library in a browser. The page reports `done:<diagrams>:<failed>`, and a deliberately broken diagram makes it fail. Needs a network connection for the library, and nothing is installed. |
-| Scale | `tools/test/scale.test.mjs`; `node scripts/scale/measure.mjs` | The test holds the shape: four times the records must cost far less than sixteen times the work, for the analysis, the views and the queue. The script prints times. |
+| Scale | `tools/test/scale.test.mjs`; `node scripts/scale/measure.mjs` | The test holds the shape: eight times the records must cost far less than sixty-four times the work, for the analysis, the views and the queue. The script prints times. |
 | Node versions | the suite on each | Node 20, 22, 24 and 25. The runner is the project's own (`scripts/test.mjs`), so one command works on all of them. |
 
 `npm run check` is the quick one: model, reference, views and lint of the example, in a few seconds.
@@ -95,7 +95,11 @@ As of 27 October 2026, on macOS (Apple M2 Pro, 16 GB).
 
 Apple M2 Pro, 16 GB, Node 22. Times move by up to half between runs on a busy machine. A real definition is between a few hundred and a few thousand records; the example has fewer than 200. Every command reads the whole definition each time, with no cache, which is why the floor is a few hundred milliseconds and why time grows with the files, not with the questions asked.
 
-What is asserted is the shape, not the times, because times belong to a machine. Two loops that scanned the whole definition once per feature or per gap were found by measuring and fixed (generating views for 16,000 records took 21 s and now takes about 2 s); the tests that hold the shape fail if either comes back.
+What is asserted is the shape, not the times, because times belong to a machine. The scale tests build a definition of 1,000 records and one of 8,000, and compare what the analysis, the views and the queue cost on each. Linear work costs about 8 times as much for 8 times the records, and a scan of everything for each thing about 64 times. The line sits between what the code costs (4 to 17 times, measured with the machine under a load average of more than 40) and what the scans it once had cost (42 to 117 times for the views, 69 to 77 for the queue).
+
+A timing is noisy where a complexity is not, so each ratio is taken from the best of five runs that alternate between the two sizes, and a miss is tried twice more before it fails. The first version of these tests compared 2,000 records with 8,000 from a single pass at each size, and failed now and then on a quiet machine, which is worse than no test: the alternating runs, the wider spread and the retries are what the rewrite changed.
+
+Two loops that scanned the whole definition once per feature or per gap were found by measuring and fixed (generating views for 16,000 records took 21 s and now takes about 2 s). The tests fail on the code from before the fix and pass on the code after it.
 
 ## 6. Extending
 
