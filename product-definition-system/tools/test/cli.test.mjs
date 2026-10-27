@@ -236,6 +236,11 @@ describe("pds new", () => {
     await refuse(["new", "CAP", "x", "--anchor", "DOM-ordrs"], 2, /did you mean DOM-orders\?/);
     await refuse(["new", "DOM", "x", "--summary", "y".repeat(250)], 2, /one line of at most 200 characters; this one is 250/);
     await refuse(["new", "PROD", "second"], 1, /only one/);
+    await refuse(["new", "DOM", "x", "--title", "   "], 2, /--title is one line of text, and not empty/);
+    await refuse(["new", "DOM", "x", "--title", "two\nlines"], 2, /--title is one line of text/);
+    await refuse(["new", "DOM", "!!!"], 2, /cannot make an id from "!!!"/);
+    await refuse(["new", "DOM", "日本語"], 2, /ids use the letters a-z and digits.*pds new DOM my-slug --title "日本語"/);
+    assert.equal((await pds(["new", "DOM", "my-slug", "--title", "日本語"], { cwd: dir })).code, 0, "the way out the message gives works");
   });
 
   it("will not create a type the project's adoption level does not use", async () => {

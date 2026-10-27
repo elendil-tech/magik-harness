@@ -1,0 +1,19 @@
+{
+  "name": "product-definition-system",
+  "version": "0.1.0",
+  "description": "Define a product completely, at every level, as plain files: a spine of domains, capabilities and features, satellites for everything inside them, a typed graph between them, and a tool that keeps the definition honest.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "pds": "tools/pds.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "pds": "node tools/pds.mjs",
+    "test": "node scripts/test.mjs",
+    "check": "node tools/pds.mjs meta check && node tools/pds.mjs docs --check && node tools/pds.mjs views --check --root examples/ledgerly && node tools/pds.mjs lint --root examples/ledgerly"
+  },
+  "license": "UNLICENSED"
+}

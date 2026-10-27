@@ -99,11 +99,12 @@ export const create = {
     if (!meta.types.has(type)) throw new UsageError(`unknown element type ${typeArg}${closest(type, [...meta.types.keys()]) ? `; did you mean ${closest(type, [...meta.types.keys()])}?` : `; the types are: ${[...meta.types.keys()].join(", ")}`}`);
     // a slug is used as given; anything else is a title, and the slug is made from it
     let slug = name;
-    let title = ctx.flags.title;
+    let title = ctx.flags.title?.trim();
+    if (ctx.flags.title !== undefined && (!title || /[\r\n]/.test(title))) throw new UsageError("--title is one line of text, and not empty");
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name)) {
       slug = slugify(name);
       title ??= name.trim();
-      if (!slug) throw new UsageError(`cannot make an id from "${name}": use letters and digits`);
+      if (!slug) throw new UsageError(`cannot make an id from "${name}": ids use the letters a-z and digits. Give the id a slug and keep the name as the title, for example: pds new ${type} my-slug --title "${name}"`);
     }
     const id = `${type}-${slug}`;
     if (!ID_RE.test(id)) throw new UsageError(`${id} is not a valid id`);

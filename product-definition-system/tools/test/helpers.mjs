@@ -131,8 +131,14 @@ export function analyseRoot(root, { today = TODAY } = {}) {
   return analyse({ meta, project: readProject(meta, root), today });
 }
 
-/** The findings with this code, optionally for one element. */
+/**
+ * The findings with this code, optionally for one element. A code that no check declares is a
+ * mistake in the test, not an absence of findings, so it throws: a test that looks for a
+ * misspelt code would otherwise pass for ever.
+ */
 export function found(analysis, code, element) {
+  const declared = [...meta.checks, ...meta.gates, ...meta.rules, ...meta.implicitRules];
+  if (!declared.some((d) => d.id === code)) throw new Error(`test setup: ${code} is not a check, a gate or a rule`);
   return analysis.findings.filter((f) => f.id === code && (element === undefined || f.element === element));
 }
 

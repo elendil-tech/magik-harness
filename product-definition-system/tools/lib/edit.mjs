@@ -24,16 +24,21 @@ function keyRange(front, key) {
   return [start, end];
 }
 
-/** Replace a top-level key with `valueLines`, or add it after `maturity` (else at the end). */
+/**
+ * Replace a top-level key with `valueLines`, or add it after `maturity` (else at the end).
+ * A file with Windows line endings keeps them: the lines written end the way the others do.
+ */
 export function setFrontKey(text, key, valueLines) {
   const lines = text.split("\n");
   const close = fences(lines);
   const front = lines.slice(1, close);
+  const cr = text.includes("\r\n") ? "\r" : "";
+  const value = valueLines.map((l) => l + cr);
   const range = keyRange(front, key);
-  if (range) front.splice(range[0], range[1] - range[0], ...valueLines);
+  if (range) front.splice(range[0], range[1] - range[0], ...value);
   else {
     const m = keyRange(front, "maturity");
-    front.splice(m ? m[1] : front.length, 0, ...valueLines);
+    front.splice(m ? m[1] : front.length, 0, ...value);
   }
   return [lines[0], ...front, ...lines.slice(close)].join("\n");
 }
