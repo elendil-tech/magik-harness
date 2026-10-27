@@ -23,7 +23,7 @@ export const checks = {
       ctx.report({
         element: el.id,
         path: el.path,
-        msg: `claims ${m.declared} but the definition supports ${m.byRules}: ${failing.length} rule${failing.length === 1 ? "" : "s"} fail (${shown.join(", ")}${failing.length > shown.length ? ", ..." : ""})`,
+        msg: `claims ${m.declared} but the definition supports ${m.byRules}: ${failing.length === 1 ? "1 rule fails" : `${failing.length} rules fail`} (${shown.join(", ")}${failing.length > shown.length ? ", ..." : ""})`,
         hint: "write what is missing, or lower the claim",
         details: failing.map((r) => ({ rule: r.rule, from: r.from, msg: r.msg, ask: r.ask })),
       });

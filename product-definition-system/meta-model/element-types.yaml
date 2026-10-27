@@ -295,7 +295,23 @@ types:
       persona: {type: ref, types: [PERS, ACT], edge: audience, doc: "Whose journey it is."}
       outcome: {type: string, required_at: outlined, doc: "What the person has achieved at the end."}
     blocks:
-      pds-journey: {required_at: specified, doc: "stages: a list of {id, name, goal, actions, touchpoints, flows, feeling (1-5), pain, opportunity}."}
+      pds-journey:
+        required_at: specified
+        doc: "stages: a list of {id, name, goal, actions, touchpoints, flows, feeling (1-5), pain, opportunity}."
+        example: |
+          stages:
+            - id: discover
+              name: Discover
+              goal: Decide whether the product fits
+              actions: [Reads the pricing page]
+              touchpoints: [SCR-pricing]
+              feeling: 3
+              pain: Cannot tell what a client would see
+              opportunity: Show a sample invoice
+            - id: first-invoice
+              name: Send the first invoice
+              flows: [FLW-send-invoice]
+              feeling: 4
     sections:
       - {heading: Narrative, required_at: outlined, ask: "Tell the journey as a story: where it starts, what the person wants at each stage and how it ends."}
       - {heading: Pain points and opportunities, required_at: specified, ask: "Where does the experience hurt, and what would remove the friction?"}
@@ -309,7 +325,32 @@ types:
     fields:
       trigger: {type: string, required_at: outlined, doc: "What starts the flow."}
     blocks:
-      pds-flow: {required_at: specified, doc: "trigger, entry, steps. Each step has an id and one of next, decide, end or call; and optionally actor, at, does, uses, accesses, emits, moves."}
+      pds-flow:
+        required_at: specified
+        doc: "trigger, entry, steps. Each step has an id and one of next, decide, end or call; and optionally actor, at, does, uses, accesses, emits, moves."
+        example: |
+          trigger: The owner chooses Send on a finished invoice
+          entry: confirm
+          steps:
+            - id: confirm
+              actor: ACT-owner
+              at: SCR-invoice-review
+              does: Checks the recipient and the total, then confirms
+              uses: [RULE-invoice-total]
+              next: send
+            - id: send
+              does: The system emails the invoice and marks it sent
+              accesses: {ENT-invoice: [update]}
+              emits: [EVT-invoice-sent]
+              moves: {STM-invoice: ["draft->sent"]}
+              decide:
+                - {when: The email is accepted, next: done}
+                - {when: The email bounces, next: failed}
+            - id: done
+              end: success
+            - id: failed
+              does: The owner is told delivery failed
+              end: failure
     sections:
       - {heading: Notes, ask: "Assumptions, variants and anything the steps do not say."}
 
@@ -384,7 +425,17 @@ types:
     fields:
       scope: {type: enum, values: [entity, process], required_at: outlined, doc: "entity: the lifecycle of a record. process: the progress of an activity."}
     blocks:
-      pds-states: {required_at: specified, doc: "states: list of {id, label, kind (initial, normal, terminal), note}. transitions: list of {from, to, on, by, guard, emits}."}
+      pds-states:
+        required_at: specified
+        doc: "states: list of {id, label, kind (initial, normal, terminal), note}. transitions: list of {from, to, on, by, guard, emits}."
+        example: |
+          states:
+            - {id: draft, label: Draft, kind: initial, note: Being written; the client cannot see it}
+            - {id: sent, label: Sent}
+            - {id: paid, label: Paid, kind: terminal}
+          transitions:
+            - {from: draft, to: sent, on: The owner sends it, by: ACT-owner}
+            - {from: sent, to: paid, on: Payment is received, by: system, emits: [EVT-invoice-paid]}
     sections:
       - {heading: Notes, required_at: outlined, ask: "What lifecycle is this, and why do these states exist?"}
       - {heading: Edge cases, required_at: specified, ask: "Concurrent transitions, retries, timeouts, reversals and what happens when two things try to move it at once."}
@@ -405,7 +456,17 @@ types:
       retention: {type: string, required_at: specified, doc: "How long it is kept and what then happens to it."}
       has_lifecycle: {type: bool, required_at: specified, doc: "True when records move through states that matter."}
     blocks:
-      pds-attributes: {required_at: specified, doc: "attributes: list of {name, type, required, unique, pii, note}. associations: list of {to, kind, label}."}
+      pds-attributes:
+        required_at: specified
+        doc: "attributes: list of {name, type, required, unique, pii, note}. associations: list of {to, kind, label}."
+        example: |
+          attributes:
+            - {name: id, type: id, required: true, unique: true}
+            - {name: number, type: text, required: true, unique: true, note: Shown to the client}
+            - {name: total, type: money, required: true}
+            - {name: client_email, type: email, pii: true}
+          associations:
+            - {to: ENT-client, kind: many_to_one, label: billed to}
     sections:
       - {heading: Meaning, required_at: outlined, ask: "What is this concept in business terms, and how does it differ from similar ones?"}
       - {heading: Ownership and lifecycle, required_at: specified, ask: "Who creates and changes it, what happens when it is deleted, and how long is it kept?"}
@@ -421,7 +482,14 @@ types:
       delivery: {type: enum, values: [at_most_once, at_least_once, exactly_once, best_effort], doc: "The delivery guarantee, where it matters."}
       pii: {type: bool, required_at: specified, doc: "True when the payload carries personal data."}
     blocks:
-      pds-payload: {required_at: specified, doc: "fields: list of {name, type, required, pii, note}."}
+      pds-payload:
+        required_at: specified
+        doc: "fields: list of {name, type, required, pii, note}."
+        example: |
+          fields:
+            - {name: invoice_id, type: id, required: true}
+            - {name: amount, type: money, required: true}
+            - {name: payer_email, type: email, pii: true, note: Present only when the client supplied it}
     sections:
       - {heading: Meaning, required_at: outlined, ask: "When exactly is it emitted, and what does it assert has happened?"}
 
@@ -556,7 +624,17 @@ types:
       result: {type: enum, values: [unknown, passing, failing, waived], default: unknown, doc: "Latest known outcome. Imported from CI where possible."}
       evidence: {type: string, doc: "Where the test or its latest result lives."}
     blocks:
-      gherkin: {required_at: specified, unless: {kind: [exploratory, checklist]}, doc: "A fenced gherkin block with Given, When and Then."}
+      gherkin:
+        required_at: specified
+        unless: {kind: [exploratory, checklist]}
+        doc: "A fenced gherkin block with Given, When and Then."
+        example: |
+          Feature: Sending an invoice
+            Scenario: A finished invoice is sent
+              Given an invoice in draft with a valid recipient
+              When the owner sends it
+              Then the invoice is marked sent
+              And the client is emailed
     sections: []
 
   RISK:

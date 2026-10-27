@@ -347,18 +347,26 @@ export function computeStats(a) {
       else outstanding.set(p.id, (outstanding.get(p.id) || 0) + 1);
     }
   }
-  const tier1 = [...maturity.keys()].filter((id) => model.tierOf(id) === 1);
+  // who needs a person's approval is policy: the tiers that require it, from the rung where it starts to bind
+  const { required_for_tiers: tiers, from } = a.config.policy.approval;
+  const critical = [...maturity.keys()].filter((id) => tiers.includes(model.tierOf(id)));
+  const approved = (id) => model.get(id).front.approval?.state === "approved";
+  const claiming = critical.filter((id) => meta.rung(maturity.get(id).declared) >= meta.rung(from));
+  // present everything in the model's own order, not in the order files happen to load
+  const inOrder = (obj, order) => Object.fromEntries(order.filter((k) => obj[k]).map((k) => [k, obj[k]]));
+  const orderedFamilies = inOrder(byFamily, Object.keys(meta.families));
+  const orderedTypes = inOrder(byType, [...meta.types.keys()]);
   return {
     elements: maturity.size,
     retired: model.elements.size - maturity.size,
-    byType,
-    byFamily,
-    score: Object.fromEntries(Object.entries(byFamily).map(([k, v]) => [k, score(v)])),
+    byType: orderedTypes,
+    byFamily: orderedFamilies,
+    score: Object.fromEntries(Object.entries(orderedFamilies).map(([k, v]) => [k, score(v)])),
     overall: score(Object.values(byType).reduce((s, d) => Object.fromEntries(ladder.map((l) => [l, (s[l] || 0) + d[l]])), {})),
     skeleton,
     over,
     probes: { applicable: probes, answered, outstanding: [...outstanding].sort((x, y) => y[1] - x[1]) },
-    tier1: { total: tier1.length, approved: tier1.filter((id) => model.get(id).front.approval?.state === "approved").length },
+    critical: { tiers, from, total: critical.length, approved: critical.filter(approved).length, claiming: claiming.length, pending: claiming.filter((id) => !approved(id)).length },
     errors: a.counts.error,
     warnings: a.counts.warn,
     gaps: a.gaps.length,
@@ -374,11 +382,11 @@ export function renderCoverage(V) {
   const prod = model.all("PROD")[0];
   const out = [`# Coverage report${prod ? ": " + prod.title : ""}\n`];
   out.push(`Profile ${a.config.profile || "none"} · adoption ${a.config.adoption} · modules ${[...a.config.modules].join(", ")} · ${a.today}\n`);
-  out.push(table(["", ""], [["Elements", `${s.elements}${s.retired ? ` (+${s.retired} retired)` : ""}`], ["Overall depth", `${Math.round(s.overall * 100)}% ${bar(s.overall)}`], ["Errors / warnings", `${s.errors} / ${s.warnings}`], ["Claims above what the definition supports", s.over], ["Unconfirmed skeleton elements", s.skeleton], ["Gaps to the next rung", s.gaps], ["Critical (tier 1) elements approved", `${s.tier1.approved} of ${s.tier1.total}`]]));
+  out.push(table(["", ""], [["Elements", `${s.elements}${s.retired ? ` (+${s.retired} retired)` : ""}`], ["Overall depth", `${Math.round(s.overall * 100)}% ${bar(s.overall)}`], ["Errors / warnings", `${s.errors} / ${s.warnings}`], ["Claims above what the definition supports", s.over], ["Unconfirmed skeleton elements", s.skeleton], ["Gaps to the next rung", s.gaps], [`Critical elements (tier ${s.critical.tiers.join(", ")})`, `${s.critical.total}: ${s.critical.approved} approved · ${s.critical.pending} awaiting approval (claiming ${s.critical.from} or better)`]]));
   out.push("Depth is how far up the ladder what exists has climbed. It says nothing about what has not been written at all: see _Blind spots_ below.\n");
 
   out.push("## Depth by family\n", table(["Family", ...ladder, "Depth"], Object.entries(s.byFamily).map(([f, d]) => [meta.families[f].title, ...ladder.map((l) => d[l]), `${Math.round(s.score[f] * 100)}% ${bar(s.score[f], 8)}`])));
-  out.push("## Depth by element type\n", table(["Type", ...ladder], Object.entries(s.byType).sort().map(([t, d]) => [`${t} · ${meta.spec(t).name}`, ...ladder.map((l) => d[l])])));
+  out.push("## Depth by element type\n", table(["Type", ...ladder], Object.entries(s.byType).map(([t, d]) => [`${t} · ${meta.spec(t).name}`, ...ladder.map((l) => d[l])])));
 
   out.push("## The spine\n");
   const rows = [];

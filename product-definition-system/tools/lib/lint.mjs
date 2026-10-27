@@ -84,23 +84,29 @@ export function buildGaps(model, meta, maturity) {
     const el = model.get(id);
     const depth = meta.isSpine(el.type) ? meta.spineIndex(el.type) : meta.spine.length;
     const base = { element: id, type: el.type, title: el.title, tier: model.tierOf(id), depth, rung: m.next };
-    for (const r of m.results) {
-      if (!r.pass && r.sev === "error" && r.from === m.next) gaps.push({ ...base, rule: r.rule, kind: r.kind, msg: r.msg, ask: r.ask });
-    }
+    // gates first: they explain why nothing else can move; then the rules in the order the type declares them
     for (const c of m.caps) {
-      if (meta.rung(c.rung) >= meta.rung(m.next)) {
-        const gate = meta.gates.find((g) => g.id === c.gate);
-        gaps.push({
-          ...base,
-          rule: c.gate,
-          kind: "gate",
-          msg: c.gate === "GATE-blocking-question" ? `is blocked by open question ${c.by.join(", ")}` : "is a skeleton no person has confirmed",
-          ask: c.gate === "GATE-blocking-question" ? "Answer the blocking question, or decide it is not blocking." : "Read it, correct it, and set origin: human.",
-          note: gate?.doc,
-        });
-      }
+      if (meta.rung(c.rung) < meta.rung(m.next)) continue;
+      const gate = meta.gates.find((g) => g.id === c.gate);
+      const blocking = c.gate === "GATE-blocking-question";
+      gaps.push({
+        ...base,
+        order: -1,
+        rule: c.gate,
+        kind: "gate",
+        sev: "error",
+        msg: blocking ? `is blocked by ${c.by.length === 1 ? "an open question" : `${c.by.length} open questions`}` : "is a skeleton no person has confirmed",
+        ask: blocking ? `Answer ${c.by.length === 1 ? "it" : "them"}, or decide ${c.by.length === 1 ? "it does" : "they do"} not block: ${c.by.map((q) => `${q} “${model.get(q)?.title ?? q}”`).join(" · ")}` : "Read it, correct it, and set origin: human.",
+        note: gate?.doc,
+      });
     }
+    m.results.forEach((r, order) => {
+      if (r.pass) return;
+      // errors are what stands in the way of the next rung; info rules are suggestions that have come due
+      const due = r.sev === "error" ? r.from === m.next : r.sev === "info" && meta.rung(r.from) <= meta.rung(m.next);
+      if (due) gaps.push({ ...base, order, rule: r.rule, kind: r.kind, sev: r.sev, msg: r.msg, ask: r.ask });
+    });
   }
-  gaps.sort((a, b) => meta.rung(a.rung) - meta.rung(b.rung) || a.depth - b.depth || a.tier - b.tier || a.element.localeCompare(b.element) || a.rule.localeCompare(b.rule));
+  gaps.sort((a, b) => meta.rung(a.rung) - meta.rung(b.rung) || a.depth - b.depth || a.tier - b.tier || a.element.localeCompare(b.element) || a.order - b.order);
   return gaps;
 }

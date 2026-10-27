@@ -5,6 +5,7 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseYaml } from "./yaml.mjs";
+import { validatePatterns } from "./seed.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_META_DIR = join(HERE, "..", "..", "meta-model");
@@ -190,6 +191,15 @@ export class Meta {
 
   profile(id) {
     return this.profiles[id];
+  }
+
+  /** The skeleton seeds a profile starts a project with, or null when it has none. */
+  patterns(id) {
+    const file = this.profiles[id]?.patterns;
+    if (!file) return null;
+    this._patterns ||= new Map();
+    if (!this._patterns.has(id)) this._patterns.set(id, readYaml(this.dir, join("profiles", file)));
+    return this._patterns.get(id);
   }
 }
 
@@ -435,6 +445,15 @@ export function validateMeta(meta, impl = {}) {
     const w = `profile ${p.id}`;
     if (!meta.model.adoption.ladder.includes(p.defaults?.adoption)) add(w, "bad default adoption");
     for (const m of p.defaults?.modules || []) if (!meta.modules[m]) add(w, `unknown module ${m}`);
+    if (p.patterns) {
+      let patterns = null;
+      try {
+        patterns = meta.patterns(p.id);
+      } catch (e) {
+        add(w, `cannot read ${p.patterns}: ${e.message}`);
+      }
+      if (patterns) for (const msg of validatePatterns(meta, patterns)) add(w, msg);
+    }
   }
 
   return P;

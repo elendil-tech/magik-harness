@@ -1,0 +1,187 @@
+# The SaaS skeleton: the starting map `pds init` writes for a subscription
+# software product.
+#
+# Every seed becomes one stub record with `origin: skeleton`. A skeleton is a
+# prompt, not a decision: it is capped at `outlined` until a person reads it,
+# corrects it and sets `origin: human`, and the coverage report counts the ones
+# nobody has confirmed. Seeds carry titles and a few structural facts, never
+# written-for-you prose, so the skeleton cannot fake coverage.
+#
+#   id       TYPE-slug, unique in this file
+#   title    the name shown everywhere
+#   anchor   where it lives: another seed id, or "@product" for the product record
+#   module   the module that makes it relevant (default core). A seed is written
+#            only if its module and its element type are enabled in the project
+#   fields   front-matter fields, validated against the element type
+#   rel      relations, validated against the relation types; targets that are
+#            not written for this project are dropped
+#   note     a hint written into the record as a comment, never as content
+#
+# Seeds must come after the seed they anchor on.
+version: 1
+
+seeds:
+  # ------------------------------------------------------------------ intent
+  - {id: OBJ-first-value, title: "Customers reach first value quickly", anchor: "@product", fields: {kind: outcome}, rel: {measured_by: [MET-activation-rate]}}
+  - {id: OBJ-retention, title: "Customers keep getting value", anchor: "@product", fields: {kind: outcome}, rel: {measured_by: [MET-retention-rate]}}
+  - {id: OBJ-sustainable-revenue, title: "The product earns enough to sustain itself", anchor: "@product", module: commercial, fields: {kind: business}, rel: {measured_by: [MET-monthly-recurring-revenue]}}
+  - {id: OBJ-trust, title: "Customer data and money stay safe", anchor: "@product", module: compliance, fields: {kind: guardrail}}
+  - {id: MET-activation-rate, title: "Activation rate", anchor: "@product", fields: {kind: input}, note: "Define what counts as activated for this product, exactly."}
+  - {id: MET-retention-rate, title: "Retention rate", anchor: "@product", fields: {kind: output}}
+  - {id: MET-monthly-recurring-revenue, title: "Monthly recurring revenue", anchor: "@product", module: commercial, fields: {kind: business}}
+
+  # ------------------------------------------------------ actors and access
+  - {id: ACT-visitor, title: "Visitor", anchor: "@product", fields: {kind: human}, note: "Someone who has not signed up."}
+  - {id: ACT-account-owner, title: "Account owner", anchor: "@product", module: identity, fields: {kind: human}, rel: {holds: [ROLE-owner]}}
+  - {id: ACT-member, title: "Member", anchor: "@product", module: identity, fields: {kind: human}, rel: {holds: [ROLE-member]}}
+  - {id: ACT-support-agent, title: "Support agent", anchor: "@product", module: back-office, fields: {kind: human, internal: true}, rel: {holds: [ROLE-support]}}
+  - {id: ACT-platform-admin, title: "Platform administrator", anchor: "@product", module: back-office, fields: {kind: human, internal: true}, rel: {holds: [ROLE-platform-admin]}}
+  - {id: ROLE-owner, title: "Owner", anchor: "@product", module: identity, fields: {scope: account}}
+  - {id: ROLE-admin, title: "Admin", anchor: "@product", module: identity, fields: {scope: account}}
+  - {id: ROLE-member, title: "Member", anchor: "@product", module: identity, fields: {scope: account}}
+  - {id: ROLE-support, title: "Support", anchor: "@product", module: back-office, fields: {scope: platform}}
+  - {id: ROLE-platform-admin, title: "Platform administrator", anchor: "@product", module: back-office, fields: {scope: platform}}
+  - {id: PERM-manage-members, title: "Manage members", anchor: "@product", module: identity}
+  - {id: PERM-manage-billing, title: "Manage billing", anchor: "@product", module: commercial}
+  - {id: PERM-manage-settings, title: "Manage settings", anchor: "@product", module: identity}
+  - {id: PERM-manage-api-keys, title: "Manage API keys", anchor: "@product", module: public-api}
+  - {id: PERM-view-audit-log, title: "View the audit log", anchor: "@product", module: back-office}
+  - {id: PERM-access-customer-account, title: "Access a customer account as support", anchor: "@product", module: back-office, fields: {sensitive: true}}
+  - {id: TEN-tenancy, title: "Tenancy model", anchor: "@product", module: tenancy}
+
+  # ---------------------------------------------------------------- surfaces
+  - {id: SRF-marketing-site, title: "Marketing site", anchor: "@product", fields: {kind: marketing_site}}
+  - {id: SRF-web-app, title: "Web app", anchor: "@product", fields: {kind: web_app}}
+  - {id: SRF-email, title: "Email", anchor: "@product", module: lifecycle-comms, fields: {kind: email}}
+  - {id: SRF-admin-console, title: "Admin console", anchor: "@product", module: back-office, fields: {kind: admin_console, internal: true}}
+  - {id: SRF-public-api, title: "Public API", anchor: "@product", module: public-api, fields: {kind: public_api}}
+
+  # --------------------------------------------------------- the spine: map
+  - {id: DOM-marketing-and-acquisition, title: "Marketing and acquisition", anchor: "@product", note: "How people find, evaluate and start using the product."}
+  - {id: CAP-marketing-site, title: "Marketing site and content", anchor: DOM-marketing-and-acquisition}
+  - {id: CAP-pricing-page, title: "Pricing and plan comparison", anchor: DOM-marketing-and-acquisition, module: commercial}
+  - {id: CAP-lead-capture, title: "Lead capture and demo requests", anchor: DOM-marketing-and-acquisition}
+  - {id: CAP-attribution, title: "Attribution and referrals", anchor: DOM-marketing-and-acquisition}
+
+  - {id: DOM-identity-and-access, title: "Identity and access", anchor: "@product", module: identity, fields: {tier: 1}, note: "Who people are and what they may do."}
+  - {id: CAP-sign-up, title: "Sign-up and account creation", anchor: DOM-identity-and-access, module: identity}
+  - {id: CAP-authentication, title: "Sign-in, sessions and sign-out", anchor: DOM-identity-and-access, module: identity}
+  - {id: CAP-credential-recovery, title: "Password and credential recovery", anchor: DOM-identity-and-access, module: identity}
+  - {id: CAP-multi-factor, title: "Multi-factor authentication", anchor: DOM-identity-and-access, module: identity}
+  - {id: CAP-single-sign-on, title: "Single sign-on", anchor: DOM-identity-and-access, module: identity}
+  - {id: CAP-roles-and-permissions, title: "Roles and permissions", anchor: DOM-identity-and-access, module: identity}
+  - {id: CAP-account-profile, title: "Personal profile and preferences", anchor: DOM-identity-and-access, module: identity}
+
+  - {id: DOM-workspaces-and-teams, title: "Workspaces and teams", anchor: "@product", module: tenancy, fields: {tier: 1}, note: "How customers and their people are grouped and kept apart."}
+  - {id: CAP-workspace-lifecycle, title: "Creating, switching and closing workspaces", anchor: DOM-workspaces-and-teams, module: tenancy}
+  - {id: CAP-membership, title: "Inviting and managing members", anchor: DOM-workspaces-and-teams, module: tenancy}
+  - {id: CAP-workspace-settings, title: "Workspace settings and branding", anchor: DOM-workspaces-and-teams, module: tenancy}
+  - {id: CAP-tenant-isolation, title: "Tenant isolation and data boundaries", anchor: DOM-workspaces-and-teams, module: tenancy}
+
+  - {id: DOM-onboarding-and-activation, title: "Onboarding and activation", anchor: "@product", note: "Getting a new customer to first value."}
+  - {id: CAP-first-run, title: "First-run setup and guided start", anchor: DOM-onboarding-and-activation}
+  - {id: CAP-sample-data, title: "Sample data and templates", anchor: DOM-onboarding-and-activation}
+  - {id: CAP-activation-nudges, title: "Checklists and activation prompts", anchor: DOM-onboarding-and-activation}
+
+  - {id: DOM-core-product, title: "Core product", anchor: "@product", fields: {tier: 1}, note: "Replace this with the product's own domains: what it does for its customers. Everything else in this map is the scaffolding around it."}
+  - {id: CAP-core-workflow, title: "The core job the product does", anchor: DOM-core-product}
+
+  - {id: DOM-billing-and-plans, title: "Billing and plans", anchor: "@product", module: commercial, fields: {tier: 1}, note: "How access is packaged, priced, charged and collected."}
+  - {id: CAP-plan-catalogue, title: "Plans, pricing and entitlements", anchor: DOM-billing-and-plans, module: commercial}
+  - {id: CAP-subscription-lifecycle, title: "Subscription: trial, start, change, cancel, renew", anchor: DOM-billing-and-plans, module: commercial}
+  - {id: CAP-payment-methods, title: "Payment methods and checkout", anchor: DOM-billing-and-plans, module: commercial}
+  - {id: CAP-invoicing-and-receipts, title: "Invoices and receipts", anchor: DOM-billing-and-plans, module: commercial}
+  - {id: CAP-failed-payments, title: "Failed payments and dunning", anchor: DOM-billing-and-plans, module: commercial}
+  - {id: CAP-tax-and-currency, title: "Tax, VAT and currency", anchor: DOM-billing-and-plans, module: commercial}
+  - {id: CAP-usage-metering, title: "Usage metering and limits", anchor: DOM-billing-and-plans, module: commercial}
+  - {id: CAP-refunds-and-credits, title: "Refunds, credits and disputes", anchor: DOM-billing-and-plans, module: commercial}
+
+  - {id: DOM-notifications-and-messaging, title: "Notifications and messaging", anchor: "@product", module: lifecycle-comms, note: "Everything the product says to people unprompted."}
+  - {id: CAP-transactional-email, title: "Transactional email", anchor: DOM-notifications-and-messaging, module: lifecycle-comms}
+  - {id: CAP-in-app-notifications, title: "In-app notifications", anchor: DOM-notifications-and-messaging, module: lifecycle-comms}
+  - {id: CAP-messaging-preferences, title: "Notification preferences and consent", anchor: DOM-notifications-and-messaging, module: lifecycle-comms}
+  - {id: CAP-lifecycle-campaigns, title: "Lifecycle and product-update messages", anchor: DOM-notifications-and-messaging, module: lifecycle-comms}
+
+  - {id: DOM-integrations-and-api, title: "Integrations and API", anchor: "@product", module: integrations, note: "How the product connects to other products and to developers."}
+  - {id: CAP-public-api, title: "Public API", anchor: DOM-integrations-and-api, module: public-api}
+  - {id: CAP-api-keys, title: "API keys and OAuth apps", anchor: DOM-integrations-and-api, module: public-api}
+  - {id: CAP-webhooks, title: "Outbound webhooks", anchor: DOM-integrations-and-api, module: integrations}
+  - {id: CAP-third-party-connections, title: "Connections to other products", anchor: DOM-integrations-and-api, module: integrations}
+  - {id: CAP-import-export, title: "Data import and export", anchor: DOM-integrations-and-api, module: integrations}
+
+  - {id: DOM-insights-and-reporting, title: "Insights and reporting", anchor: "@product", note: "What customers see about their own usage and results."}
+  - {id: CAP-dashboards, title: "Dashboards and reports", anchor: DOM-insights-and-reporting}
+  - {id: CAP-scheduled-reports, title: "Scheduled and shared reports", anchor: DOM-insights-and-reporting}
+
+  - {id: DOM-administration-and-support, title: "Administration and support", anchor: "@product", module: back-office, note: "What the company's own staff use to run the product and help customers."}
+  - {id: CAP-customer-admin-console, title: "Customer and plan administration", anchor: DOM-administration-and-support, module: back-office}
+  - {id: CAP-support-tools, title: "Customer support tools", anchor: DOM-administration-and-support, module: back-office}
+  - {id: CAP-support-access, title: "Support access to a customer account", anchor: DOM-administration-and-support, module: back-office}
+  - {id: CAP-audit-log, title: "Audit log", anchor: DOM-administration-and-support, module: back-office}
+  - {id: CAP-feature-flags, title: "Feature flags and rollouts", anchor: DOM-administration-and-support, module: back-office}
+
+  - {id: DOM-trust-and-compliance, title: "Trust, privacy and compliance", anchor: "@product", module: compliance, fields: {tier: 1}, note: "What the product owes its customers and the law."}
+  - {id: CAP-data-subject-rights, title: "Data export and deletion requests", anchor: DOM-trust-and-compliance, module: compliance}
+  - {id: CAP-consent-and-legal, title: "Consent, terms and privacy notices", anchor: DOM-trust-and-compliance, module: compliance}
+  - {id: CAP-data-retention, title: "Data retention and deletion schedules", anchor: DOM-trust-and-compliance, module: compliance}
+  - {id: CAP-security-controls, title: "Security controls and incident response", anchor: DOM-trust-and-compliance, module: compliance}
+
+  - {id: DOM-platform-and-operations, title: "Platform and operations", anchor: "@product", note: "What keeps the product running, observable and recoverable."}
+  - {id: CAP-observability, title: "Monitoring, logging and alerting", anchor: DOM-platform-and-operations}
+  - {id: CAP-backup-and-recovery, title: "Backup and disaster recovery", anchor: DOM-platform-and-operations}
+  - {id: CAP-environments-and-releases, title: "Environments, releases and rollback", anchor: DOM-platform-and-operations}
+  - {id: CAP-performance-and-scale, title: "Performance and capacity", anchor: DOM-platform-and-operations}
+  - {id: CAP-product-analytics, title: "Product analytics instrumentation", anchor: DOM-platform-and-operations}
+
+  # --------------------------------------------------- commercial and outside
+  - {id: PLAN-free, title: "Free", anchor: "@product", module: commercial, note: "Keep, rename or delete: the pricing question decides."}
+  - {id: PLAN-team, title: "Team", anchor: "@product", module: commercial}
+  - {id: PLAN-enterprise, title: "Enterprise", anchor: "@product", module: commercial}
+  - {id: EXT-payment-provider, title: "Payment provider", anchor: DOM-billing-and-plans, module: commercial, fields: {kind: payments}}
+  - {id: EXT-email-delivery, title: "Email delivery service", anchor: DOM-notifications-and-messaging, module: lifecycle-comms, fields: {kind: email}}
+
+  # ---------------------------------------------------------- language, duty
+  - {id: TERM-workspace, title: "Workspace", anchor: "@product", module: tenancy}
+  - {id: TERM-member, title: "Member", anchor: "@product", module: identity}
+  - {id: TERM-role, title: "Role", anchor: "@product", module: identity}
+  - {id: TERM-plan, title: "Plan", anchor: "@product", module: commercial}
+  - {id: TERM-subscription, title: "Subscription", anchor: "@product", module: commercial}
+  - {id: OBL-privacy-law, title: "Privacy and data-protection law", anchor: "@product", module: compliance, fields: {source: law}, note: "GDPR, UK GDPR, CCPA and the like: which apply depends on where customers are."}
+  - {id: OBL-legal-notices, title: "Terms of service and privacy notice", anchor: "@product", module: compliance, fields: {source: law}}
+  - {id: OBL-accessibility, title: "Accessibility standards and law", anchor: "@product", module: compliance, fields: {source: standard}}
+  - {id: OBL-payment-card-security, title: "Payment card security", anchor: "@product", module: commercial, fields: {source: standard}, note: "Largely met by never touching card data; say so if that is the design."}
+  - {id: OBL-tax-and-invoicing, title: "Tax and invoicing rules", anchor: "@product", module: commercial, fields: {source: law}}
+  - {id: OBL-electronic-marketing, title: "Electronic marketing and consent rules", anchor: "@product", module: lifecycle-comms, fields: {source: law}}
+
+  # ---------------------------------------- foundational, blocking questions
+  - id: QST-customer-model
+    title: "Who is the customer, who pays and who uses the product?"
+    anchor: "@product"
+    fields: {status: open, blocking: true}
+  - id: QST-core-job
+    title: "What is the one job the product does that customers will pay for?"
+    anchor: "@product"
+    rel: {concerns: [DOM-core-product, CAP-core-workflow]}
+    fields: {status: open, blocking: true}
+  - id: QST-tenancy-model
+    title: "How are customers and their people grouped: account, company or workspace?"
+    anchor: "@product"
+    module: tenancy
+    rel: {concerns: [TEN-tenancy, DOM-workspaces-and-teams]}
+    fields: {status: open, blocking: true}
+  - id: QST-pricing-model
+    title: "How does the product charge: free tier, seats, usage, tiers or a mix?"
+    anchor: "@product"
+    module: commercial
+    rel: {concerns: [DOM-billing-and-plans, CAP-plan-catalogue, CAP-subscription-lifecycle]}
+    fields: {status: open, blocking: true}
+  - id: QST-data-residency
+    title: "Where may customer data be stored and processed?"
+    anchor: "@product"
+    module: compliance
+    rel: {concerns: [DOM-trust-and-compliance, OBL-privacy-law]}
+    fields: {status: open, blocking: true}
+  - id: QST-sales-motion
+    title: "Is the product self-serve, sales-led or both?"
+    anchor: "@product"
+    fields: {status: open, blocking: false}
