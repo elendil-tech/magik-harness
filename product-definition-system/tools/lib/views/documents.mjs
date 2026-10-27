@@ -206,7 +206,16 @@ function specFeature(V, f) {
   out.push(table(["Test", "Kind", "Level", "Automation", "Result", "Verifies"], tests.map((t) => [V.ref(t.id), V.field(t, "kind") || "", V.field(t, "level") || "", V.field(t, "automation") || "", V.field(t, "result") || "", V.refs(model.out(t.id, "verifies").map((e) => e.to))])));
 
   out.push("## 12. Decisions, assumptions, questions and risks\n");
-  const reg = live(V, undefined).filter((e) => ["DEC", "ASM", "QST", "RISK"].includes(e.type) && model.out(e.id, "concerns").some((c) => c.to === f.id || kids.some((k) => k.id === c.to)));
+  // Found from the feature's own incoming edges. Scanning every element for each feature is
+  // quadratic in the size of the definition, and this runs once per feature.
+  const concerning = new Map();
+  for (const target of [f, ...kids]) {
+    for (const edge of model.in(target.id, "concerns")) {
+      const x = model.get(edge.from);
+      if (x && ["DEC", "ASM", "QST", "RISK"].includes(x.type) && !model.isRetired(x.id)) concerning.set(x.id, x);
+    }
+  }
+  const reg = [...concerning.values()].sort((a, b) => a.title.localeCompare(b.title) || a.seq - b.seq);
   out.push(table(["Type", "Entry", "Status"], reg.map((r) => [r.type, V.ref(r.id), V.field(r, "status") || (r.type === "RISK" ? "" : "")])));
 
   out.push("## 13. Release and maintenance\n", section(V, f, "Release and maintenance") || "_Not written yet._", "");

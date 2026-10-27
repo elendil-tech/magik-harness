@@ -58,7 +58,7 @@ my-product/
 
 - The slug is a **mnemonic frozen at creation**. It never has to follow later changes of title, so you can rename a feature on a whim and nothing breaks. Choose a slug that means something, not a number.
 - Ids are never reused. Retire an element rather than deleting it ([§12](#12-changing-things)).
-- Ids are ASCII (titles and prose are not limited; see [08](08-buildout.md#known-limits)).
+- Ids are ASCII (titles and prose are not limited; see [08](08-buildout.md#7-known-limits)).
 - If you must change one, use `pds rename OLD NEW`. Never find-and-replace: the command rewrites every reference in every record (anchor, `rel`, `[[wikilinks]]`, prose), re-seals approvals that were valid so the rename does not look like an edit, re-checks everything, and changes nothing if it would introduce an error.
 
 ## 4. The frontmatter

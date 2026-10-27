@@ -4,8 +4,10 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { blockingQuestions } from "../lib/coverage.mjs";
+import { formatGaps } from "../lib/format.mjs";
 import { analyse } from "../lib/lint.mjs";
 import { resolveConfig } from "../lib/project.mjs";
+import { plan } from "../lib/views/index.mjs";
 import { TODAY, addRecord, analyseRoot, copyExample, meta, modelOf, rec } from "./helpers.mjs";
 
 const SATELLITES = ["FLW", "REQ", "RULE", "TST", "SCR", "RISK", "QST"];
@@ -63,6 +65,36 @@ describe("the analysis scales", () => {
     // linear is 4, n log n a little over, quadratic 16: the bound sits between the two
     assert.ok(tLarge / tSmall < 9, `8000 records took ${tLarge.toFixed(0)} ms against ${tSmall.toFixed(0)} ms for 2000: ${(tLarge / tSmall).toFixed(1)}x for 4x the records`);
     assert.ok(tLarge < 20000, `8000 records took ${tLarge.toFixed(0)} ms`);
+  });
+
+  // What the analysis returns is read by the views and by the commands that print the queue.
+  // Each of those once searched the whole definition for every feature or every gap, which is
+  // quadratic and shows only on a definition too big to try by hand.
+  test("the views: four times the records cost far less than sixteen times the time", (t) => {
+    const small = run(synthetic(2000));
+    const large = run(synthetic(8000));
+    const cost = (a) => Math.min(...[1, 2, 3, 4].map(() => cpuMs(() => plan(a))));
+    plan(small); // warm
+    plan(large);
+    const tSmall = cost(small);
+    const tLarge = cost(large);
+    t.diagnostic(`2000 records ${tSmall.toFixed(0)} ms, 8000 records ${tLarge.toFixed(0)} ms (${(tLarge / tSmall).toFixed(1)}x)`);
+    // linear is 4 and the search it replaced was 9.7: the bound sits between them
+    assert.ok(tLarge / tSmall < 7, `8000 records took ${tLarge.toFixed(0)} ms against ${tSmall.toFixed(0)} ms for 2000: ${(tLarge / tSmall).toFixed(1)}x for 4x the records`);
+  });
+
+  test("the queue: four times the gaps cost far less than sixteen times the time", (t) => {
+    const small = run(synthetic(2000));
+    const large = run(synthetic(8000));
+    assert.ok(large.gaps.length > 4 * 1000, `the large definition has gaps to print (${large.gaps.length})`);
+    // Ten passes a measurement: one pass is a few milliseconds, which is mostly noise.
+    const cost = (a) => Math.min(...[1, 2, 3].map(() => cpuMs(() => { for (let i = 0; i < 10; i++) formatGaps(a.gaps); })));
+    cost(small); // warm
+    const tSmall = cost(small);
+    const tLarge = cost(large);
+    t.diagnostic(`${small.gaps.length} gaps ${tSmall.toFixed(0)} ms, ${large.gaps.length} gaps ${tLarge.toFixed(0)} ms for ten passes (${(tLarge / Math.max(tSmall, 1)).toFixed(1)}x)`);
+    // linear is 4 and the search it replaced was over 12
+    assert.ok(tLarge / Math.max(tSmall, 1) < 8, `${large.gaps.length} gaps took ${tLarge.toFixed(0)} ms against ${tSmall.toFixed(0)} ms for ${small.gaps.length}`);
   });
 });
 

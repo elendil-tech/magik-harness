@@ -16,7 +16,7 @@ The shape of the work: **start wide and shallow, then go deeper where it costs m
 
 ### Step 0. Decide what is in scope
 
-One project is **one product**. Two products that share a codebase are two projects. (Multi-product is a known limit; see [the build-out](08-buildout.md#known-limits).) If the thing you are defining is a feature of an existing product, you are doing Evolve.
+One project is **one product**. Two products that share a codebase are two projects. (Multi-product is a known limit; see [the build-out](08-buildout.md#7-known-limits).) If the thing you are defining is a feature of an existing product, you are doing Evolve.
 
 ### Step 1. Start the project
 
@@ -135,7 +135,7 @@ The difference is that you are not designing; you are *discovering* what is true
 7. **Keep the gaps.** Where you cannot find out, leave the element a `stub` or an `outlined` with a `QST`. The point of the exercise is that what is unknown becomes countable.
 8. **Then approve what matters**, as in Define: critical elements need a person to confirm that the record matches reality.
 
-There is no importer yet. It is on the [roadmap](08-buildout.md#roadmap); today recovery is by hand, or by an agent following [the agent protocol](07-agents.md), with a person confirming.
+There is no importer yet. It is on the [roadmap](08-buildout.md#8-roadmap); today recovery is by hand, or by an agent following [the agent protocol](07-agents.md), with a person confirming.
 
 ## 3. Evolve a defined product
 

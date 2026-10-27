@@ -392,6 +392,12 @@ export function validateMeta(meta, impl = {}) {
       else consumed.add(rel);
     }
   }
+  // `INT-flow-ends` beside `INT-email-sending` would read as two elements. A rule, a check or a gate
+  // keeps to a prefix of its own, so an id says at a glance which of the two it is.
+  for (const id of [...ruleIds, ...checkIds, ...meta.gates.map((g) => g.id)]) {
+    const prefix = id.split("-")[0];
+    if (types.has(prefix)) add(`id ${id}`, `starts with ${prefix}, which is an element type: a rule, check or gate id needs a prefix of its own`);
+  }
   if (impl.checks) {
     for (const id of impl.checks) if (!checkIds.has(id)) add("checks", `${id} is implemented but not declared in rules.yaml`);
     for (const id of checkIds) if (!impl.checks.includes(id)) add("checks", `${id} is declared in rules.yaml but not implemented`);

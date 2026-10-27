@@ -56,10 +56,13 @@ export function formatFindings(findings, { verbose = false } = {}) {
 /** Gaps grouped by element, in queue order, for `pds next` and `pds ask`. */
 export function formatGaps(gaps, { elements = 5, items = Infinity } = {}) {
   const groups = [];
+  const byKey = new Map();
   for (const g of gaps) {
-    let group = groups.find((x) => x.element === g.element && x.rung === g.rung);
+    const key = `${g.element}|${g.rung}`;
+    let group = byKey.get(key);
     if (!group) {
       group = { element: g.element, type: g.type, title: g.title, tier: g.tier, rung: g.rung, items: [] };
+      byKey.set(key, group);
       groups.push(group);
     }
     group.items.push(g);

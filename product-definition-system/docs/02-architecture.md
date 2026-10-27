@@ -244,7 +244,7 @@ Extending is editing data, with `pds meta check` and `pds docs` as the safety ne
 
 `--meta DIR` points the tool at a different meta-model folder, so a team can keep its own model next to its own definition.
 
-**Versioning.** `pds: 1` in `pds.yaml` is the format version. A change to the model that renames or removes something changes the content hash of records that use it, and so invalidates approvals; a migration command that applies a rename across records and re-seals the approvals is on the [roadmap](08-buildout.md#roadmap) and is not yet built.
+**Versioning.** `pds: 1` in `pds.yaml` is the format version. A change to the model that renames or removes something changes the content hash of records that use it, and so invalidates approvals; a migration command that applies a rename across records and re-seals the approvals is on the [roadmap](08-buildout.md#8-roadmap) and is not yet built.
 
 ## 9. What it is not
 

@@ -88,7 +88,7 @@ tools/pds.mjs   the command line;  tools/lib/  the engine;  tools/test/  the tes
 examples/       a worked example (Ledgerly, an invented invoicing product)
 docs/           the documents above;  docs/reference/ is generated
 skills/         the agent skill
-scripts/        tooling that is not the product (YAML parity check against PyYAML)
+scripts/        tooling that is not the product: the test runner, a YAML parity check against PyYAML, a diagram rendering check, a scale measurement
 ```
 
 ## Status

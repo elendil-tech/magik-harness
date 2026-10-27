@@ -197,7 +197,7 @@ Should review (2)
 | The YAML subset is portable | `scripts/yaml-parity`: parse every YAML source in two parsers | 205 of 205 identical with PyYAML 6.0.3 |
 | The example exercises the model | the example uses 37 of the 38 types at standard adoption (all but `API`) | lint: 0 errors, 2 warnings that name real work |
 | It runs where people run it | the suite | passes on Node 20, 22, 24 and 25 |
-| It scales | synthetic definitions, in-memory | 2,000 records in 77 ms, 8,000 in about 280 ms (3.5 times for 4 times the records); `pds lint` on 20,000 records in 1.3 s |
+| It scales | synthetic definitions: the analysis in memory, the commands on disk | the analysis takes 2,000 records in about 80 ms and 8,000 in about 280 ms (3.5 times for 4 times the records); the commands take about 0.3 s at 1,000 records and 3 to 4 s at 20,000 ([08 §5](08-buildout.md#5-measured-scale)) |
 
 ### What building it taught
 
@@ -213,6 +213,7 @@ Gaps that only appear when the framework is operated. Each was found by running 
 | Specification links broke one folder deeper | Generated documents have to compute relative links from where they are written. | Links are computed from the output location; every link is tested |
 | A decision or a glossary term could be declared *verifiable* | A rung that nothing is checked at proves nothing. | Only types with a rule at the top rung can reach it |
 | The maturity computation scaled with the square of the record count (8,000 records took 8.5 s against 0.56 s for 2,000) | Cost has to be tested, not assumed. | A type index and a once-per-model lookup for the blocking-question gate; a scale test fails if the ratio regresses |
+| Generating the views for 16,000 records took 21 s, and printing the queue grew with the square of its length | Two loops searched the whole definition once per feature and once per gap, which shows only on a definition too big to try by hand. | Both read what they need from the graph's own lookups (the same views now take about 2 s), and a test for each fails if the ratio regresses |
 | A hand-edit changed line endings in half a file | Tools that edit records must preserve the file's own conventions. | Edits keep CRLF |
 
 ## 5. Objective optimisations of the content model
@@ -254,7 +255,7 @@ An honest account, so that nothing here is mistaken for done.
 
 **In the example.** Ledgerly is invented. Its approvals are fixture data made by the maintainer to demonstrate the mechanism. Its prices, interviews and compliance notes are plausible, not advice.
 
-**Not yet verified.** The generated Mermaid has been checked for structure by tests, and not yet rendered in a browser for visual review. See the end of [08](08-buildout.md#verification-status) for the current state.
+**What has and has not been verified.** Every diagram the tool generates, in the documents and in the example, was drawn by the real Mermaid library in a browser, and the script that does it is part of the project. The tool was run on macOS only, and no team has used it on a real product yet. [08 §4](08-buildout.md#4-verification-status) has the account.
 
 **Decisions that are yours to make:**
 

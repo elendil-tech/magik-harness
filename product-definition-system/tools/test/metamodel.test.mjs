@@ -102,6 +102,16 @@ describe("breaking the meta-model on purpose", () => {
     assert.ok(problemsWith(meta, /has a renderer but is not declared/, { checks: impl.checks, views: [...VIEW_IDS, "ghost-view"] }).length > 0);
   });
 
+  it("notices a rule, a check or a gate whose id could be taken for an element's", () => {
+    // the id of the first check class was once INT, the code of the integration type
+    const rule = withEdit("rules.yaml", "id: COV-FEAT-flow", "id: FEAT-flow");
+    assert.ok(problemsWith(rule, /id FEAT-flow: starts with FEAT, which is an element type/).length > 0);
+    const gate = withEdit("rules.yaml", "id: GATE-skeleton", "id: RULE-skeleton");
+    assert.ok(problemsWith(gate, /id RULE-skeleton: starts with RULE, which is an element type/).length > 0);
+    const check = withEdit("rules.yaml", "{id: COH-flow-ends, class: COH,", "{id: ENT-flow-ends, class: COH,");
+    assert.ok(problemsWith(check, /id ENT-flow-ends: starts with ENT, which is an element type/).length > 0);
+  });
+
   it("notices impact settings in which a weak edge would reach further than a strong one", () => {
     const m = withEdit("relation-types.yaml", "weak_hops: 1", "weak_hops: 5");
     assert.ok(problemsWith(m, /weak_hops cannot exceed strong_hops/).length > 0);

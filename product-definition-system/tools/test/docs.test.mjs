@@ -15,9 +15,10 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import { PROJECT_ROOT, meta } from "./helpers.mjs";
+import { PROJECT_ROOT, analyseRoot, meta, pds, scratch } from "./helpers.mjs";
 import { COMMON_FLAGS } from "../lib/cli.mjs";
 import { COMMANDS } from "../lib/commands/index.mjs";
+import { plan } from "../lib/views/index.mjs";
 
 const read = (...parts) => readFileSync(join(PROJECT_ROOT, ...parts), "utf8");
 const mdIn = (dir) => readdirSync(join(PROJECT_ROOT, dir)).filter((f) => f.endsWith(".md")).sort().map((f) => join(dir, f));
@@ -25,6 +26,15 @@ const mdIn = (dir) => readdirSync(join(PROJECT_ROOT, dir)).filter((f) => f.endsW
 /** The documents a person wrote. The reference is generated, and `pds docs --check` keeps it honest. */
 const AUTHORED = ["README.md", ...mdIn("docs"), "skills/pds-define/SKILL.md", "examples/ledgerly/README.md"];
 const REFERENCE = mdIn("docs/reference");
+
+/** Every rule, check, gate and probe id the meta-model defines. */
+const RULE_IDS = new Set([
+  ...meta.rules.map((r) => r.id),
+  ...meta.implicitRules.map((r) => r.id),
+  ...meta.checks.map((c) => c.id),
+  ...meta.gates.map((g) => g.id),
+  ...meta.probes.map((p) => `PRB-${p.id}`),
+]);
 
 /** A document as lines, each marked as a fence line, inside a code fence (and which language), or prose. */
 function lines(file) {
@@ -134,13 +144,7 @@ describe("commands", () => {
 });
 
 describe("ids", () => {
-  const ids = new Set([
-    ...meta.rules.map((r) => r.id),
-    ...meta.implicitRules.map((r) => r.id),
-    ...meta.checks.map((c) => c.id),
-    ...meta.gates.map((g) => g.id),
-    ...meta.probes.map((p) => `PRB-${p.id}`),
-  ]);
+  const ids = RULE_IDS;
 
   test("every rule, check and gate the documents name exists", () => {
     const missing = [];
@@ -255,7 +259,9 @@ describe("the model, restated", () => {
   });
 
   test("every type code the documents put in code is a real element type", () => {
-    const NOT_TYPES = new Set(["TBD", "TODO", "XXX", "NULL", "ID"]); // placeholders and words, not types
+    // Placeholders and words, and the prefixes of rule, check and gate ids: those are not types
+    // (the meta-model refuses a prefix that is one), but a document may name them (09 D18 does).
+    const NOT_TYPES = new Set(["TBD", "TODO", "XXX", "NULL", "ID", ...[...RULE_IDS].map((id) => id.split("-")[0])]);
     const unknown = [];
     for (const file of AUTHORED) {
       for (const l of lines(file)) {
@@ -268,7 +274,8 @@ describe("the model, restated", () => {
 
   test("every element id the documents mention is in the example, or is on purpose not", () => {
     // Made up to show a new element, a placeholder, or a typo for the "did you mean" example.
-    const ILLUSTRATIVE = new Set(["SCR-invoice-reviw", "FEAT-send-payment-reminders", "FEAT-send-reminders", "FEAT-issue-invoice", "PROD-my-product", "CAP-x", "RLS-name"]);
+    // `FEAT-0042` is the numbered id that 09 D6 argues against, and `INT-flow-ends` the check id that 09 D18 says could be read as an element's.
+    const ILLUSTRATIVE = new Set(["SCR-invoice-reviw", "FEAT-send-payment-reminders", "FEAT-send-reminders", "FEAT-issue-invoice", "PROD-my-product", "CAP-x", "RLS-name", "FEAT-0042", "INT-flow-ends"]);
     const have = new Set();
     const walk = (dir) => {
       for (const e of readdirSync(join(PROJECT_ROOT, dir), { withFileTypes: true })) {
@@ -290,6 +297,41 @@ describe("the model, restated", () => {
       }
     }
     assert.deepEqual(missing, []);
+  });
+});
+
+describe("what the documents promise a new project", () => {
+  test("`pds init` writes as many records as the README says", async () => {
+    const dir = scratch("pds-init-");
+    const made = await pds(["init", join(dir, "p"), "--name", "P"]);
+    assert.equal(made.code, 0, made.err);
+    const size = analyseRoot(join(dir, "p")).model.elements.size;
+    const quoted = [...read("README.md").matchAll(/(\d+) records already exist/g)].map((m) => Number(m[1]));
+    assert.ok(quoted.length > 0, "the README says how big the skeleton is");
+    assert.deepEqual(quoted, quoted.map(() => size));
+  });
+
+  test("the size and depth of the example are what the documents quote", () => {
+    const a = analyseRoot(join(PROJECT_ROOT, "examples", "ledgerly"));
+    const rungs = Object.fromEntries(meta.ladder.map((r) => [r, 0]));
+    for (const m of a.maturity.values()) if (m) rungs[m.computed]++;
+    const actual = [a.model.elements.size, ...meta.ladder.map((r) => rungs[r])];
+    const sentence = /(\d+) elements: (\d+) stub[·, ]+(\d+) outlined[·, ]+(\d+) specified[·, ]+(\d+) verifiable/g;
+    const quoted = AUTHORED.flatMap((file) => lines(file).flatMap((l) => [...l.text.matchAll(sentence)].map((m) => ({ at: `${file}:${l.n}`, got: m.slice(1).map(Number) }))));
+    assert.ok(quoted.length >= 2, "the documents quote the example's status");
+    for (const q of quoted) assert.deepEqual(q.got, actual, q.at);
+    const files = plan(a).size;
+    for (const file of ["docs/01-assessment.md"]) assert.match(read(file), new RegExp(`\\b${files} files for the example`), "the number of generated files");
+  });
+
+  test("the example uses the types the assessment says it uses", () => {
+    const standard = meta.enabledTypes("standard");
+    const used = new Set(analyseRoot(join(PROJECT_ROOT, "examples", "ledgerly")).model.all().map((e) => e.type));
+    const unused = [...standard].filter((t) => !used.has(t));
+    const claim = /uses (\d+) of the (\d+) types at standard adoption \(all but `(\w+)`\)/.exec(read("docs/01-assessment.md"));
+    assert.ok(claim, "the assessment says how much of the model the example exercises");
+    assert.deepEqual([Number(claim[1]), Number(claim[2]), claim[3]], [used.size, standard.size, unused[0]]);
+    assert.equal(unused.length, 1, "and it leaves out exactly one");
   });
 });
 
