@@ -1,6 +1,6 @@
 // Commands that show the definition: views, impact, the reference, the meta-model.
 import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Failure, UsageError, closest } from "../errors.mjs";
 import { columns, plural, shownPath, wrap } from "../format.mjs";
@@ -9,6 +9,7 @@ import { impactOf, describePath } from "../impact.mjs";
 import { validateMeta } from "../metamodel.mjs";
 import { IMPLEMENTATIONS } from "../checks/index.mjs";
 import { generateReference } from "../refdocs.mjs";
+import { isWithin, realLocation } from "../project.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REFERENCE_DIR = join(HERE, "..", "..", "..", "docs", "reference");
@@ -48,7 +49,7 @@ export const view = {
   summary: "Show one view: a diagram or a table generated from the definition",
   usage: "view [NAME] [ID] [--out FILE]",
   help: "Without a name, lists the views. A view is a projection of the records: change the records and the view follows. Diagrams are Mermaid, which renders in GitHub, most editors and mermaid.live.",
-  flags: { out: { type: "string", doc: "Write to this file instead of printing." } },
+  flags: { out: { type: "string", doc: "Write to this file instead of printing. Relative to where you run the command." } },
   run(ctx) {
     const [name, target] = ctx.args;
     if (!name) {
@@ -65,7 +66,7 @@ export const spec = {
   summary: "The assembled specification of a feature or capability",
   usage: "spec ID [--out FILE]",
   help: "Shorthand for `pds view spec ID`: every flow, screen, rule, requirement, test and open question of the feature in one document, with its diagrams.",
-  flags: { out: { type: "string", doc: "Write to this file instead of printing." } },
+  flags: { out: { type: "string", doc: "Write to this file instead of printing. Relative to where you run the command." } },
   run(ctx) {
     if (!ctx.args[0]) throw new UsageError("spec needs a feature or capability id, for example: pds spec FEAT-send-invoice");
     return emitView(ctx, "spec", ctx.args[0]);
@@ -101,7 +102,7 @@ export const views = {
   usage: "views [--out DIR] [--check]",
   help: "Writes the product-wide views and one specification per feature and capability. Files that were generated earlier and no longer correspond to anything are removed; files you wrote yourself, which lack the generated banner, are never touched. With --check, writes nothing and fails when the folder is out of date.",
   flags: {
-    out: { type: "string", doc: "The folder to write to (default: views_dir from pds.yaml)." },
+    out: { type: "string", doc: "The folder to write to, relative to where you run the command (default: views_dir from pds.yaml)." },
     check: { type: "bool", doc: "Fail if the generated views are out of date; write nothing." },
   },
   run(ctx) {
@@ -110,9 +111,9 @@ export const views = {
     if (misplaced) throw new Failure(`pds.yaml: ${misplaced.msg}. Fix it, or give the folder with --out.`);
     const dir = ctx.flags.out ? resolve(ctx.cwd, ctx.flags.out) : join(ctx.root, a.config.viewsDir);
     // the definition folder is read as records, so generated files must not go in it, and it must not be swept for stale ones
-    const records = join(ctx.root, a.config.definitionDir);
-    const within = (parent, child) => relative(parent, child).split(sep)[0] !== ".." && !isAbsolute(relative(parent, child));
-    if (within(records, dir) || within(dir, records)) throw new UsageError(`${shownPath(ctx.cwd, dir)} is the definition folder, or has it inside, or is inside it. The definition folder is read as records, so generated views belong somewhere else.`);
+    const records = realLocation(join(ctx.root, a.config.definitionDir));
+    const target = realLocation(dir);
+    if (isWithin(records, target) || isWithin(target, records)) throw new UsageError(`${shownPath(ctx.cwd, dir)} is the definition folder, or has it inside, or is inside it. The definition folder is read as records, so generated views belong somewhere else.`);
     const files = plan(a, { up: toRoot(dir, ctx.root) });
     const stale = existingGenerated(dir).filter((f) => !files.has(relative(dir, f).split(/[\\/]/).join("/")));
     const changed = [];
@@ -183,7 +184,7 @@ export const docs = {
   usage: "docs [--out DIR] [--check]",
   help: "The reference lists every element type, relation, rule, check, probe, view and module with counts computed from the meta-model, so it cannot disagree with it. With --check it writes nothing and fails when the committed files are out of date.",
   flags: {
-    out: { type: "string", doc: "The folder to write to (default: docs/reference in the tool)." },
+    out: { type: "string", doc: "The folder to write to, relative to where you run the command (default: docs/reference in the tool)." },
     check: { type: "bool", doc: "Fail if the reference is out of date; write nothing." },
   },
   run(ctx) {

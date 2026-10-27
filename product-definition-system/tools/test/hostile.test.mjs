@@ -5,7 +5,7 @@
 // attacking the tool, not by reading it.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { clip, closest, pathProblem } from "../lib/errors.mjs";
@@ -125,6 +125,46 @@ describe("a pds.yaml that sends files elsewhere", () => {
     }
   });
 
+  it("keeps views_dir inside the project even when it is a link to somewhere else", async (t) => {
+    const root = copyExample();
+    const outside = scratch("pds-outside-views-");
+    if (!link(t, outside, join(root, "evil-views"))) return;
+    addToConfig(root, "views_dir: evil-views\n");
+    const lint = await pds(["lint", "--root", root]);
+    assert.equal(lint.code, 1);
+    assert.match(lint.out, /views_dir \(evil-views\) leads outside the project/);
+    const r = await pds(["views", "--root", root]);
+    assert.equal(r.code, 1, r.err);
+    assert.match(r.err, /leads outside the project/);
+    assert.deepEqual(listFiles(outside), [], "nothing was written through the link");
+  });
+
+  it("will not write views into the definition folder through a link", async (t) => {
+    const root = copyExample();
+    if (!link(t, "definition", join(root, "out-link"))) return;
+    const before = snapshot(root);
+    const r = await pds(["views", "--out", join(root, "out-link"), "--root", root]);
+    assert.equal(r.code, 2, r.err);
+    assert.match(r.err, /definition folder/);
+    assert.deepEqual(snapshot(root), before);
+  });
+
+  it("sees through a capital letter where the file system ignores case", async (t) => {
+    const root = copyExample();
+    if (!existsSync(join(root, "Definition"))) {
+      t.skip("this file system tells Definition from definition");
+      return;
+    }
+    addToConfig(root, "views_dir: Definition\n");
+    const lint = await pds(["lint", "--root", root]);
+    assert.match(lint.out, /one folder, or one is inside the other/);
+    const before = snapshot(root);
+    assert.equal((await pds(["views", "--root", root])).code, 1);
+    const out = await pds(["views", "--out", join(root, "Definition"), "--root", root]);
+    assert.equal(out.code, 2, out.err);
+    assert.deepEqual(snapshot(root), before, "nothing was written into the records");
+  });
+
   it("keeps definition_dir inside the project", async () => {
     const root = copyExample();
     addToConfig(root, "definition_dir: ../elsewhere\n");
@@ -225,6 +265,15 @@ describe("arguments nobody would type", () => {
     const r = await pds(["views", "--out", join(file, "sub"), "--root", LEDGERLY]);
     assert.equal(r.code, 2, r.err);
     assert.match(r.err, /^pds: cannot /);
+  });
+
+  it("says so, and exits 2, when the meta-model it was pointed at cannot be loaded", async () => {
+    const meta = scratch("pds-meta-");
+    cpSync(join(PROJECT_ROOT, "meta-model"), meta, { recursive: true });
+    writeFileSync(join(meta, "element-types.yaml"), "[[[\n");
+    const r = await pds(["meta", "check", "--meta", meta]);
+    assert.equal(r.code, 2, r.out + r.err);
+    assert.match(r.err, /cannot load the meta-model: element-types\.yaml/);
   });
 
   it("refuses a title that would make an impossible file name, and creates nothing", async () => {

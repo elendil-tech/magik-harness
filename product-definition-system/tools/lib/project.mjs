@@ -1,6 +1,6 @@
 // A project: pds.yaml and the definition folder it points at.
 import { readFileSync, readdirSync, realpathSync, statSync, existsSync } from "node:fs";
-import { isAbsolute, join, posix, relative, sep } from "node:path";
+import { basename, dirname, isAbsolute, join, posix, relative, resolve, sep } from "node:path";
 import { parseYaml } from "./yaml.mjs";
 
 export const CONFIG_FILE = "pds.yaml";
@@ -8,6 +8,32 @@ const KNOWN_KEYS = ["pds", "name", "profile", "adoption", "modules", "definition
 
 /** Whether two project-relative folders are the same, or one is inside the other. */
 export const overlap = (a, b) => a === b || a.startsWith(b + "/") || b.startsWith(a + "/");
+
+/** Whether `child` is `parent`, or somewhere inside it. */
+export function isWithin(parent, child) {
+  const r = relative(parent, child);
+  return r === "" || (r !== ".." && !r.startsWith(".." + sep) && !isAbsolute(r));
+}
+
+/**
+ * Where a path really is: the part of it that exists, resolved through links and
+ * through capital letters on a system that ignores case, with the rest added on.
+ * `Views` and `views`, or a link called views, are then seen for what they are.
+ */
+export function realLocation(path) {
+  const rest = [];
+  let here = resolve(path);
+  for (;;) {
+    try {
+      return join(realpathSync.native(here), ...rest);
+    } catch {
+      const up = dirname(here);
+      if (up === here) return resolve(path);
+      rest.unshift(basename(here));
+      here = up;
+    }
+  }
+}
 
 /**
  * Turn the raw pds.yaml mapping into a resolved configuration. Anything the
@@ -151,9 +177,18 @@ export function readProject(meta, root) {
   const raw = parseYaml(readFileSync(cfgPath, "utf8"));
   const { config, problems } = resolveConfig(meta, raw);
   const files = new Map();
+  const real = realpathSync(root);
+  // The views folder is checked against where things really are: a link, or a capital letter on a
+  // system that ignores case, can lead it out of the project or into the folder the records are in.
+  if (!problems.some((p) => p.key === "views_dir")) {
+    const views = realLocation(join(root, config.viewsDir));
+    const records = realLocation(join(root, config.definitionDir));
+    const bad = (msg) => problems.push({ id: "SCH-project", msg, key: "views_dir" });
+    if (!isWithin(real, views)) bad(`views_dir (${config.viewsDir}) leads outside the project, to ${views}`);
+    else if (isWithin(records, views) || isWithin(views, records)) bad(`views_dir (${config.viewsDir}) and definition_dir (${config.definitionDir}) are one folder, or one is inside the other, once links and capital letters are looked through: the views are generated, and everything under the definition folder is read as a record`);
+  }
   const dir = join(root, config.definitionDir);
   if (existsSync(dir)) {
-    const real = realpathSync(root);
     const inside = (path) => path === real || path.startsWith(real + sep);
     const there = realpathSync(dir);
     if (!inside(there)) throw new Error(`${config.definitionDir} is a link to ${there}, outside the project. Records must live inside the project folder.`);

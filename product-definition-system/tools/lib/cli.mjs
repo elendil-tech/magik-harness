@@ -94,7 +94,8 @@ export class Context {
       try {
         this._meta = loadMeta(this.flags.meta ? resolve(this.cwd, this.flags.meta) : DEFAULT_META_DIR);
       } catch (e) {
-        throw new Failure(`cannot load the meta-model: ${e.message}`, 3);
+        // a folder the person pointed --meta at is theirs to put right; the one that ships with the tool is not
+        throw new Failure(`cannot load the meta-model: ${e.message}`, this.flags.meta ? 2 : 3);
       }
     }
     return this._meta;
