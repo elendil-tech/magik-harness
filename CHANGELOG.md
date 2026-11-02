@@ -2,6 +2,13 @@
 
 Releases of magik-harness. The design of record is [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Unreleased
+
+### Added
+
+- **A `linear` pack** (`--packs linear`): an opinionated example policy for a Linear workspace on the Free plan, whose constraint is 250 active issues and 2 teams. One team is the issue home, ventures are initiatives, workstreams are projects, an issue is one PR-sized outcome. It sets a budget (warn at 200, act at 230), creation rules that keep the count down, a tool order (`orca linear`, then the Linear MCP server, then the API for bulk work), and guardrails: deleting issues, retiring a team, bulk moves and archive settings need the owner's approval, with a backup and a reference scan first. The procedures reference covers relieving the cap and folding one team into another, including the traps found doing it (team-scoped labels are dropped by a move, a project must belong to the destination team, old keys keep resolving, deletes go to a 30-day trash).
+- **`linear_usage.py`**, a read-only census for that pack: active issues per team, the open and closed split, the creation rate, days left at that rate, and how many closed issues auto-archive soon. It exits `0`, `1`, `2` or `3` (ok, warn, act, could not run), reads the key from `LINEAR_API_KEY` and never prints it. A test runs it against a local fake of the API and fails if a mutation is ever sent.
+
 ## 2.0.1 — 2026-10-24
 
 GitHub is the only distribution channel. There is no npm package and none is planned.

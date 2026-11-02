@@ -549,7 +549,7 @@ describe("read-only commands", () => {
     assert.equal(doc.version, PLUGIN_VERSION);
     assert.deepEqual(Object.keys(doc.profiles).sort(), ["knowledge", "minimal"]);
     assert.ok(doc.skills.some((s: { name: string }) => s.name === "kb-search"));
-    assert.deepEqual(doc.packs.map((x: { name: string }) => x.name).sort(), ["ci-runners", "worktrees"]);
+    assert.deepEqual(doc.packs.map((x: { name: string }) => x.name).sort(), ["ci-runners", "linear", "worktrees"]);
     assert.deepEqual(doc.tools.map((t: { id: string }) => t.id), ["cursor", "claude", "codex", "generic"]);
   });
 

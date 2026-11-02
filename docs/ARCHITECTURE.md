@@ -250,6 +250,7 @@ Opt-in bundles of opinionated skills, listed by `magik-harness list`, installed 
 | --- | --- | --- |
 | `worktrees` | `worktree-audit` | worktree location convention, inventory of every worktree, fail-closed removal guard (needs `python3` and `git`; POSIX) |
 | `ci-runners` | `ci-runners` | an opinionated policy for private GitHub repos: hosted pool first, managed runners as overflow, local-first CI. An *example* of a team policy delivered as a pack; adapt or skip |
+| `linear` | `linear` | an opinionated policy for a Linear workspace on the Free plan (250 active issues, 2 teams): one team, ventures as initiatives, PR-sized issues, a weekly census against the cap, a guarded way to relieve it, and a read-only census tool (needs `python3` and a `LINEAR_API_KEY`). Also an *example* of a team policy; adapt or skip |
 
 A pack is `packs/<name>/pack.json` plus `packs/<name>/skills/<skill>/`. Packs are the extension point for team- or company-specific policy: a private repo can ship its own packs and install them with `--pack-dir`.
 

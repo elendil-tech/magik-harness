@@ -336,11 +336,11 @@ describe("catalog and profiles", () => {
   const catalog = loadCatalog();
   const { profiles } = loadProfiles();
 
-  it("ships the core skills and the two opt-in packs", () => {
+  it("ships the core skills and the opt-in packs", () => {
     for (const name of ["harness", "harness-memory", "knowledge-base", "kb-conventions", "kb-search", "kb-sanitize", "kb-code-sync", "agentic-e2e-loop", "harness-fit"]) {
       assert.ok(catalog.all.has(name), `core skill ${name} is missing`);
     }
-    assert.deepEqual(catalog.packs.map((p) => p.name).sort(), ["ci-runners", "worktrees"]);
+    assert.deepEqual(catalog.packs.map((p) => p.name).sort(), ["ci-runners", "linear", "worktrees"]);
   });
 
   it("every profile names skills that exist", () => {
