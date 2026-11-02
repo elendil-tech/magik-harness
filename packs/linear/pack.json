@@ -1,0 +1,8 @@
+{
+  "description": "An opinionated example Linear policy for a workspace on the Free plan (250 active issues, 2 teams, no sub-teams): one team as the issue home, ventures as initiatives, PR-sized issues, a weekly census against the cap, and a guarded way to relieve it, plus a read-only census tool.",
+  "requires": {
+    "commands": [
+      "python3"
+    ]
+  }
+}
