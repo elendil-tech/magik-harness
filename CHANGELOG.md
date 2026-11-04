@@ -4,6 +4,10 @@ Releases of magik-harness. The design of record is [docs/ARCHITECTURE.md](docs/A
 
 ## Unreleased
 
+### Fixed
+
+- **The `linear` pack no longer says the Free plan can only auto-archive or that only the app can retire a team.** Both were wrong when checked against a live workspace in November 2026: `issueArchive` archives a closed issue by hand (reversible with `issueUnarchive`), and `teamUpdate` with `retiredAt` retires a team. The relief procedure now lists archiving by hand first.
+
 ### Added
 
 - **A `linear` pack** (`--packs linear`): an opinionated example policy for a Linear workspace on the Free plan, whose constraint is 250 active issues and 2 teams. One team is the issue home, ventures are initiatives, workstreams are projects, an issue is one PR-sized outcome. It sets a budget (warn at 200, act at 230), creation rules that keep the count down, a tool order (`orca linear`, then the Linear MCP server, then the API for bulk work), and guardrails: deleting issues, retiring a team, bulk moves and archive settings need the owner's approval, with a backup and a reference scan first. The procedures reference covers relieving the cap and folding one team into another, including the traps found doing it (team-scoped labels are dropped by a move, a project must belong to the destination team, old keys keep resolving, deletes go to a 30-day trash).
