@@ -18,7 +18,7 @@ The creation rate is a lower bound: an issue that was created and then deleted l
 
 Use when the census says *act*, or before a bulk creation that would cross the cap. Order matters: the cheap, reversible steps come first.
 
-1. **Size the relief first, then pick the candidates by rule, not by eye.** The slots you need are roughly the creation rate times the days until the first auto-archive wave, minus the headroom. Closed issues (completed or canceled) that nobody has touched in a fixed number of days are the safe set. Say the rule and the count out loud, and list a sample. Count what the rule really frees before asking for approval: in a young, fast-growing workspace a staleness rule frees very little (one real run: 4 slots out of 228, because most of the backlog was under two weeks old). When the safe set is smaller than the need, the lever is the creation rate, not deletion: stop creating the issues, or move the unstructured backlog (no project, no assignee) into a document and recreate them when the work starts. Do not judge staleness by the last-updated date after any bulk move or edit; it resets for every touched issue.
+1. **Size the relief first, then pick the candidates by rule, not by eye.** The slots you need are roughly the creation rate times the days until the first auto-archive wave, minus the headroom. Closed issues (completed or canceled) that nobody has touched in a fixed number of days are the safe set. Say the rule and the count out loud, and list a sample. Count what the rule really frees before asking for approval: in a young, fast-growing workspace a staleness rule frees very little (one real run: 4 slots out of 228, because most of the backlog was under two weeks old). The cheapest reversible lever comes first: archive the closed issues by hand instead of waiting for auto-archive (`mutation($id: String!) { issueArchive(id: $id) { success } }`; undo with `issueUnarchive`). When the safe set is smaller than the need, the lever is the creation rate, not deletion: stop creating the issues, or move the unstructured backlog (no project, no assignee) into a document and recreate them when the work starts. Do not judge staleness by the last-updated date after any bulk move or edit; it resets for every touched issue.
 2. **Get approval** for the exact set, as the [guardrails](../SKILL.md#guardrails) require.
 3. **Back up.** Write every candidate (id, key, title, state, created, closed and updated dates, description) to a durable file outside the repository. A deleted issue cannot be restored from the API.
 4. **Scan for references.** Search the repositories and the knowledge base for each key. A key in a commit message is harmless; a key in a doc that the reader is told to follow is not. Note them for step 7.
@@ -62,11 +62,11 @@ Use to retire a second team (the Free plan allows two) without losing issues. Th
    Prefer workspace-level labels from the start, so there is nothing to repair.
 6. **Check that the old keys resolve** (they redirect to the new keys), then repair the references that name them, using the map from step 4.
 7. **Look for what the census cannot see before you touch the team.** Query its issues with `includeArchived: true` and count the archived and the trashed ones: they are not active, so the census calls the team empty, yet deleting the team deletes them too. Export them (key, title, state, dates, description) to a durable file first. If they matter, retire the team instead of deleting it.
-8. **Retire the team in the app** (Settings, Teams), which keeps its history. The API can only delete a team, so leave that to the owner, and only with the archived and trashed counts in front of them.
+8. **Retire the team**, which keeps its history: in the app (Settings, Teams), or `mutation($id: String!, $t: DateTime!) { teamUpdate(id: $id, input: { retiredAt: $t }) { success } }`. Deleting a team is a separate act: leave it to the owner, and only with the archived and trashed counts in front of them.
 
 ## Auto-archive
 
-The only archiving the Free plan has. Set it per team; the minimum is one month and the unit is months.
+Linear's automatic archiving (archiving by hand also works; see [Relieve the cap](#relieve-the-cap)). Set it per team; the minimum is one month and the unit is months.
 
 ```graphql
 mutation($id: String!, $v: Float!) { teamUpdate(id: $id, input: { autoArchivePeriod: $v }) { success team { autoArchivePeriod } } }
